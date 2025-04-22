@@ -1,38 +1,48 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import { Layout, Menu, Drawer, Button, Card, Row, Col } from 'antd';
+import { MenuOutlined } from '@ant-design/icons';
 
-function App() {
-  const [count, setCount] = useState(0)
+const { Header, Content, Footer } = Layout;
+
+const App = () => {
+  const [visible, setVisible] = useState(false);
+
+  const showDrawer = () => setVisible(true);
+  const closeDrawer = () => setVisible(false);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <h1 class="text-3xl bg-purple-700 font-bold underline">
-          React 19 with Tailwind CSS v4
-        </h1>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <Layout>
+      <Header>
+        <Button type="text" icon={<MenuOutlined />} onClick={showDrawer} />
+        <Drawer placement="left" onClose={closeDrawer} visible={visible}>
+          <Menu mode="inline">
+            <Menu.Item key="1">Home</Menu.Item>
+            <Menu.Item key="2">Shop</Menu.Item>
+            <Menu.Item key="3">About Us</Menu.Item>
+            <Menu.Item key="4">Contact</Menu.Item>
+          </Menu>
+        </Drawer>
+      </Header>
 
-export default App
+      <Content style={{ padding: '0 50px', marginTop: 64 }}>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Card title="Jabador" bordered={false}>Product 1</Card>
+          </Col>
+          <Col span={8}>
+            <Card title="Gandoura" bordered={false}>Product 2</Card>
+          </Col>
+          <Col span={8}>
+            <Card title="Djellaba" bordered={false}>Product 3</Card>
+          </Col>
+        </Row>
+      </Content>
+
+      <Footer style={{ textAlign: 'center' }}>
+        © 2025 Jabador. All rights reserved.
+      </Footer>
+    </Layout>
+  );
+};
+
+export default App;
