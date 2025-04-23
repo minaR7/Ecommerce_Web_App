@@ -12,7 +12,15 @@ const App = () => {
 
   return (
     <Layout>
-      <Header>
+      <Header style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          height: '70px',
+        }}>
         <Button type="text" icon={<MenuOutlined />} onClick={showDrawer} />
         <Drawer placement="left" onClose={closeDrawer} visible={visible}>
           <Menu mode="inline">
@@ -24,7 +32,7 @@ const App = () => {
         </Drawer>
       </Header>
 
-      <Content style={{ padding: '0 50px', marginTop: 64 }}>
+      <Content style={{ padding: '0 50px', marginTop: 64, minHeight: "78vh" }}>
         <Row gutter={16}>
           <Col span={8}>
             <Card title="Jabador" bordered={false}>Product 1</Card>
@@ -38,7 +46,7 @@ const App = () => {
         </Row>
       </Content>
 
-      <Footer style={{ textAlign: 'center' }}>
+      <Footer style={{ textAlign: 'center', height: '4rem', background: 'aquamarine', }}>
         © 2025 Jabador. All rights reserved.
       </Footer>
     </Layout>
