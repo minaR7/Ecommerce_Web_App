@@ -54,7 +54,7 @@ export const products = [
         productDescription: 'A beautifully crafted white djellaba made from premium cotton.',
         productReviews: ['Great quality!', 'Very comfortable.', 'Loved the fabric.'],
         productSizes: ['S', 'M', 'L', 'XL'],
-        productColors: ['White', 'Black'],
+        productColors: ['#000000', '#b91c1c', '#047857', '#4b5563', '#312e81'],
         price: {
             S: 50,
             M: 55,
@@ -80,7 +80,7 @@ export const products = [
         productDescription: 'A beautifully crafted white djellaba made from premium cotton.',
         productReviews: ['Great quality!', 'Very comfortable.', 'Loved the fabric.'],
         productSizes: ['S', 'M', 'L', 'XL'],
-        productColors: ['White', 'Black'],
+        productColors:  ['#000000', '#4b5563', '#312e81'],
         price: {
             S: 50,
             M: 55,
@@ -106,7 +106,7 @@ export const products = [
         productDescription: 'A beautifully crafted white djellaba made from premium cotton.',
         productReviews: ['Great quality!', 'Very comfortable.', 'Loved the fabric.'],
         productSizes: ['S', 'M', 'L', 'XL'],
-        productColors: ['White', 'Black'],
+        productColors: ['white', 'black'],
         price: {
             S: 50,
             M: 55,

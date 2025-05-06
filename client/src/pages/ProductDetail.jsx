@@ -2,8 +2,11 @@
 import {React, useState, useEffect} from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { products, subcategories } from '../../data/products';
-import { Rate, Button, Select, Breadcrumb, Tag, Row, Col } from 'antd';
+import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber, Tooltip } from 'antd';
 import { FaCcVisa, FaCcMastercard, FaCcPaypal, FaGooglePay } from 'react-icons/fa';
+import { HeartOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { CheckOutlined } from '@ant-design/icons';
+import { GoArrowRight } from "react-icons/go";
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -14,6 +17,10 @@ const ProductDetail = () => {
         return <div style={{ padding: '20px' }}>Product not found.</div>;
     }
     const subcategoryLabel = subcategories.find(s => s.key === product.subcategory)?.label || product.subcategory;
+
+    const onChange = value => {
+        console.log('changed', value);
+      };
 
     return (
         <div style={{ backgroundColor: 'white' }}>
@@ -61,7 +68,7 @@ const ProductDetail = () => {
                     <div className="mt-5">
                         <h2 className="text-xl font-semibold" >{`${product.productDescription}`}</h2>
                     </div>
-                    <h3 className="text-xl font-semibold mt-5">Sizes:</h3>
+                    <h3 className="text-xl font-semibold mt-4">Sizes:</h3>
                     {/* <div style={{ display: 'flex', gap: '8px', marginTop: '4px', width: "inherit", }}>
                         {product.productSizes.map(size => (
                             <Tag key={size} style={{ flex: '1 1 4%', textAlign: 'center' }}>{size}</Tag>
@@ -76,8 +83,81 @@ const ProductDetail = () => {
                         <Button type="primary" style={{ marginLeft: '8px', backgroundColor: "rgb(71, 89, 122)" }}>Size Chart</Button>
                     </div>
 
-{/* Quantity addtocart wishlist colors */}
-                    <div className="mt-5">
+                    <h3 className="text-xl font-semibold mt-2">Colors:</h3>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                        {product.productColors.map((color, index) => (
+                             <div style={{
+                                 backgroundColor: 'inherit',
+                                 border: '1px solid black',
+                                 borderRadius: '50%',
+                                 padding: 'none',
+                                 width: '30px',
+                                 height: '30px',
+                                 cursor: 'pointer',
+                                 display: 'flex',
+                                 alignItems: 'center',
+                                 justifyContent: 'center',
+                             }}
+                         > <Button
+                                key={index}
+                                style={{
+                                    backgroundColor: color,
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    padding: '10px',
+                                    width: '24px',
+                                    height: '24px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                                onClick={() => console.log(`Selected color: ${color}`)} // Handle color selection
+                            >
+                                {/* Optional: You can add an icon or text inside the button if needed */}
+                            </Button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <Row className="mt-2">
+                        <Col style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: "100%" }}>
+                            <div style={{ display: 'flex', }}>
+                                <h3 className="text-xl font-semibold mr-2">Quantity:</h3>
+                                <InputNumber min={1} max={10} defaultValue={1} onChange={onChange} />
+                            </div>
+
+                        {/* addtocart wishlist  */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center',  width: "100%", marginLeft: "1rem" }}>
+                                <Tooltip title="Add to Wishlist">
+                                    <Button
+                                        shape="circle"
+                                        icon={<HeartOutlined />}
+                                        style={{ backgroundColor: 'black', color: 'white', fontWeight: "500", marginRight: '8px', }}
+                                        disabled={!product.isStock}
+                                    />
+                                </Tooltip>
+                                <Button
+                                    type="primary"
+                                    style={{ backgroundColor: 'black', borderColor: 'black', marginRight: '8px', color: "white", fontWeight: "500"}}
+                                    disabled={!product.isStock}
+                                >
+                                    <ShoppingCartOutlined></ShoppingCartOutlined>Add to Cart
+                                </Button>
+                                
+                                <Button
+                                    type="primary"
+                                    style={{ backgroundColor: 'black', borderColor: 'black', marginRight: '8px', color: "white", fontWeight: "500"}}
+                                    disabled={!product.isStock}
+                                >
+                                    <GoArrowRight></GoArrowRight>Proceed to Checkout
+                                </Button>
+                            </div>
+                        </Col>
+                    </Row>
+
+                    { /* Details */}
+                    <div className="mt-3">
                         <h3 className="text-lg font-semibold">Collection:</h3>
                         <p>Click & Collect - Select store at checkout.</p>
                         <h3 className="text-lg font-semibold">Postage:</h3>
