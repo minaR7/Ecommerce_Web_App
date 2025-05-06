@@ -42,14 +42,15 @@ const Home = () => {
                 </p>
             </div>
             {/* <div style={{ width: '100%', padding: '2rem 6rem 1em', margin: '16px 0px'}}> */}
-                <Row > 
+                <Row className='mt-8 flex justify-center' style={{paddingBottom: '32px',}}> 
                     {subcategories.map((sub) => (
-                        <Col xs={24} sm={12} md={8} lg={6} key={sub.key}>
+                        <Col xs={24} sm={12} md={8} lg={6} key={sub.key} className='mx-8'>
                         <Link to={`/men/${sub.key}`}>
                             <Card
                                 hoverable
-                                cover={<img alt={sub.label} src={sub.img} />}
-                                style={{ position: 'relative',  boxShadow: '2px 3px 4px lightgray', fontSize: '20px', color: 'black' }}
+                                cover={<img alt={sub.label} src={sub.img} width={300} height={320}  />}
+                                style={{ position: 'relative',  fontSize: '20px', color: 'black' }}
+                                className="home-page-card"
                             >
                             </Card>  
                         </Link>

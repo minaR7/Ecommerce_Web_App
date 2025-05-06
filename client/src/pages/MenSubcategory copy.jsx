@@ -36,8 +36,7 @@ const MenSubcategory = () => {
     const subcategoryLabel = subcategories.find(s => s.key === subcategory)?.label || subcategory;
     console.log(subcategory)
     return (
-        <div style={{ padding: '20px', margin: "0px 24px" , display: "flex", flexDirection: "column", 
-            alignItems: "start"}}>
+        <div style={{ padding: '20px', margin: "0px 24px" , display: "flex", flexDirection: "column", alignItems: "start"}}>
             <Breadcrumb style={{ marginBottom: '16px' }}>
                 <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
                 <Breadcrumb.Item><Link to="/men">Men</Link></Breadcrumb.Item>
