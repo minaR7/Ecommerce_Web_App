@@ -159,3 +159,28 @@ button:focus-visible {
   font-weight: 400;
   color: #000;
 }
+
+.home-page-card .ant-card-body {
+  padding: 0px ;
+  border-radius: 0 0 8px 8px;
+}
+
+.home-page-card .ant-card-cover {
+  padding: 0px ;
+  border-radius: 0 8px 8px 8px;
+}
+
+
+/* ----------------------- */
+.product-details {
+  display: flex;
+  justify-content: space-between;
+}
+
+.image-gallery {
+  flex: 1;
+}
+
+.product-info {
+  flex: 1;
+}

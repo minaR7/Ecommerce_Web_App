@@ -42,6 +42,7 @@ export const products = [
             XL: true
         },
         image: '/assets/moroccan-thobes.jpg.webp',
+        imgs: ['/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp'],
         rating: 4.4,
         reviewCount:'6,377',
         isStock: false,
@@ -67,6 +68,7 @@ export const products = [
             XL: true
         },
         image: '/assets/moroccan-thobes.jpg.webp',
+        imgs: ['/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp'],
         rating: 3.4,
         reviewCount:'17',
         isStock: true,
@@ -91,7 +93,8 @@ export const products = [
             L: false,
             XL: true
         },
-        image: '/assets/moroccan-thobes.jpg.webp',
+        image: '/assets/jabador-man.jpg.webp',
+        imgs: ['/assets/jabador-man.jpg.webp', '/assets/moroccan-thobes.jpg.webp', '/assets/jabador-white-and-gold-503x800.jpg', '/assets/moroccan-thobes.jpg.webp', '/assets/djellaba-man.jpg.webp'],
         rating: 4.1,
         reviewCount:'377',
         isStock: true,
@@ -117,6 +120,7 @@ export const products = [
             XL: true
         },
         image: '/assets/moroccan-thobes.jpg.webp',
+        imgs: ['/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp'],
         rating: 4.4,
         reviewCount:'6,377',
         isStock: false,
@@ -142,6 +146,7 @@ export const products = [
             XL: true
         },
         image: '/assets/moroccan-thobes.jpg.webp',
+        imgs: ['/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp', '/assets/moroccan-thobes.jpg.webp'],
         rating: 3.4,
         reviewCount:'17',
         isStock: true,
@@ -165,6 +170,7 @@ export const products = [
             XL: true
         },
         image: '/assets/moroccan-thobes.jpg.webp',
+        imgs: ['/assets/moroccan-thobes.jpg.webp'],
         rating: 4.4,
         reviewCount:'6,377',
         isStock: true,
