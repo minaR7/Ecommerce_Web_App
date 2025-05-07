@@ -1,17 +1,18 @@
 {
-  "name": "ecommerce-backend",
+  "name": "ecommerce_morocco",
   "version": "1.0.0",
-  "description": "",
+  "description": "An ecommerce web application for moroccan styled clothing products",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js"
+    "start": "nodemon index.js"
   },
-  "author": "",
+  "author": "Momina",
   "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",
     "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "mssql": "^11.0.1"
   },
