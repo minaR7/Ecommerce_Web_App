@@ -1,8 +1,9 @@
 // pages/ProductDetail.jsx
 import {React, useState, useEffect} from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { products, subcategories } from '../../data/products';
-import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber, Tooltip } from 'antd';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProductById } from '../redux/slices/productSlice';
+import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber,Tooltip, Radio } from 'antd';
 import { FaCcVisa, FaCcMastercard, FaCcPaypal, FaGooglePay } from 'react-icons/fa';
 import { HeartOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { CheckOutlined } from '@ant-design/icons';
@@ -10,42 +11,75 @@ import { GoArrowRight } from "react-icons/go";
 
 const ProductDetail = () => {
     const { id } = useParams();
-    const product = products.find(item => item.productId === id);
-    const [selectedImage, setSelectedImage] = useState(product.imgs[0]);
+    const dispatch = useDispatch();
+    const { product, loading, error } = useSelector((state) => state.products || {});
+    const [selectedImage, setSelectedImage] = useState('');
+    const [selectedSize, setSelectedSize] = useState('');
+    const [selectedColor, setSelectedColor] = useState('');
+    const [selectedVariant, setSelectedVariant] = useState('');
 
-    if (!product) {
-        return <div style={{ padding: '20px' }}>Product not found.</div>;
-    }
-    const subcategoryLabel = subcategories.find(s => s.key === product.subcategory)?.label || product.subcategory;
+    useEffect(() => {
+        dispatch(fetchProductById(id)); // Fetch product details based on ID from the URL
+    }, []);
 
-    const onChange = value => {
-        console.log('changed', value);
-      };
+    
+    const productSizes = [...new Set(product?.variants?.map((v) => v.size))];
+    const productColors = [...new Set(product?.variants?.map((v) => v.color))];
+
+    useEffect(() => {
+      if (product) {
+        setSelectedImage(product.cover_img); // Default to the first image
+        setSelectedSize(productSizes[0])
+        setSelectedColor(productColors[0])
+      }
+    }, [product]);
+
+    useEffect(() => {
+        if (selectedColor && selectedSize) {
+            setSelectedVariant(product?.variants?.find((v) => v.size === selectedSize && v.color === selectedColor ))
+            console.log(selectedColor, selectedSize, selectedVariant)
+        }
+      }, [selectedColor, selectedSize]);
+  
+    const handleSizeSelect = (size) => {
+      setSelectedSize(size);
+    };
+  
+    const handleColorSelect = (color) => {
+        console.log('tets')
+      setSelectedColor(color);
+    };
+  
+    // const cvariant = product?.variants?.find((v) => v.size === selectedSize && v.color === selectedColor )
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error}</div>;
+    if (!product) return <div>Product not found.</div>;
 
     return (
         <div style={{ backgroundColor: 'white' }}>
             <div style={{ width: '100%', padding: '2rem 6rem 1rem', backgroundColor: 'rgba(132, 152, 176, 0.5)', margin: '16px 0px' }}>
                 <Breadcrumb style={{ marginBottom: '16px', font: '32px', color: 'black' }}>
                     <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
-                    <Breadcrumb.Item><Link to="/men">Men</Link></Breadcrumb.Item>
-                    <Breadcrumb.Item><Link to={`/men/${product.subcategory}`}>{subcategoryLabel}</Link> </Breadcrumb.Item>
-                    <Breadcrumb.Item><Link to={`/men/${product.subcategory}/${product.productId}`}>{product.productName}</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/men/${product.category}`}>{product.category}</Link> </Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/men/${product.subcategory}`}>{product.subcategory}</Link> </Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/product/${product.productId}`}>{product.name}</Link></Breadcrumb.Item>
                 </Breadcrumb>
                 {/* <h1 className="text-xxl font-semibold" style={{ margin: '16px 0', color: "rgb(71, 89, 122)" }}>{product.productName}</h1> */}
             </div>
 
-            <Row className=" md:flex-row mx-2 px-3" style={{minHeight: "75vh",}}>
+            <div className="flex md:flex-row mx-2 px-3" style={{minHeight: "75vh",}}>
                 {/* h-[50vh] First Column */}
                 {/* <div className="flex flex-col */}
-                <Col className="flex flex-col w-full md:w-1/2 mt-2" style={{height: "80vh",}}>
+                <Col className=" w-full md:w-1/2 mt-2" style={{height: "80vh",}}>
                     {/* First Child Container */}
                     <div className="flex items-center justify-center h-[70%]">
-                        <img src={selectedImage} alt={product.productName} className="object-contain w-full h-full" />
+                        <img src={selectedImage} alt={product.name} className="object-contain w-full h-full" />
                     </div>
 
                     {/* Second Child Container */}
                     <div className="flex items-center justify-center h-[26%] overflow-x-auto">
-                        {product.imgs.map((img, index) => (
+                        {/* {product.images.map((img, index) => (
                             <div
                                 key={index}
                                 className="flex-shrink-0 w-24 h-24 mx-2 cursor-pointer"
@@ -53,178 +87,192 @@ const ProductDetail = () => {
                             >
                                 <img src={img} alt={`Thumbnail ${index}`} className="object-cover w-full h-full" />
                             </div>
-                        ))}
+                        ))} */}
                     </div>
                 </Col>
 
                 {/* Second Column */}
-                <Col className="w-full md:w-1/2 p-8 bg-[#f5f5f5]" style={{height: "80vh", borderRadius: "1rem"}} >
-                    <h1 className="text-2xl font-semibold ">{product.productName}</h1>
-                    <h2 className="text-xl font-semibold mt-2" style={{color: "rgb(71, 89, 122)"}}>{`$${product.price.M}`}</h2>
-                    <div className="mt-2">
-                        <Rate disabled value={product.rating} />
-                    </div>
-
-                    <div className="mt-5">
-                        <h2 className="text-xl font-semibold" >{`${product.productDescription}`}</h2>
-                    </div>
-                    <h3 className="text-xl font-semibold mt-4">Sizes:</h3>
-                    {/* <div style={{ display: 'flex', gap: '8px', marginTop: '4px', width: "inherit", }}>
-                        {product.productSizes.map(size => (
-                            <Tag key={size} style={{ flex: '1 1 4%', textAlign: 'center' }}>{size}</Tag>
-                        ))}
-                    </div> */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                        <div style={{ display: 'flex', gap: '8px', width: "50%" }}>
-                            {product.productSizes.map(size => (
-                                <Tag key={size} style={{ flex: '1 1 50%', textAlign: 'center' }}>{size}</Tag>
-                            ))}
-                        </div>
-                        <Button type="primary" style={{ marginLeft: '8px', backgroundColor: "rgb(71, 89, 122)" }}>Size Chart</Button>
-                    </div>
-
-                    <h3 className="text-xl font-semibold mt-2">Colors:</h3>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                        {product.productColors.map((color, index) => (
-                             <div style={{
-                                 backgroundColor: 'inherit',
-                                 border: '1px solid black',
-                                 borderRadius: '50%',
-                                 padding: 'none',
-                                 width: '30px',
-                                 height: '30px',
-                                 cursor: 'pointer',
-                                 display: 'flex',
-                                 alignItems: 'center',
-                                 justifyContent: 'center',
-                             }}
-                         > <Button
-                                key={index}
-                                style={{
-                                    backgroundColor: color,
-                                    border: 'none',
-                                    borderRadius: '50%',
-                                    padding: '10px',
-                                    width: '24px',
-                                    height: '24px',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}
-                                onClick={() => console.log(`Selected color: ${color}`)} // Handle color selection
-                            >
-                                {/* Optional: You can add an icon or text inside the button if needed */}
-                            </Button>
-                            </div>
-                        ))}
-                    </div>
-
-                    <Row className="mt-2">
-                        <Col style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: "100%" }}>
-                            <div style={{ display: 'flex', }}>
-                                <h3 className="text-xl font-semibold mr-2">Quantity:</h3>
-                                <InputNumber min={1} max={10} defaultValue={1} onChange={onChange} />
-                            </div>
-
-                        {/* addtocart wishlist  */}
-                            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center',  width: "100%", marginLeft: "1rem" }}>
-                                <Tooltip title="Add to Wishlist">
-                                    <Button
-                                        shape="circle"
-                                        icon={<HeartOutlined />}
-                                        style={{ backgroundColor: 'black', color: 'white', fontWeight: "500", marginRight: '8px', }}
-                                        disabled={!product.isStock}
-                                    />
-                                </Tooltip>
-                                <Button
-                                    type="primary"
-                                    style={{ backgroundColor: 'black', borderColor: 'black', marginRight: '8px', color: "white", fontWeight: "500"}}
-                                    disabled={!product.isStock}
-                                >
-                                    <ShoppingCartOutlined></ShoppingCartOutlined>Add to Cart
-                                </Button>
-                                
-                                <Button
-                                    type="primary"
-                                    style={{ backgroundColor: 'black', borderColor: 'black', marginRight: '8px', color: "white", fontWeight: "500"}}
-                                    disabled={!product.isStock}
-                                >
-                                    <GoArrowRight></GoArrowRight>Proceed to Checkout
-                                </Button>
-                            </div>
-                        </Col>
-                    </Row>
-
-                    { /* Details */}
+                <Col className="w-full md:w-1/2 p-8 bg-[#f5f5f5] overflow-hidden" style={{ height: "80vh", borderRadius: "1rem", overflowY: "auto" }}>
+                    <h1 className="text-2xl font-semibold ">{product.name}</h1>
+                    <h2 className="text-xl font-semibold mt-3" style={{ color: "rgb(71, 89, 122)" }}>{`$${product.price}`}</h2>
                     <div className="mt-3">
-                        <h3 className="text-lg font-semibold">Collection:</h3>
-                        <p>Click & Collect - Select store at checkout.</p>
-                        <h3 className="text-lg font-semibold">Postage:</h3>
-                        <p className="text-green-600">Free delivery in 2-3 days</p>
-                        <p>Estimated between Tue, 29 Apr and Wed, 30 Apr to T45. See details</p>
-                        <h3 className="text-lg font-semibold">Returns:</h3>
-                        <p>30 days return. Seller pays for return postage. See details</p>
-                        <h3 className="text-lg font-semibold">Payments:</h3>
-                        <div className="flex space-x-2">
-                        <img src="/assets/icons/paypal-3-svgrepo-com.svg" alt="PayPal" className="w-10"/>
-                        <img src="/assets/icons/google-pay-svgrepo-com.svg" alt="Google Pay" className="w-10"/>
-                        <img src="/assets/icons/klarna-svgrepo-com.svg" alt="Klarna" className="w-10"/>
-                        <img src="/assets/icons/visa-svgrepo-com (1).svg" alt="VISA" className="w-10"/>
-                        <img src="/assets/icons/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10"/>
+                    <Rate disabled value={parseFloat(product.avg_rating)} />
+                    </div>
+
+                    <div className="mt-4">
+                        <h2 className="text-xl font-medium text-gray-800">{product.description}</h2>
+                    </div>
+
+                    {/* Sizes Label + Tags + Size Chart Button */}
+                    <div className="flex items-center justify-between mt-4 flex-wrap">
+                       <div className="flex">
+                            <h3 className="text-xl font-semibold mr-2">Sizes:</h3>
+                            <div className="flex gap-2 flex-wrap">
+                                {productSizes.map(size => (
+                                <Tag
+                                    key={size}
+                                    value={selectedSize}
+                                    style={{
+                                    textAlign: 'center',
+                                    backgroundColor: size === selectedSize ? 'lightblue' : '',
+                                    cursor: 'pointer',
+                                    padding: '2px 16px',
+                                    fontSize: '16px',
+                                    fontWeight: '400',
+                                    }}
+                                    onClick={() => handleSizeSelect(size)}
+                                >
+                                    {size}
+                                </Tag>
+                                ))}
+                            </div>
+                       </div>
+                        <div className="flex">
+                            <Button type="primary" style={{ backgroundColor: "rgb(71, 89, 122)" }}>Size Chart</Button>
                         </div>
-                        <p className="mt-2">3 payments of £15.00 with Klarna. Learn more</p>
+                    </div>
+
+                    {/* Colors */}
+                    {/* <h3 className="text-xl font-semibold mt-4">Colors:</h3>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                    {productColors.map((color, index) => (
+                        console.log(color),
+                        <div key={index} style={{
+                        backgroundColor: 'inherit',
+                        border: '1px solid black',
+                        borderRadius: '50%',
+                        width: '30px',
+                        height: '30px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        }}>
+                        <Button
+                        value={selectedColor}
+                            style={{
+                            backgroundColor: color,
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '24px',
+                            height: '24px',
+                            cursor: 'pointer',
+                            }}
+                            onClick={() => handleColorSelect(color)}
+                        ></Button>
+                        </div>
+                    ))}
+                    </div> */}
+
+<h3 className="text-xl font-semibold mt-4">Colors:</h3>
+<Radio.Group
+  value={selectedColor}
+  onChange={(e) => handleColorSelect(e.target.value)}
+  style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px',  }}
+>
+  {productColors.map((color, index) => (
+    <Tooltip title={color} key={index}>
+      <Radio.Button
+        value={color}
+        style={{
+            border: selectedColor === color ? '2px solid blue' : '1px solid black',
+            borderRadius: '50%',
+            width: '30px',
+            height: '30px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+      >
+        {/* <div
+          style={{
+            border: selectedColor === color ? '2px solid blue' : '1px solid black',
+            borderRadius: '50%',
+            width: '30px',
+            height: '30px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >*/}
+          <div
+            style={{
+              backgroundColor: color,
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+            }}
+          >
+        </div> 
+      </Radio.Button>
+    </Tooltip>
+  ))}
+</Radio.Group>
+
+
+                    {/* Stock Status */}
+                    {selectedSize && selectedColor && (
+                        <p className={`mt-3  font-semibold ${selectedVariant?.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {selectedVariant?.stock_quantity > 0 ? 'In stock' : 'Out of stock'}
+                        </p>
+                    )}
+
+                    {/* Quantity + Wishlist + Cart Buttons */}
+                    <div className="flex flex-col mt-3 gap-2">
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-semibold">Quantity:</h3>
+                        <InputNumber min={1} max={10} defaultValue={1} onChange={(value) => console.log('changed', value)} />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Tooltip title="Add to Wishlist">
+                        <Button
+                            shape="circle"
+                            icon={<HeartOutlined />}
+                            style={{ backgroundColor: 'black', color: 'white', fontWeight: "500" }}
+                            disabled={!product.isStock}
+                        />
+                        </Tooltip>
+                        <Button
+                        type="primary"
+                        style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500" }}
+                        disabled={!product.isStock}
+                        >
+                        <ShoppingCartOutlined /> Add to Cart
+                        </Button>
+                        <Button
+                        type="primary"
+                        style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500" }}
+                        disabled={!product.isStock}
+                        >
+                        <GoArrowRight /> Proceed to Checkout
+                        </Button>
+                    </div>
+                    </div>
+
+                    {/* Details */}
+                    <div className="mt-4">
+                    <h3 className="text-lg font-semibold">Collection:</h3>
+                    <p className="text-gray-700">Click & Collect - Select store at checkout.</p>
+                    <h3 className="text-lg font-semibold">Postage:</h3>
+                    <p className="text-green-600">Free delivery in 2-3 days</p>
+                    <p className="text-gray-700">Estimated between Tue, 29 Apr and Wed, 30 Apr to T45. See details</p>
+                    <h3 className="text-lg font-semibold">Returns:</h3>
+                    <p className="text-gray-700">30 days return. Seller pays for return postage. See details</p>
+                    <h3 className="text-lg font-semibold">Payments:</h3>
+                    <div className="flex space-x-2">
+                        <img src="/assets/icons/paypal-3-svgrepo-com.svg" alt="PayPal" className="w-10" />
+                        <img src="/assets/icons/google-pay-svgrepo-com.svg" alt="Google Pay" className="w-10" />
+                        <img src="/assets/icons/klarna-svgrepo-com.svg" alt="Klarna" className="w-10" />
+                        <img src="/assets/icons/visa-svgrepo-com (1).svg" alt="VISA" className="w-10" />
+                        <img src="/assets/icons/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10" />
+                    </div>
+                    <p className="mt-2 text-gray-700">3 payments of £15.00 with Klarna. Learn more</p>
                     </div>
                 </Col>
-            </Row>
 
-            {/* <div className="flex flex-col md:flex-row p-6">
-                <div className="flex-1">
-                    <img src={product.image} alt={product.productName} className="w-full h-auto"/>
-                </div>
-                <div className="flex-1 mt-6 md:mt-0 md:ml-6">
-                    <h1 className="text-2xl font-bold">{product.productName}</h1>
-                    <div className="flex items-center">
-                        <Rate disabled value={product.rating} />
-                        <span className="ml-2">({product.reviewCount} reviews)</span>
-                    </div>
-                    <p className="mt-2 text-lg font-semibold">
-                        Price: ${product.price['M']} 
-                    </p>
-                    <p className="mt-4">{product.productDescription}</p>
-                    
-                    <div className="mt-4">
-                        <label htmlFor="color" className="block mb-2">Color:</label>
-                        <Select
-                            id="color"
-                            defaultValue={product.productColors[0]}
-                            options={product.productColors.map(color => ({ label: color, value: color }))}
-                            className="w-full"
-                        />
-                    </div>
-                    <h3>Colors:</h3>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        {product.productColors.map(color => (
-                            <Tag key={color}>{color}</Tag>
-                        ))}
-                    </div>
-                    <div className="mt-4">
-                        <label htmlFor="size" className="block mb-2">Size:</label>
-                        <Select
-                            id="size"
-                            defaultValue={product.productSizes[0]}
-                            options={product.productSizes
-                                .filter(size => product.availability[size]) // Filter sizes based on availability
-                                .map(size => ({ label: size, value: size }))}
-                            className="w-full"
-                        />
-                    </div>
-
-                    <div className="mt-6">
-                        <Button type="primary" className="w-full">Add to Cart</Button>
-                    </div>
-                </div>
-            </div> */}
+            </div>
         </div>
     );
 };
