@@ -1,18 +1,34 @@
-// require('dotenv').config();
+require('dotenv').config();
 var config = require('./dbconfig');
+const path = require('path')
+const cors = require('cors')
 const express = require('express');
 const sql = require('mssql');
 const categoryRoutes = require('./routes/categoryRoutes');
 const subcategoryRoutes = require('./routes/subcategoryRoutes');
 const productRoutes = require('./routes/productRoutes');
+const addToCartRoute = require('./routes/addToCartRoutes');
+const wishlistRoute = require('./routes/wishlistRoutes');
+const verifyToken = require('./middleware/auth');
 
 const app = express();
 
 app.use(express.json());
+app.use(cors({
+    origin: 'http://localhost:5173',
+    // 192.168.100.242
+    // credentials: true // Only needed if you're sending cookies or auth headers
+  }));
+
+// app.options('*', cors());
 
 app.use('/api/categories', categoryRoutes);
 app.use('/api/subcategories', subcategoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/cart', addToCartRoute);
+app.use('/api/wishlist', wishlistRoute);
+// router.post('/add', verifyToken, addToCart);
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 const startServer = async () => {
     try {
