@@ -1,22 +1,28 @@
 // pages/ProductDetail.jsx
 import {React, useState, useEffect} from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductById } from '../redux/slices/productSlice';
-import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber,Tooltip, Radio } from 'antd';
+import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber,Tooltip, Radio, notification } from 'antd';
 import { FaCcVisa, FaCcMastercard, FaCcPaypal, FaGooglePay } from 'react-icons/fa';
-import { HeartOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { MinusOutlined, PlusOutlined, HeartOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { CheckOutlined } from '@ant-design/icons';
 import { GoArrowRight } from "react-icons/go";
+import { addToCart } from '../redux/slices/cartSlice';
+import { addToWishlist } from '../redux/slices/wishlistSlice';
+
 
 const ProductDetail = () => {
+
     const { id } = useParams();
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { product, loading, error } = useSelector((state) => state.products || {});
     const [selectedImage, setSelectedImage] = useState('');
     const [selectedSize, setSelectedSize] = useState('');
     const [selectedColor, setSelectedColor] = useState('');
     const [selectedVariant, setSelectedVariant] = useState('');
+    const [selectedQuantity, setSelectedQuantity] = useState(1);
 
     useEffect(() => {
         dispatch(fetchProductById(id)); // Fetch product details based on ID from the URL
@@ -46,9 +52,28 @@ const ProductDetail = () => {
     };
   
     const handleColorSelect = (color) => {
-        console.log('tets')
       setSelectedColor(color);
     };
+
+    const handleAddToCart = async () => {
+        const payload = {
+            productId: product.product_id,
+            variant: selectedVariant.variant_id,
+            quantity: selectedQuantity,
+            coverImg: product.cover_img,
+            name: product.name,
+            basePrice: product.price,
+            size: selectedVariant.size,
+            color: selectedVariant.color,
+        }
+        console.log(payload)
+        try {
+            const resultAction = await dispatch(addToCart(payload));
+            console.log('Thunk result:', resultAction);
+          } catch (err) {
+            console.error('Thunk error:', err);
+          }
+      };
   
     // const cvariant = product?.variants?.find((v) => v.size === selectedSize && v.color === selectedColor )
 
@@ -79,7 +104,7 @@ const ProductDetail = () => {
 
                     {/* Second Child Container */}
                     <div className="flex items-center justify-center h-[26%] overflow-x-auto">
-                        {/* {product.images.map((img, index) => (
+                        {product?.slide_images.map((img, index) => (
                             <div
                                 key={index}
                                 className="flex-shrink-0 w-24 h-24 mx-2 cursor-pointer"
@@ -87,7 +112,7 @@ const ProductDetail = () => {
                             >
                                 <img src={img} alt={`Thumbnail ${index}`} className="object-cover w-full h-full" />
                             </div>
-                        ))} */}
+                        ))}
                     </div>
                 </Col>
 
@@ -133,84 +158,54 @@ const ProductDetail = () => {
                     </div>
 
                     {/* Colors */}
-                    {/* <h3 className="text-xl font-semibold mt-4">Colors:</h3>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                    <h3 className="text-xl font-semibold mt-4">Colors:</h3>
+                    <Radio.Group
+                    value={selectedColor}
+                    onChange={(e) => handleColorSelect(e.target.value)}
+                    style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px',  }}
+                    >
                     {productColors.map((color, index) => (
-                        console.log(color),
-                        <div key={index} style={{
-                        backgroundColor: 'inherit',
-                        border: '1px solid black',
-                        borderRadius: '50%',
-                        width: '30px',
-                        height: '30px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        }}>
-                        <Button
-                        value={selectedColor}
+                        <Tooltip title={color} key={index}>
+                        <Radio.Button
+                            value={color}
                             style={{
-                            backgroundColor: color,
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '24px',
-                            height: '24px',
-                            cursor: 'pointer',
+                                border: '2px solid black',
+                                borderRadius: '50%',
+                                width: '30px',
+                                height: '30px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: selectedColor === color ? "10px" : "1px",
+                                cursor: 'pointer',
                             }}
-                            onClick={() => handleColorSelect(color)}
-                        ></Button>
-                        </div>
+                        >
+                            {/* <div
+                            style={{
+                                border: selectedColor === color ? '2px solid blue' : '1px solid black',
+                                borderRadius: '50%',
+                                width: '30px',
+                                height: '30px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                            }}
+                            >*/}
+                            <div
+                                style={{
+                                backgroundColor: color,
+                                border: '1px solid black',
+                                borderRadius: '50%',
+                                width: selectedColor === color ? "24px" : '30px',
+                                height: selectedColor === color ? "24px" : '30px',
+                                }}
+                            >
+                            </div> 
+                        </Radio.Button>
+                        </Tooltip>
                     ))}
-                    </div> */}
-
-<h3 className="text-xl font-semibold mt-4">Colors:</h3>
-<Radio.Group
-  value={selectedColor}
-  onChange={(e) => handleColorSelect(e.target.value)}
-  style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px',  }}
->
-  {productColors.map((color, index) => (
-    <Tooltip title={color} key={index}>
-      <Radio.Button
-        value={color}
-        style={{
-            border: selectedColor === color ? '2px solid blue' : '1px solid black',
-            borderRadius: '50%',
-            width: '30px',
-            height: '30px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-      >
-        {/* <div
-          style={{
-            border: selectedColor === color ? '2px solid blue' : '1px solid black',
-            borderRadius: '50%',
-            width: '30px',
-            height: '30px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >*/}
-          <div
-            style={{
-              backgroundColor: color,
-              borderRadius: '50%',
-              width: '24px',
-              height: '24px',
-            }}
-          >
-        </div> 
-      </Radio.Button>
-    </Tooltip>
-  ))}
-</Radio.Group>
-
+                    </Radio.Group>
 
                     {/* Stock Status */}
                     {selectedSize && selectedColor && (
@@ -220,10 +215,11 @@ const ProductDetail = () => {
                     )}
 
                     {/* Quantity + Wishlist + Cart Buttons */}
-                    <div className="flex flex-col mt-3 gap-2">
+                    {/* <div className="flex flex-col mt-3 gap-2">
                     <div className="flex items-center gap-2">
                         <h3 className="text-xl font-semibold">Quantity:</h3>
-                        <InputNumber min={1} max={10} defaultValue={1} onChange={(value) => console.log('changed', value)} />
+                        <InputNumber min={1} max={10} defaultValue={1} value={selectedQuantity}
+                          onChange={(value) => setSelectedQuantity(value)}/>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <Tooltip title="Add to Wishlist">
@@ -231,28 +227,81 @@ const ProductDetail = () => {
                             shape="circle"
                             icon={<HeartOutlined />}
                             style={{ backgroundColor: 'black', color: 'white', fontWeight: "500" }}
-                            disabled={!product.isStock}
-                        />
-                        </Tooltip>
-                        <Button
-                        type="primary"
-                        style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500" }}
-                        disabled={!product.isStock}
-                        >
-                        <ShoppingCartOutlined /> Add to Cart
+                            disabled={selectedVariant?.stock_quantity > 0 ? false : true}
+                            onClick={() => dispatch(addToWishlist({ product, selectedVariant, navigate }))}
+                            />
+                          </Tooltip>
+                          <Button
+                            type="primary"
+                            style={{ backgroundColor: 'black', borderColor: 'black', color: 'white', fontWeight: '500' }}
+                            disabled={selectedVariant?.stock_quantity > 0 ? false : true}
+                            onClick={() => handleAddToCart()}
+                          >
+                            <ShoppingCartOutlined /> Add to Cart
                         </Button>
+                    </div>
+                    </div> */}
+
+                    <div className="flex items-center gap-3 mt-3">
+                        {/* Quantity with +/- buttons */}
+                        <div className="flex items-center gap-1">
+                            {/* <h3 className="text-xl font-semibold mr-2">Quantity:</h3> */}
+
+                            <Button
+                                icon={<MinusOutlined />}
+                                onClick={() => setSelectedQuantity(prev => Math.max(1, prev - 1))}
+                                disabled={selectedQuantity <= 1}
+                                style={{ backgroundColor: "black", color: 'white', fontWeight: '500' }}
+                            />
+
+                            <InputNumber
+                                min={1}
+                                max={10}
+                                value={selectedQuantity}
+                                onChange={(value) => setSelectedQuantity(value)}
+                                controls={false}
+                                style={{ width: 60, textAlign: 'center' }}
+                            />
+
+                            <Button
+                                icon={<PlusOutlined />}
+                                onClick={() => setSelectedQuantity(prev => Math.min(10, prev + 1))}
+                                disabled={selectedQuantity >= 10 || selectedVariant?.stock_quantity <= 0}
+                                style={{ backgroundColor: "black", color: 'white', fontWeight: '500' }}
+                            />
+                        </div>
+
+                        {/* Wishlist button */}
+                        {/* <Tooltip title="Add to Wishlist">
+                            <Button
+                            shape="circle"
+                            icon={<HeartOutlined />}
+                            style={{ backgroundColor: 'black', color: 'white', fontWeight: '500' }}
+                            disabled={selectedVariant?.stock_quantity <= 0}
+                            onClick={() => dispatch(addToWishlist({ product, selectedVariant, navigate }))}
+                            />
+                        </Tooltip> */}
+
+                        {/* Add to Cart button */}
                         <Button
+                            type="primary"
+                            style={{ backgroundColor: 'black', borderColor: 'black', color: 'white', fontWeight: '500' }}
+                            disabled={selectedVariant?.stock_quantity <= 0}
+                            onClick={handleAddToCart}
+                        >
+                            <ShoppingCartOutlined /> Add to Cart
+                        </Button>
+                        {/* <Button
                         type="primary"
                         style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500" }}
                         disabled={!product.isStock}
                         >
                         <GoArrowRight /> Proceed to Checkout
-                        </Button>
-                    </div>
+                        </Button> */}
                     </div>
 
                     {/* Details */}
-                    <div className="mt-4">
+                    {/* <div className="mt-4">
                     <h3 className="text-lg font-semibold">Collection:</h3>
                     <p className="text-gray-700">Click & Collect - Select store at checkout.</p>
                     <h3 className="text-lg font-semibold">Postage:</h3>
@@ -269,6 +318,47 @@ const ProductDetail = () => {
                         <img src="/assets/icons/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10" />
                     </div>
                     <p className="mt-2 text-gray-700">3 payments of £15.00 with Klarna. Learn more</p>
+                    </div> */}
+
+                    <div className="mt-5 space-y-2">
+                    {/* Row 1: Collection */}
+                    <div className="flex items-baseline gap-2 mt-1 align-center">
+                        <h3 className="c-1 text-lg font-semibold min-w-[100px]">Collection:</h3>
+                        <p className="c-1 text-gray-700">Click & Collect - Select store at checkout.</p>
+                    </div>
+
+                    {/* Row 2: Postage */}
+                    <div className="flex items-baseline gap-2 mt-1">
+                        <h3 className="c-2 text-lg font-semibold min-w-[100px]">Postage:</h3>
+                        <div className="c-2">
+                        <p className="text-green-600">Free delivery in 2-3 days</p>
+                        {/* <p className="text-gray-700">Estimated between Tue, 29 Apr and Wed, 30 Apr to T45. See details</p> */}
+                        </div>
+                    </div>
+
+                    {/* Row 3: Returns */}
+                    <div className="flex items-baseline gap-2 mt-1">
+                        <h3 className="c-4 text-lg font-semibold min-w-[100px]">Returns:</h3>
+                        <p className="c-4 text-gray-700">30 days return. Seller pays for return postage. See details</p>
+                    </div>
+
+                    {/* Row 4: Payments */}
+                    <div className="flex items-center gap-2 mt-1">
+                        <h3 className="text-lg font-semibold min-w-[100px]">Payments:</h3>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                        <img src="/assets/icons/paypal-3-svgrepo-com.svg" alt="PayPal" className="w-10" />
+                        <img src="/assets/icons/google-pay-svgrepo-com.svg" alt="Google Pay" className="w-10" />
+                        <img src="/assets/icons/klarna-svgrepo-com.svg" alt="Klarna" className="w-10" />
+                        <img src="/assets/icons/visa-svgrepo-com (1).svg" alt="VISA" className="w-10" />
+                        <img src="/assets/icons/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10" />
+                        </div>
+                    </div>
+
+                    {/* Row 5: Klarna Info */}
+                    <div className="flex items-baseline gap-2">
+                        <h3 className="c-6 min-w-[100px]"></h3>
+                        <p className="c-6 text-gray-700">3 payments of £15.00 with Klarna. Learn more</p>
+                    </div>
                     </div>
                 </Col>
 
