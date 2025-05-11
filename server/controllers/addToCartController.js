@@ -2,15 +2,15 @@ const sql = require('mssql');
 
 exports.addToCart = async (req, res) => {
     try {
-      const { userId, productId, quantity, size, color } = req.body;
+      const { userId, productId, quantity, variantId } = req.body;
       if (!userId || !productId || !quantity) {
         return res.status(400).json({ message: 'Missing required fields' });
       }
   
       console.log(`Adding to cart for user ${userId}:`, req.body);
       const pool = await sql.query(`
-                INSERT INTO cart_items (user_id, product_id, quantity)
-                VALUES (${userId}, ${productId}, ${quantity})
+                INSERT INTO cart_items (user_id, product_id, quantity, variant_id)
+                VALUES (${userId}, ${productId}, ${quantity}, ${variantId})
             `);
   
       return res.status(200).json({ message: 'Item added to cart successfully' });
@@ -34,10 +34,30 @@ exports.getCart = async (req, res) => {
         //         JOIN products p ON ci.product_id = p.product_id
         //         WHERE ci.user_id = @userId
         //     `);
+        
+            // SELECT ci.*, p.name, p.price, p.image
+            // FROM cart_items ci
+            // JOIN products p ON ci.product_id = p.product_id
+            // WHERE ci.user_id = ${userId}
         const result = await sql.query(`
-            SELECT ci.*, p.name, p.price, p.image
+            SELECT 
+              ci.cart_item_id,
+              ci.quantity,
+              ci.user_id,
+              p.product_id,
+              p.name,
+              p.cover_img,
+              p.price AS base_price,
+              v.variant_id,
+              v.size_id,
+              v.color_id,
+              c.name AS color,
+              s.name AS size
             FROM cart_items ci
             JOIN products p ON ci.product_id = p.product_id
+            JOIN product_variants v ON ci.variant_id = v.variant_id
+            LEFT JOIN colors c ON v.color_id = c.color_id
+            LEFT JOIN sizes s ON v.size_id = s.size_id
             WHERE ci.user_id = ${userId}
         `)
         

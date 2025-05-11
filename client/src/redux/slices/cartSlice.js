@@ -10,7 +10,9 @@ export const addToCart = createAsyncThunk(
     console.log('addTocart', payload)
     const user = getLoggedInUser();
     const finalPayload = {
-      ...payload,
+      productId: payload.productId,
+      variantId: payload.variantId,
+      quantity: payload.quantity,
       userId: user ? user.user_id : null,
     }
     if (user) {

@@ -70,7 +70,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                 dataSource={displayCart}
                 renderItem={(item) => {
                     const qty = quantities[item.productId] || item.quantity || 1;
-                    const totalPrice = (item.price || 0) * qty;
+                    const totalPrice = (item.basePrice || 0) * qty;
                     return (
                         <List.Item>
                             <div className="flex items-center justify-between w-full">
