@@ -15,6 +15,7 @@ import Kids from './pages/Kids';
 import NotFound from './pages/404';
 import MyAccount from './pages/Login';
 import ProductDetail from './pages/ProductDetail';
+import Checkout from './pages/Checkout';
 const { Header, Content, Footer } = Layout;
 
 const App = () => {
@@ -38,6 +39,7 @@ const App = () => {
               <Route path="/accessories" element={<Accessories />} />
               <Route path="/my-account" element={<MyAccount />} />
               <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/checkout" element={<Checkout />} />
 
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
