@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
 // Base URL for API
-const API_URL = `${import.meta.env.VITE_BACKEND_SERVE_URL}/api/products`;
+const API_URL = `${import.meta.env.VITE_BACKEND_SERVER_URL}/api/products`;
 
 // Thunks (async actions)
 export const getAllProducts = createAsyncThunk(
