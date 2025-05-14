@@ -46,18 +46,6 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
         }
     }, [dispatch]);
     
-    // const handleQuantityChange = (item, newQuantity) => {
-    //     if (user) {
-    //         dispatch(updateCartItem({ productId: item.productId, quantity: newQuantity }));
-    //     } else {
-    //         const updatedCart = guestCart.map(ci =>
-    //             ci.productId === item.productId ? { ...ci, quantity: newQuantity } : ci
-    //         );
-    //         sessionStorage.setItem('guestCart', JSON.stringify(updatedCart));
-    //         setGuestCart(updatedCart);
-    //     }
-    //     setQuantities(prev => ({ ...prev, [item.productId]: newQuantity }));
-    // };
     const handleQuantityChange = (item, newQuantity) => {
         const itemKey = `${item.productId}-${item.size}-${item.color}`;
     
@@ -81,9 +69,9 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
     };
     
 
-    const handleDelete = (productId) => {
+    const handleDelete = (itemToDelete) => {
         if (user) {
-            dispatch(removeFromCart(productId));
+            dispatch(removeFromCart(itemToDelete.productId, itemToDelete.size, itemToDelete.color));
         } else {
             // const updatedCart = guestCart.filter(item => item.productId !== productId);
             const updatedCart = guestCart.filter(item =>
@@ -117,7 +105,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                     return (
                         <List.Item>
                             <div className="flex items-center justify-between w-full">
-                                <Button icon={<DeleteOutlined />} onClick={() => handleDelete(item.productId)} danger />
+                                <Button icon={<DeleteOutlined />} onClick={() => handleDelete(item)} danger />
                                 <Avatar src={item.image || "/fallback.jpg"} className="mx-2" />
                                 <div style={{ flex: 1 }}>{item.name || "Unnamed Product"}</div>
                                 <div className="flex items-center space-x-1">
