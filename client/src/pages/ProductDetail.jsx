@@ -86,9 +86,9 @@ const ProductDetail = () => {
             <div style={{ width: '100%', padding: '2rem 6rem 1rem', backgroundColor: 'rgba(132, 152, 176, 0.5)', margin: '16px 0px' }}>
                 <Breadcrumb style={{ marginBottom: '16px', font: '32px', color: 'black' }}>
                     <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
-                    <Breadcrumb.Item><Link to={`/men/${product.category}`}>{product.category}</Link> </Breadcrumb.Item>
-                    <Breadcrumb.Item><Link to={`/men/${product.subcategory}`}>{product.subcategory}</Link> </Breadcrumb.Item>
-                    <Breadcrumb.Item><Link to={`/product/${product.productId}`}>{product.name}</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/store/${product.category}`}>{product.category}</Link> </Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/store/${product.category}/${product.subcategory}`}>{product.subcategory}</Link> </Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/product/${product.product_id}`}>{product.name}</Link></Breadcrumb.Item>
                 </Breadcrumb>
                 {/* <h1 className="text-xxl font-semibold" style={{ margin: '16px 0', color: "rgb(71, 89, 122)" }}>{product.productName}</h1> */}
             </div>
@@ -167,6 +167,7 @@ const ProductDetail = () => {
                     {productColors.map((color, index) => (
                         <Tooltip title={color} key={index}>
                         <Radio.Button
+                             className="circle-radio"
                             value={color}
                             style={{
                                 border: '2px solid black',
@@ -176,26 +177,14 @@ const ProductDetail = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                padding: selectedColor === color ? "10px" : "1px",
+                                padding: selectedColor === color ? "14px" : "1px",
                                 cursor: 'pointer',
                             }}
                         >
-                            {/* <div
-                            style={{
-                                border: selectedColor === color ? '2px solid blue' : '1px solid black',
-                                borderRadius: '50%',
-                                width: '30px',
-                                height: '30px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                            }}
-                            >*/}
                             <div
                                 style={{
                                 backgroundColor: color,
-                                border: '1px solid black',
+                                border: '2px solid black',
                                 borderRadius: '50%',
                                 width: selectedColor === color ? "24px" : '30px',
                                 height: selectedColor === color ? "24px" : '30px',
@@ -299,26 +288,6 @@ const ProductDetail = () => {
                         <GoArrowRight /> Proceed to Checkout
                         </Button> */}
                     </div>
-
-                    {/* Details */}
-                    {/* <div className="mt-4">
-                    <h3 className="text-lg font-semibold">Collection:</h3>
-                    <p className="text-gray-700">Click & Collect - Select store at checkout.</p>
-                    <h3 className="text-lg font-semibold">Postage:</h3>
-                    <p className="text-green-600">Free delivery in 2-3 days</p>
-                    <p className="text-gray-700">Estimated between Tue, 29 Apr and Wed, 30 Apr to T45. See details</p>
-                    <h3 className="text-lg font-semibold">Returns:</h3>
-                    <p className="text-gray-700">30 days return. Seller pays for return postage. See details</p>
-                    <h3 className="text-lg font-semibold">Payments:</h3>
-                    <div className="flex space-x-2">
-                        <img src="/assets/icons/paypal-3-svgrepo-com.svg" alt="PayPal" className="w-10" />
-                        <img src="/assets/icons/google-pay-svgrepo-com.svg" alt="Google Pay" className="w-10" />
-                        <img src="/assets/icons/klarna-svgrepo-com.svg" alt="Klarna" className="w-10" />
-                        <img src="/assets/icons/visa-svgrepo-com (1).svg" alt="VISA" className="w-10" />
-                        <img src="/assets/icons/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10" />
-                    </div>
-                    <p className="mt-2 text-gray-700">3 payments of £15.00 with Klarna. Learn more</p>
-                    </div> */}
 
                     <div className="mt-5 space-y-2">
                     {/* Row 1: Collection */}
