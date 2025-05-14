@@ -44,6 +44,7 @@ const ProductDetail = () => {
         if (selectedColor && selectedSize) {
             setSelectedVariant(product?.variants?.find((v) => v.size === selectedSize && v.color === selectedColor ))
             console.log(selectedColor, selectedSize, selectedVariant)
+            setSelectedQuantity(1);
         }
       }, [selectedColor, selectedSize]);
   
@@ -70,6 +71,7 @@ const ProductDetail = () => {
         try {
             const resultAction = await dispatch(addToCart(payload));
             console.log('Thunk result:', resultAction);
+         
           } catch (err) {
             console.error('Thunk error:', err);
           }
@@ -204,33 +206,6 @@ const ProductDetail = () => {
                     )}
 
                     {/* Quantity + Wishlist + Cart Buttons */}
-                    {/* <div className="flex flex-col mt-3 gap-2">
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-semibold">Quantity:</h3>
-                        <InputNumber min={1} max={10} defaultValue={1} value={selectedQuantity}
-                          onChange={(value) => setSelectedQuantity(value)}/>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Tooltip title="Add to Wishlist">
-                        <Button
-                            shape="circle"
-                            icon={<HeartOutlined />}
-                            style={{ backgroundColor: 'black', color: 'white', fontWeight: "500" }}
-                            disabled={selectedVariant?.stock_quantity > 0 ? false : true}
-                            onClick={() => dispatch(addToWishlist({ product, selectedVariant, navigate }))}
-                            />
-                          </Tooltip>
-                          <Button
-                            type="primary"
-                            style={{ backgroundColor: 'black', borderColor: 'black', color: 'white', fontWeight: '500' }}
-                            disabled={selectedVariant?.stock_quantity > 0 ? false : true}
-                            onClick={() => handleAddToCart()}
-                          >
-                            <ShoppingCartOutlined /> Add to Cart
-                        </Button>
-                    </div>
-                    </div> */}
-
                     <div className="flex items-center gap-3 mt-3">
                         {/* Quantity with +/- buttons */}
                         <div className="flex items-center gap-1">
