@@ -61,7 +61,7 @@ const MyAccount = () => {
     <div className="flex items-center justify-center mt-12">
       <div className="p-8 rounded-lg w-full max-w-sm" style={{
                   boxShadow: '8px 5px 6px lightgray', backgroundColor: "rgba(132, 152, 176, 0.1)"}}>
-        <h2 className="text-2xl font-bold mb-6 text-center">Log in</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
         <Form name="login" onFinish={onFinish} layout="vertical">
           <Form.Item
             name="username"
@@ -77,12 +77,12 @@ const MyAccount = () => {
           </Form.Item>
           <Form.Item>
             <Form.Item name="keepLoggedIn" valuePropName="checked" noStyle>
-              <Checkbox>Keep me logged in</Checkbox>
+              <Checkbox>Remember me</Checkbox>
             </Form.Item>
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit" className="w-full " style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500"}}>
-              Log in
+              Login
             </Button>
           </Form.Item>
           <Form.Item>
