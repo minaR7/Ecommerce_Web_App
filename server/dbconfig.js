@@ -1,14 +1,14 @@
 const config = {
     user: 'mina77',
     password: 'Deen107*',
-    server: 'localhost',
+    server: 'DESKTOP-E4ASPST',
     database: 'moroccan_clothing_ecommerce',
     options: {
         encrypt: true, // This enables SSL/TLS
-        trustServerCertificate: true 
-        // trustedconnection: true,
+        trustServerCertificate: true,
+        trustedconnection: true,
         // enableArithAort: true,
-        // instancename: '.',
+        instancename: 'SQLEXPRESS',
     },
     port: 1433
 }
