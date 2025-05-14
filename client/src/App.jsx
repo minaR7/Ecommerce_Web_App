@@ -16,6 +16,10 @@ import NotFound from './pages/404';
 import MyAccount from './pages/Login';
 import ProductDetail from './pages/ProductDetail';
 import Checkout from './pages/Checkout';
+import Category from './pages/Category';
+import ProductListing from './pages/ProductListing';
+import Store from './pages/Store';
+
 const { Header, Content, Footer } = Layout;
 
 const App = () => {
@@ -23,6 +27,8 @@ const App = () => {
 
   const showDrawer = () => setVisible(true);
   const closeDrawer = () => setVisible(false);
+  // const updatedCart = [{"productId":1,"variant":4,"quantity":3,"coverImg":"http://localhost:3005/assets/jabador-white-and-gold-503x800.jpg","name":"Men Casual Shirt","basePrice":29.99,"size":"L","color":"yellow"}]
+  // sessionStorage.setItem('guestCart', JSON.stringify(updatedCart));
 
   return (
      <Layout style={{ backgroundColor: "#ffffff"}} >
@@ -31,12 +37,15 @@ const App = () => {
           {/* {marginTop: 64, #f5f5f5 } */}
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/men" element={<Men />} />
+              {/* <Route path="/men" element={<Men />} />
               <Route path="/men/:subcategory" element={<MenSubcategory />} />
               <Route path="/women" element={<Women />} />
               <Route path="/women/:subcategory" element={<WomenSubcategory />} />
               <Route path="/kids" element={<Kids />} />
-              <Route path="/accessories" element={<Accessories />} />
+              <Route path="/accessories" element={<Accessories />} /> */}
+              <Route path="/store" element={<Store />} />
+              <Route path="/store/:categoryName" element={<Category />} />
+              <Route path="/store/:categoryName/:subcategoryName" element={<ProductListing />} />
               <Route path="/my-account" element={<MyAccount />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
