@@ -47,6 +47,12 @@ nav a {
   font-size: large;
 }
 
+.navbar-cat {
+  font-weight: 500;
+  color: black;
+  font-size: large;
+}
+
 .ant-breadcrumb nav a {
   font-weight: 300;
   color: black;
@@ -183,4 +189,10 @@ button:focus-visible {
 
 .product-info {
   flex: 1;
+}
+
+/* product details color buttons */
+.circle-radio.ant-radio-button-wrapper::before {
+  display: none !important;
+  content: none !important;
 }
