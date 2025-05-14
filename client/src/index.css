@@ -196,3 +196,10 @@ button:focus-visible {
   display: none !important;
   content: none !important;
 }
+
+/* sidebar (drawer) link items */
+.sidebar-items li a{
+  font-weight: 500;
+  color: black;
+  font-size: medium;
+}
