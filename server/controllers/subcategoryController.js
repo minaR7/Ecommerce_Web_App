@@ -1,13 +1,52 @@
 const sql = require('mssql');
 
 // GET all subcategories
+// exports.getSubcategories = async (req, res) => {
+//     try {
+//         const result = await sql.query`SELECT * FROM subcategories`;
+//         res.json(result.recordset);
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ error: 'Server error' });
+//     }
+// };
 exports.getSubcategories = async (req, res) => {
+    const { category } = req.query;
+
     try {
-        const result = await sql.query`SELECT * FROM subcategories`;
-        res.json(result.recordset);
+        if (category) {
+            // If a category name is provided, filter subcategories by it
+            const result = await sql.query`
+                SELECT s.*
+                FROM subcategories s
+                JOIN categories c ON s.category_id = c.category_id
+                WHERE c.name = ${category}
+            `;
+            // res.json(result.recordset);
+            
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            // Append base URL to each subcategory's cover_img
+            const modifiedSubcategories = result.recordset.map((subcategory) => ({
+                ...subcategory,
+                cover_img: `${baseUrl}/${subcategory.cover_img}`
+            }));
+            
+            res.status(200).json(modifiedSubcategories);
+        } else {
+            // Otherwise return all subcategories
+            const result = await sql.query`SELECT * FROM subcategories`;
+            // res.json(result.recordset);
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            const modifiedSubcategories = result.recordset.map((subcategory) => ({
+                ...subcategory,
+                cover_img: `${baseUrl}/${subcategory.cover_img}`
+            }));
+            
+            res.status(200).json(modifiedSubcategories);
+        }
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error ${err}` });
     }
 };
 

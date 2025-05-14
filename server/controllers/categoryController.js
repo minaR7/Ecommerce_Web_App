@@ -4,7 +4,15 @@ const sql = require('mssql');
 exports.getCategories = async (req, res) => {
     try {
         const result = await sql.query`SELECT * FROM categories`;
-        res.json(result.recordset);
+        // res.json(result.recordset);
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        // Append base URL to each subcategory's cover_img
+        const modifiedCategories = result.recordset.map((category) => ({
+            ...category,
+            cover_img: `${baseUrl}/${category.img}`
+        }));
+        
+        res.status(200).json(modifiedCategories);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });

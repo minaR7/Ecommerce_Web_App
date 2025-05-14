@@ -36,7 +36,15 @@ exports.getProducts = async (req, res) => {
         query += ' GROUP BY p.product_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img';  // include all your product columns here
 
         const result = await sql.query(query);
-        res.json(result.recordset);
+        // res.json(result.recordset);
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        // Append base URL to each subcategory's cover_img
+        const modifiedProducts = result.recordset.map((product) => ({
+            ...product,
+            cover_img: `${baseUrl}/${product.cover_img}`
+        }));
+        
+        res.status(200).json(modifiedProducts);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
