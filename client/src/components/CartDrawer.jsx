@@ -62,6 +62,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
     
             sessionStorage.setItem('guestCart', JSON.stringify(updatedCart));
             setGuestCart(updatedCart);
+            window.dispatchEvent(new Event('guestCartUpdated'));
         }
     
         // Update quantity for this specific variant only
@@ -86,6 +87,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                 delete updated[itemKey];
                 return updated;
             });
+            window.dispatchEvent(new Event('guestCartUpdated'));
         }
     };
 

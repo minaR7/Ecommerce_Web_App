@@ -18,13 +18,29 @@ const Checkout = () => {
   const reduxCart = useSelector(state => state.cart?.items || []);
   const navigate = useNavigate();
   
+  // useEffect(() => {
+  //   const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
+  //   setCartItems(reduxCart.length ? reduxCart : guestCart);
+  // }, [reduxCart]);
+
   useEffect(() => {
-    const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
-    setCartItems(reduxCart.length ? reduxCart : guestCart);
+    const loadCart = () => {
+      const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
+      setCartItems(reduxCart.length ? reduxCart : guestCart);
+    };
+  
+    loadCart(); // Initial load
+  
+    // Listen for guest cart updates
+    window.addEventListener('guestCartUpdated', loadCart);
+  
+    return () => {
+      window.removeEventListener('guestCartUpdated', loadCart);
+    };
   }, [reduxCart]);
+  
 
-  // ✅ This function will be triggered on Confirm Order click
-
+  //This function will be triggered on Confirm Order click
   const handleCheckout = async () => {
     try {
       const validatedValues = await form.validateFields(); // ✅ Try validating
@@ -243,8 +259,8 @@ const Checkout = () => {
           Confirm Order
         </button>
       </div>
-    </div>
 
+    </div>
   </div>
    
 
