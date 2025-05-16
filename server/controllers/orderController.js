@@ -58,3 +58,19 @@ exports.saveOrder = async (orderData) => {
       // return res.status(500).json({ message: 'Server error saving order' });
     }
   };
+
+exports.saveOrderItems = async (orderId, cartItems) => {
+  try {
+    for (const item of cartItems) {
+      console.log(item)
+      await sql.query`
+        INSERT INTO order_items (order_id, product_id, quantity, price, created_at)
+        VALUES (${orderId}, ${item.productId}, ${item.quantity}, ${item.basePrice}, GETDATE())
+      `;
+    }
+    return { success: true };
+  } catch (err) {
+    console.error('Error saving order items:', err);
+    return { success: false, message: err.message };
+  }
+};
