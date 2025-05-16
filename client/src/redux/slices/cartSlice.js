@@ -11,7 +11,7 @@ export const addToCart = createAsyncThunk(
     const user = getLoggedInUser();
     const finalPayload = {
       productId: payload.productId,
-      variantId: payload.variantId,
+      variantId: payload.variant,
       quantity: payload.quantity,
       userId: user ? user.user_id : null,
     }
@@ -44,7 +44,8 @@ export const addToCart = createAsyncThunk(
 // Get Cart items
 export const fetchCart = createAsyncThunk('cart/fetch', async (_, { rejectWithValue }) => {
   try {
-    const res = await axios.get('/api/cart');
+    const user = getLoggedInUser();
+    const res = await axios.get(`/api/cart/${user.user_id}`);
     return res.data;
   } catch (err) {
     return rejectWithValue(err.response?.data || err.message);
@@ -84,7 +85,11 @@ const cartSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    clearCart: (state) => {
+      state.items = [];
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchCart.fulfilled, (state, action) => {
@@ -110,9 +115,11 @@ const cartSlice = createSlice({
         state.error = null;
       })
       .addCase(addToCart.fulfilled, (state, action) => {
-        if (!Array.isArray(action.payload)) {
-          state.items.push(action.payload); // only for logged-in user
-        }
+        console.log(state, action)
+        // if (!Array.isArray(action.payload)) {
+        //   state.items.push(action.payload); // only for logged-in user
+        // }
+        state.cart = action.payload
       })
       .addCase(addToCart.rejected, (state, action) => {
         state.loading = false;
@@ -133,4 +140,5 @@ const cartSlice = createSlice({
   },
 });
 
+export const { clearCart } = cartSlice.actions;
 export default cartSlice.reducer;
