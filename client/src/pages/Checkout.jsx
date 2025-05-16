@@ -3,21 +3,27 @@ import { Form, Input, Select, Radio, Collapse, notification, Col, Row, Image } f
 import { useSelector } from 'react-redux';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
-import StripePaymentForm from '../components/PaymentForm';
+import {StripePaymentForm,GooglePayButton} from '../components/PaymentForm';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useDispatch } from 'react-redux';
+import { placeOrder } from '../redux/slices/checkoutSlice';
 
 const { Option } = Select;
 const { Panel } = Collapse;
 
-const stripePromise = loadStripe(`${import.meta.env.STRIPE_PUBLISHABLE_KEY}`);
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const Checkout = () => {
   const [form] = Form.useForm();
+  const dispatch = useDispatch();
   const [useDifferentBilling, setUseDifferentBilling] = useState(false);
   const [cartItems, setCartItems] = useState([]);
   const reduxCart = useSelector(state => state.cart?.items || []);
   const navigate = useNavigate();
-  
+  const [paymentMethodId, setPaymentMethodId] = useState(null);
+  const [selectedMethod, setSelectedMethod] = useState("card");
+
   // useEffect(() => {
   //   const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
   //   setCartItems(reduxCart.length ? reduxCart : guestCart);
@@ -39,36 +45,97 @@ const Checkout = () => {
     };
   }, [reduxCart]);
   
-
+  // Passed into StripePaymentForm
+  const handlePaymentMethodGenerated = (id) => {
+    setPaymentMethodId(id);
+  };
+  
   //This function will be triggered on Confirm Order click
   const handleCheckout = async () => {
     try {
       const validatedValues = await form.validateFields(); // ✅ Try validating
       console.log('Form is valid. Values:', validatedValues);
+      const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
 
-      // ✅ Show success notification
-      notification.success({
-        message: 'Order Placed',
-        description: 'Your order has been placed successfully!',
-      });
-
-      // ✅ Navigate to homepage
-      setTimeout(() => {
-        navigate('/');
-      }, 3000)
-
-    } catch (errorInfo) {
-      // ✅ Scroll to first error field
-      const firstErrorField = errorInfo?.errorFields?.[0]?.name?.[0];
-      if (firstErrorField) {
-        form.scrollToField(firstErrorField, { behavior: 'smooth' });
+      // Validate if Stripe Paymnet is completed first
+      if (!paymentMethodId) {
+        notification.error({
+          message: 'Payment not completed',
+          description: 'Please complete payment before confirming your order.',
+        });
+        return;
+      }
+      else{
+        notification.success({
+          message: 'Payment completed',
+          description: 'Your order is being processed',
+        });
       }
 
-      // ✅ Show error notification
-      notification.error({
-        message: 'Form Incomplete',
-        description: 'Please fill all required fields.',
-      });
+      // const payload = {
+      //   user_info: {
+      //     firstName: validatedValues.firstName,
+      //     lastName: validatedValues.lastName,
+      //     email: validatedValues.email,
+      //     phone: validatedValues.phone
+      //   },
+      //   shipping: {
+      //     city: validatedValues.city,
+      //     country: validatedValues.country,
+      //     street: validatedValues.street,
+      //     phone: validatedValues.phone
+      //   },
+      //   billing: useDifferentBilling
+      //     ? {
+      //         city: validatedValues.billCity,
+      //         country: validatedValues.billCountry,
+      //         street: validatedValues.billStreet,
+      //         phone: validatedValues.billPhone
+      //       }
+      //     : {
+      //         city: validatedValues.city,
+      //         country: validatedValues.country,
+      //         street: validatedValues.street,
+      //         phone: validatedValues.phone
+      //       },
+      //     paymentMethodId: paymentMethodId || validatedValues?.paymentId || "hdhdhd", 
+      //     totalAmount: totalAmount,
+      //     cartItems: cartItems,
+      // };
+
+      dispatch(
+        placeOrder({
+          validatedValues,
+          paymentMethodId,
+          cartItems,
+          useDifferentBilling,
+        })
+      );
+      
+    } catch (error) {
+      console.log(error)
+      // Scroll to first error field
+      if (error?.errorFields) {
+        const firstErrorField = error?.errorFields?.[0]?.name?.[0];
+        if (firstErrorField) {
+          form.scrollToField(firstErrorField, { behavior: 'smooth' });
+        }
+  
+        notification.error({
+          message: 'Form Incomplete',
+          description: 'Please fill all required fields.',
+        });
+        return;
+      }
+  
+      // Backend/API error
+      // const message =
+      //   error?.response?.data?.message || 'Something went wrong. Please try again.';
+  
+      // notification.error({
+      //   message: 'Error',
+      //   description: message,
+      // });
     }
   };
 
@@ -134,7 +201,7 @@ const Checkout = () => {
       </div>
 
       {/* 4. Billing Details */}
-      <div className="bg-white p-4 shadow rounded-xl">
+      {/* <div className="bg-white p-4 shadow rounded-xl">
         <h2 className="text-xl font-semibold mb-4">Billing Details</h2>
         <Radio.Group
           onChange={(e) => setUseDifferentBilling(e.target.value === 'different')}
@@ -147,10 +214,10 @@ const Checkout = () => {
         {useDifferentBilling && (
           <Collapse activeKey={['1']} className="mt-4">
             <Panel header="Billing Address" key="1">
-              {/* <Form layout="vertical"> */}
+              //<Form layout="vertical">
                 <Row gutter={16}>
                   <Col span={24}>
-                    <Form.Item label="Email" name="billemail" rules={[{ required: true }]}>
+                    <Form.Item label="Email" name="billEmail" rules={[{ required: true }]}>
                       <Input />
                     </Form.Item>
                   </Col>
@@ -183,27 +250,46 @@ const Checkout = () => {
                     <Form.Item label="Phone Number" name="billPhone" rules={[{ required: true }]}><Input /></Form.Item>
                   </Col>
                 </Row>
-              {/* </Form> */}
+              // </Form> 
             </Panel>
           </Collapse>
         )}
-      </div>
-      </Form>
-      {/* 5. Payment Method */}
+      </div> */}
+      {/* </Form> */}
       <div className="bg-white p-4 shadow rounded-xl">
         <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
         {/* Add your payment options here (e.g., credit card, PayPal, etc.) */}
         <div className="flex gap-4 mb-4">
-        <img src="/assets/icons/paypal-3-svgrepo-com.svg" alt="PayPal" className="w-12 h-12" />
-          <img src="/assets/icons/google-pay-svgrepo-com.svg" alt="Google Pay" className="w-10" />
-          <img src="/assets/icons/visa-svgrepo-com (1).svg" alt="VISA" className="w-10" />
-          <img src="/assets/icons/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10" />
+          {/* <img  onClick={() => setSelectedMethod("paypal")} src="/assets/icons/paypal-3-svgrepo-com.svg" alt="PayPal" className="w-12 h-12 cursor-pointer" />
+          <img  onClick={() => setSelectedMethod("gpay")} src="/assets/icons/google-pay-svgrepo-com.svg" alt="Google Pay" className="w-10 cursor-pointer" /> */}
+          <img  onClick={() => setSelectedMethod("card")} src="/assets/icons/visa-svgrepo-com (1).svg" alt="VISA" className="w-10 cursor-pointer" />
+          <img  onClick={() => setSelectedMethod("card")} src="/assets/icons/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10 cursor-pointer" />
         </div>
-        <Elements stripe={stripePromise}>
-          <StripePaymentForm amount={ cartItems.reduce((acc, item) => 
-            acc + item.basePrice * item.quantity, 0) + 35} />
-        </Elements>
+        {selectedMethod === 'card' && (
+          // <Form.Item label="" name="paymentOption" rules={[{ required: true }]}>
+            <Elements stripe={stripePromise}>
+              <StripePaymentForm onPaymentMethodGenerated={handlePaymentMethodGenerated} />
+            </Elements>
+          //</Form.Item>
+        )}
+
+        {selectedMethod === 'gpay' && (
+          <Elements stripe={stripePromise}>
+            <GooglePayButton />
+          </Elements>
+        )}
+
+        {/* {selectedMethod === 'paypal' && (
+          <PayPalComponent />
+        )} */}
+
+        {/* <Elements stripe={stripePromise}>
+          <StripePaymentForm onPaymentMethodGenerated={handlePaymentMethodGenerated} />
+          {/* <StripePaymentForm amount={ cartItems.reduce((acc, item) => 
+            acc + item.basePrice * item.quantity, 0) + 35} /> 
+        </Elements> */}
       </div>
+      </Form>
     </div>
 
     {/* Right Side - Order Summary */}
