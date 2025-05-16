@@ -9,6 +9,8 @@ const subcategoryRoutes = require('./routes/subcategoryRoutes');
 const productRoutes = require('./routes/productRoutes');
 const addToCartRoute = require('./routes/addToCartRoutes');
 const wishlistRoute = require('./routes/wishlistRoutes');
+const checkoutRoute = require('./routes/checkout');
+const userRoutes = require('./routes/userRoutes');
 const verifyToken = require('./middleware/auth');
 
 const app = express();
@@ -17,7 +19,7 @@ app.use(express.json());
 app.use(cors({
     origin: 'http://localhost:5173',
     // 192.168.100.242
-    // credentials: true // Only needed if you're sending cookies or auth headers
+    credentials: true // Only needed if you're sending cookies or auth headers
   }));
 
 // app.options('*', cors());
@@ -27,6 +29,8 @@ app.use('/api/subcategories', subcategoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', addToCartRoute);
 app.use('/api/wishlist', wishlistRoute);
+app.use('/api/users', userRoutes);
+app.use('/api/checkout', checkoutRoute);
 // router.post('/add', verifyToken, addToCart);
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 

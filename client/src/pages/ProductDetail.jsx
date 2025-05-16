@@ -290,9 +290,9 @@ const ProductDetail = () => {
                     <div className="flex items-center gap-2 mt-1">
                         <h3 className="text-lg font-semibold min-w-[100px]">Payments:</h3>
                         <div className="flex flex-wrap gap-2 mt-1">
-                        <img src="/assets/icons/paypal-3-svgrepo-com.svg" alt="PayPal" className="w-10" />
+                        {/* <img src="/assets/icons/paypal-3-svgrepo-com.svg" alt="PayPal" className="w-10" />
                         <img src="/assets/icons/google-pay-svgrepo-com.svg" alt="Google Pay" className="w-10" />
-                        <img src="/assets/icons/klarna-svgrepo-com.svg" alt="Klarna" className="w-10" />
+                        <img src="/assets/icons/klarna-svgrepo-com.svg" alt="Klarna" className="w-10" /> */}
                         <img src="/assets/icons/visa-svgrepo-com (1).svg" alt="VISA" className="w-10" />
                         <img src="/assets/icons/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10" />
                         </div>
