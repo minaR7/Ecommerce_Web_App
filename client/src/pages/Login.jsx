@@ -48,13 +48,19 @@
 
 // export default MyAccount;
 
-
 import React from 'react';
 import { Form, Input, Checkbox, Button } from 'antd';
+import axios from 'axios';
 
 const MyAccount = () => {
-  const onFinish = (values) => {
+  const onFinish = async (values) => {
     console.log('Received values:', values);
+    const loginRes = await axios.post(`http://localhost:3005/api/users/login`, {
+      identifier: values.username,
+      password: values.password,
+    });
+    localStorage.setItem('user', JSON.stringify(loginRes.data.data) )
+    console.log(loginRes)
   };
 
   return (
