@@ -2,9 +2,10 @@ const sql = require('mssql');
 
 exports.addToCart = async (req, res) => {
     try {
-      const { userId, productId, quantity, variantId } = req.body;
-      console.log(userId, productId, quantity, variantId )
-      if (!userId || !productId || !quantity) {
+      const { userId, productId, quantity, variantId, cartItems } = req.body;
+      console.log(userId)
+      
+      if (!userId || !productId || !quantity ||  !variantId) {
         return res.status(400).json({ message: 'Missing required fields' });
       }
   
@@ -19,7 +20,6 @@ exports.addToCart = async (req, res) => {
         INSERT INTO cart_items (user_id, product_id, quantity, variant_id)
         VALUES (@userId, @productId, @quantity, @variantId)
       `);
-
       return res.status(200).json({ message: 'Item added to cart successfully' });
       
     } catch (error) {
@@ -28,6 +28,65 @@ exports.addToCart = async (req, res) => {
     }
   };
 
+exports.addBulkToCart = async (req, res) => {
+    try {
+      const { userId, cartItems } = req.body;
+      console.log(userId)
+      
+      if (!userId || !Array.isArray(cartItems) || cartItems.length === 0) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+  
+      for (const item of cartItems) {
+      const { productId, quantity, variantId } = item;
+      if (!productId || !quantity) continue;
+
+      const checkQuery = `
+        SELECT * FROM cart_items
+        WHERE user_id = @userId AND product_id = @productId AND variant_id = @variantId
+      `;
+
+      const requestCheck = new sql.Request();
+      requestCheck.input('userId', sql.Int, userId);
+      requestCheck.input('productId', sql.Int, productId);
+      requestCheck.input('variantId', sql.Int, variantId || null);
+
+      const existingItem = await requestCheck.query(checkQuery);
+
+      if (existingItem.recordset.length > 0) {
+        // If exists, update quantity
+        const existingCartItem = existingItem.recordset[0];
+        const newQuantity = existingCartItem.quantity + quantity;
+
+        const updateRequest = new sql.Request();
+        updateRequest.input('newQuantity', sql.Int, newQuantity);
+        updateRequest.input('cartItemId', sql.Int, existingCartItem.cart_item_id);
+
+        await updateRequest.query(`
+          UPDATE cart_items SET quantity = @newQuantity WHERE cart_item_id = @cartItemId
+        `);
+      } else {
+        // If not exists, insert
+        const insertRequest = new sql.Request();
+        insertRequest.input('userId', sql.Int, userId);
+        insertRequest.input('productId', sql.Int, productId);
+        insertRequest.input('quantity', sql.Int, quantity);
+        insertRequest.input('variantId', sql.Int, variantId || null);
+
+        await insertRequest.query(`
+          INSERT INTO cart_items (user_id, product_id, quantity, variant_id)
+          VALUES (@userId, @productId, @quantity, @variantId)
+        `);
+      }
+    }
+
+      return res.status(200).json({ message: 'Item added to cart successfully' });
+      
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Server error adding to cart' });
+    }
+  };
 
 // Get cart
 exports.getCart = async (req, res) => {
@@ -83,9 +142,9 @@ exports.getCart = async (req, res) => {
 //Update cart
 exports.updateCartItem = async (req, res) => {
   const { cartItemId } = req.params;
-  const { quantity, size, color } = req.body;
+  const { productId, quantity, size, color } = req.body;
 
-  if (!quantity && !size && !color) {
+  if (!productId && !quantity || !size || !color) {
     return res.status(400).json({ message: 'No fields to update' });
   }
 
