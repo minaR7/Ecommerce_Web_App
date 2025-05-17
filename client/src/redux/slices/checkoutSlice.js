@@ -8,10 +8,10 @@ import { clearCart } from './cartSlice';
 // Async thunk for order checkout
 export const placeOrder = createAsyncThunk(
   'checkout/placeOrder',
-  async ({ validatedValues, paymentMethodId, cartItems, useDifferentBilling }, { dispatch, rejectWithValue }) => {
+  async ({ validatedValues,  paymentMethodId, cartItems, useDifferentBilling }, { dispatch, rejectWithValue }) => {
     try {
       const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
-
+// const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) * 1;
       if (!paymentMethodId) {
         notification.error({
           message: 'Payment not completed',

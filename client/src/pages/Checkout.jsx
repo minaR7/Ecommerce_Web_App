@@ -48,6 +48,10 @@ const Checkout = () => {
   // Passed into StripePaymentForm
   const handlePaymentMethodGenerated = (id) => {
     setPaymentMethodId(id);
+    notification.success({
+          message: 'Payment completed',
+          // description: 'Your order is being processed',
+        });
   };
   
   //This function will be triggered on Confirm Order click
@@ -64,12 +68,6 @@ const Checkout = () => {
           description: 'Please complete payment before confirming your order.',
         });
         return;
-      }
-      else{
-        notification.success({
-          message: 'Payment completed',
-          description: 'Your order is being processed',
-        });
       }
 
       // const payload = {
