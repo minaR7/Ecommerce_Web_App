@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useDispatch } from 'react-redux';
 import { placeOrder } from '../redux/slices/checkoutSlice';
+import countries from 'world-countries';
+
 
 const { Option } = Select;
 const { Panel } = Collapse;
@@ -109,6 +111,9 @@ const Checkout = () => {
           useDifferentBilling,
         })
       );
+      setTimeout(() => {
+          navigate('/');
+        }, 1000)
       
     } catch (error) {
       console.log(error)
@@ -126,6 +131,9 @@ const Checkout = () => {
         return;
       }
   
+      setTimeout(() => {
+          navigate('/');
+        }, 1000)
       // Backend/API error
       // const message =
       //   error?.response?.data?.message || 'Something went wrong. Please try again.';
@@ -136,6 +144,11 @@ const Checkout = () => {
       // });
     }
   };
+
+  const countryOptions = countries.map(country => ({
+    label: country.name.common,
+    value: country.cca2 // or use `country.name.common` if you prefer
+  }));
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 p-6">
@@ -179,7 +192,16 @@ const Checkout = () => {
           </Row>
           <Row gutter={16}>
             <Col span ={8}>
-              <Form.Item label="Country" name="country" rules={[{ required: true }]}><Select><Option value="usa">USA</Option></Select></Form.Item>
+              {/* <Form.Item label="Country" name="country" rules={[{ required: true }]}><Select><Option value="usa">USA</Option></Select></Form.Item> */}
+              <Form.Item label="Country" name="country" rules={[{ required: true }]}>
+                <Select showSearch placeholder="Select a country" optionFilterProp="label">
+                  {countryOptions.map((country) => (
+                    <Select.Option key={country.value} value={country.label} label={country.label}>
+                      {country.label}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
             </Col>
             <Col span ={8}>  
               <Form.Item label="City / Town" name="city" rules={[{ required: true }]}><Input /></Form.Item>
@@ -194,7 +216,7 @@ const Checkout = () => {
       {/* 3. Shipping Method */}
       <div className="bg-white p-4 shadow rounded-xl">
         <h2 className="text-xl font-semibold mb-4">Shipping Method</h2>
-        <p className="mb-2">International delivery, shipping charges: <strong>$35</strong></p>
+        <p className="mb-2">International delivery, shipping charges: <strong>€35</strong></p>
         <Form.Item label="Order Notes" name="notes"><Input.TextArea rows={3} /></Form.Item>
       </div>
 
@@ -310,7 +332,7 @@ const Checkout = () => {
             {/* Quantity & Price */}
             <div className="text-right">
               <p>Qty: {item.quantity}</p>
-              <p className="font-semibold">${item.basePrice * item.quantity}</p>
+              <p className="font-semibold">€{item.basePrice * item.quantity}</p>
             </div>
           </div>
         ))}
@@ -321,17 +343,17 @@ const Checkout = () => {
         <div className="flex justify-between text-base">
           <span>Subtotal</span>
           <span className="font-semibold">
-            ${cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0).toFixed(2)}
+            €{cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0).toFixed(2)}
           </span>
         </div>
         <div className="flex justify-between text-base">
           <span>Shipping Charges</span>
-          <span className="font-semibold">$35.00</span>
+          <span className="font-semibold">€35.00</span>
         </div>
         <div className="flex justify-between text-lg font-bold">
           <span>Total</span>
           <span>
-            ${(
+            €{(
               cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35
             ).toFixed(2)}
           </span>
