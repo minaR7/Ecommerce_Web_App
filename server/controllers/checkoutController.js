@@ -12,6 +12,22 @@ exports.doCheckout = async (req, res) => {
       const { payload } = req.body;
       console.log("payload",payload)
       
+        // convert total amount to cents
+        const amountInCents = Math.round(payload.totalAmount * 100);
+          // Call Stripe Payment Intent
+        const paymentResponse = await stripe.paymentIntents.create({
+            amount: amountInCents,
+            currency: 'eur', //usd, pkr
+            payment_method: payload.paymentMethodId,
+            // payment_method_types: ['card'], // optional if you want only card
+            // return_url: 'https://your-site.com/checkout/complete', // Add your success URL here
+            confirm: true,
+            automatic_payment_methods: {
+            enabled: true,
+            allow_redirects: 'never', // This avoids redirect-based payments
+            },
+        });
+
       // Save User
       const userResult = await saveUser(payload.user_info, true);
       // Handle error from saveUser
@@ -53,22 +69,6 @@ exports.doCheckout = async (req, res) => {
       }
       
     //   console.log(shippingRes, billingRes, 'all saved')
-
-    // convert total amount to cents
-    const amountInCents = Math.round(payload.totalAmount * 100);
-      // Call Stripe Payment Intent
-    const paymentResponse = await stripe.paymentIntents.create({
-        amount: amountInCents,
-        currency: 'usd',
-        payment_method: payload.paymentMethodId,
-        // payment_method_types: ['card'], // optional if you want only card
-        // return_url: 'https://your-site.com/checkout/complete', // Add your success URL here
-        confirm: true,
-        automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: 'never', // This avoids redirect-based payments
-        },
-    });
 
     // Save Order Items
     const orderItemsResult = await saveOrderItems(orderId, payload.cartItems);
