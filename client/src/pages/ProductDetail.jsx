@@ -121,7 +121,7 @@ const ProductDetail = () => {
                 {/* Second Column */}
                 <Col className="w-full md:w-1/2 p-8 bg-[#f5f5f5] overflow-hidden" style={{ height: "65vh", borderRadius: "1rem", overflowY: "auto" }}>
                     <h1 className="text-2xl font-semibold ">{product.name}</h1>
-                    <h2 className="text-xl font-semibold mt-3" style={{ color: "rgb(71, 89, 122)" }}>{`$${product.price}`}</h2>
+                    <h2 className="text-xl font-semibold mt-3" style={{ color: "rgb(71, 89, 122)" }}>{`€${product.price}`}</h2>
                     <div className="mt-3">
                     <Rate disabled value={parseFloat(product.avg_rating)} />
                     </div>

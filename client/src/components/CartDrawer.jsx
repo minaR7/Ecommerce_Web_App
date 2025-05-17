@@ -156,7 +156,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                                     />
                                 </div>
                                 <div style={{ width: 50, textAlign: 'right', fontWeight: 'bold' }}>
-                                    ${totalPrice.toFixed(2)}
+                                    €{totalPrice.toFixed(2)}
                                 </div>
                             </div>
                         </List.Item>
@@ -204,7 +204,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                                     />
                                 </div>
                                 <div style={{ width: 50, textAlign: 'right', fontWeight: 'bold' }}>
-                                    ${totalPrice.toFixed(2)}
+                                    €{totalPrice.toFixed(2)}
                                 </div>
                             </div>
                         </List.Item>
