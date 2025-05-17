@@ -1,7 +1,8 @@
 const config = {
-    user: 'mina77',
-    password: 'Deen107*',
+    user: 'ecom_app_user',
+    password: 'Kafka851*',
     server: 'DESKTOP-E4ASPST',
+    // database: 'ecommerce_16_5_2025',
     database: 'moroccan_clothing_ecommerce',
     options: {
         encrypt: true, // This enables SSL/TLS
