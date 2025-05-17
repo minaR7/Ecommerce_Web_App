@@ -17,7 +17,8 @@ export const addToCart = createAsyncThunk(
     }
     if (user) {
       try {
-        const res = await axios.post('/api/cart', finalPayload);
+        const res = await axios.post('/api/cart/add', finalPayload);
+        window.dispatchEvent(new Event('cartUpdated'));
         return res.data;
       } catch (err) {
         notification.error({ message: 'Failed to add to cart.' });
@@ -29,7 +30,7 @@ export const addToCart = createAsyncThunk(
         let cart = JSON.parse(sessionStorage.getItem('guestCart') || '[]');
         cart.push(payload);
         sessionStorage.setItem('guestCart', JSON.stringify(cart));
-        notification.success({ message: 'Added to cart (Guest)' });
+        notification.success({ message: 'Added to cart' });
         // Dispatch custom event
         window.dispatchEvent(new Event('guestCartUpdated'));
         return cart;
@@ -55,9 +56,13 @@ export const fetchCart = createAsyncThunk('cart/fetch', async (_, { rejectWithVa
 // cartSlice.js or cartSlice.ts
 export const updateCartItem = createAsyncThunk(
   'cart/update',
-  async ({ cartItemId, size, color, data }, { rejectWithValue }) => {
+  async ({ cartItemId, productId, size, color, quantity}, { rejectWithValue }) => {
+    const payload = {
+      productId, size, color, quantity
+    }
     try {
-      const res = await axios.put(`/api/cart/${cartItemId}`, data);
+      const res = await axios.put(`/api/cart/${cartItemId}`, payload);
+        window.dispatchEvent(new Event('cartUpdated'));
       return { cartItemId, data };
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -68,10 +73,11 @@ export const updateCartItem = createAsyncThunk(
 // Remove Cart Item
 export const removeFromCart = createAsyncThunk(
   'cart/remove',
-  async (productId, { rejectWithValue }) => {
+  async (cart_item_id, { rejectWithValue }) => {
     try {
-      await axios.delete(`/api/cart/${productId}`);
-      return productId;
+      await axios.delete(`/api/cart/${cart_item_id}`);
+        window.dispatchEvent(new Event('cartUpdated'));
+      return cart_item_id;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
     }

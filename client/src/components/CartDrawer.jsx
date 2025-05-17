@@ -20,8 +20,19 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
         setUser(storedUser);
     
         if (storedUser) {
-            dispatch(fetchCart(storedUser.id));
-        } else {
+            const loadCart = () => {
+                dispatch(fetchCart(storedUser.user_id));
+                console.log(cartItems)
+            }
+            loadCart()
+            window.addEventListener('cartUpdated', loadCart);
+    
+            // Cleanup
+            return () => {
+                window.removeEventListener('cartUpdated', loadCart);
+            };
+        } 
+        else {
             const loadGuestCart = () => {
                 const storedGuestCart = JSON.parse(sessionStorage.getItem('guestCart') || '[]');
                 setGuestCart(storedGuestCart);
@@ -33,7 +44,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                 });
                 setQuantities(qtyMap);
             };
-    
+
             loadGuestCart(); // load once
     
             // Listen for guest cart updates
@@ -47,32 +58,40 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
     }, [dispatch]);
     
     const handleQuantityChange = (item, newQuantity) => {
-        const itemKey = `${item.productId}-${item.size}-${item.color}`;
     
         if (user) {
+            
+        const itemKey = `${item.cart_item_id}`;
             dispatch(updateCartItem({ 
+                cartItemId: item.cart_item_id,
                 productId: item.productId, 
                 size: item.size,
                 color: item.color,
                 quantity: newQuantity 
             }));
+            // Update quantity for this specific variant only
+            setQuantities(prev => ({ ...prev, [itemKey]: newQuantity }));
         } else {
+            
+        const itemKey = `${item.productId}-${item.size}-${item.color}`;
             const updatedCart = guestCart.map(ci => ci.productId === item.productId && ci.size === item.size 
                 && ci.color === item.color  ? { ...ci, quantity: newQuantity } : ci);
     
             sessionStorage.setItem('guestCart', JSON.stringify(updatedCart));
             setGuestCart(updatedCart);
             window.dispatchEvent(new Event('guestCartUpdated'));
+            // Update quantity for this specific variant only
+            setQuantities(prev => ({ ...prev, [itemKey]: newQuantity }));
         }
     
-        // Update quantity for this specific variant only
-        setQuantities(prev => ({ ...prev, [itemKey]: newQuantity }));
     };
     
 
     const handleDelete = (itemToDelete) => {
         if (user) {
-            dispatch(removeFromCart(itemToDelete.productId, itemToDelete.size, itemToDelete.color));
+            // dispatch(removeFromCart(itemToDelete.productId, itemToDelete.size, itemToDelete.color));
+            dispatch(removeFromCart(itemToDelete.cart_item_id));
+            window.dispatchEvent(new Event('cartUpdated'));
         } else {
             // const updatedCart = guestCart.filter(item => item.productId !== productId);
             const updatedCart = guestCart.filter(item =>
@@ -96,21 +115,25 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
 
     return (
         <Drawer title="Cart Items" placement="right" closable onClose={() => setCartOpen(false)} open={cartOpen}>
-            <List
+            {console.log(displayCart)}
+            {user ? (
+                <List
                 itemLayout="horizontal"
-                dataSource={displayCart}
+                dataSource={cartItems}
                 renderItem={(item) => {
-                    const key = `${item.productId}-${item.size}-${item.color}`;
+                    const key = `${item.cart_item_id}`;
                     // const qty = quantities[item.productId] || item.quantity || 1;
                     const qty = quantities[key] || item.quantity || 1;
                     const totalPrice = (item.basePrice || 0) * qty;
+                    console.log(item)
                     return (
                         <List.Item>
                             <div className="flex items-center justify-between w-full">
-                                <Button icon={<DeleteOutlined />} onClick={() => handleDelete(item)} danger />
-                                <Avatar src={item.image || "/fallback.jpg"} className="mx-2" />
-                                <div style={{ flex: 1 }}>{item.name || "Unnamed Product"}</div>
-                                <div className="flex items-center space-x-1">
+                                <Button icon={<DeleteOutlined />} onClick={() => handleDelete(item)} danger size="small" 
+                                 style={{  backgroundColor: "#ff4d4f", color: 'white', fontSize: '12px', fontWeight: '700' , padding: '2px 6px',}}/>
+                                <Avatar src={item?.coverImg || "/fallback.jpg"} alt={item.name}  size={48} className="mx-2" />
+                                <div >{item.name || "Unnamed Product"}</div>
+                                <div className="flex items-center">
                                     <Button
                                         icon={<MinusOutlined />}
                                         onClick={() => handleQuantityChange(item, Math.max(1, qty - 1))}
@@ -123,7 +146,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                                         value={qty}
                                         onChange={(value) => handleQuantityChange(item, value)}
                                         controls={false}
-                                        style={{ width: 60, textAlign: 'center' }}
+                                        style={{ width: 40, textAlign: 'center' }}
                                     />
                                     <Button
                                         icon={<PlusOutlined />}
@@ -132,7 +155,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                                         style={{ backgroundColor: "black", color: 'white', fontWeight: '500' }}
                                     />
                                 </div>
-                                <div style={{ width: 80, textAlign: 'right', fontWeight: 'bold' }}>
+                                <div style={{ width: 50, textAlign: 'right', fontWeight: 'bold' }}>
                                     ${totalPrice.toFixed(2)}
                                 </div>
                             </div>
@@ -140,17 +163,80 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                     );
                 }}
             />
-            <div className="flex mt-4">
-                <Button
-                    type="primary"
-                    icon={<GoArrowRight />}
-                    onClick={() => navigate('/checkout')}
-                    disabled={isCartEmpty}
-                    style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500", bottom: "0", width: "100%" }}
+            ) : (
+                <List
+                itemLayout="horizontal"
+                dataSource={displayCart}
+                renderItem={(item) => {
+                    const key = `${item.productId}-${item.size}-${item.color}`;
+                    // const qty = quantities[item.productId] || item.quantity || 1;
+                    const qty = quantities[key] || item.quantity || 1;
+                    const totalPrice = (item.basePrice || 0) * qty;
+                    return (
+                        <List.Item>
+                            <div className="flex items-center justify-between w-full">
+                               
+                                <Button icon={<DeleteOutlined />} onClick={() => handleDelete(item)} danger size="small" 
+                                 style={{ backgroundColor: "#ff4d4f", color: 'white', fontSize: '12px', fontWeight: '700' , padding: '2px 6px',}}/>
+                                <Avatar src={item.coverImg || "/fallback.jpg"} size={48} className="mx-2" />
+                                <div >{item.name || "Unnamed Product"}</div>
+                                 {/*style={{ flex: 1 }}} */}
+                                <div className="flex items-center">
+                                    <Button
+                                        icon={<MinusOutlined />}
+                                        onClick={() => handleQuantityChange(item, Math.max(1, qty - 1))}
+                                        disabled={qty <= 1}
+                                        style={{ backgroundColor: "black", color: 'white', fontWeight: '500' }}
+                                    />
+                                    <InputNumber
+                                        min={1}
+                                        max={10}
+                                        value={qty}
+                                        onChange={(value) => handleQuantityChange(item, value)}
+                                        controls={false}
+                                        style={{ width: 40, textAlign: 'center' }}
+                                    />
+                                    <Button
+                                        icon={<PlusOutlined />}
+                                        onClick={() => handleQuantityChange(item, Math.min(10, qty + 1))}
+                                        disabled={qty >= 10}
+                                        style={{ backgroundColor: "black", color: 'white', fontWeight: '500' }}
+                                    />
+                                </div>
+                                <div style={{ width: 50, textAlign: 'right', fontWeight: 'bold' }}>
+                                    ${totalPrice.toFixed(2)}
+                                </div>
+                            </div>
+                        </List.Item>
+                    );
+                }}
+            />
+            )}
+            {!isCartEmpty && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        bottom: 0,
+                        right: 0,
+                        width: 360, // match your Drawer width
+                        padding: '12px',
+                        backgroundColor: 'white',
+                        // borderTop: '1px solid #eee',
+                        zIndex: 1000,
+                    }}
+                    //className="flex mt-4">
                 >
-                    Proceed to Checkout
-                </Button>
-            </div>
+                    <Button
+                        type="primary"
+                        icon={<GoArrowRight />}
+                        onClick={() => navigate('/checkout')}
+                        disabled={isCartEmpty}
+                        style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500", width: "100%" }}
+                    >
+                        Proceed to Checkout
+                    </Button>
+                </div>
+            )}
         </Drawer>
     );
 };
