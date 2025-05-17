@@ -51,16 +51,43 @@
 import React from 'react';
 import { Form, Input, Checkbox, Button } from 'antd';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { fetchCart } from '../redux/slices/cartSlice';
+import { useDispatch, useSelector } from 'react-redux';
 
 const MyAccount = () => {
+
+  const navigate = useNavigate();
+   const dispatch = useDispatch();
+
   const onFinish = async (values) => {
-    console.log('Received values:', values);
-    const loginRes = await axios.post(`http://localhost:3005/api/users/login`, {
-      identifier: values.username,
-      password: values.password,
-    });
-    localStorage.setItem('user', JSON.stringify(loginRes.data.data) )
-    console.log(loginRes)
+    try {
+      console.log('Received values:', values);
+      const loginRes = await axios.post(`http://localhost:3005/api/users/login`, {
+        identifier: values.username,
+        password: values.password,
+      });
+
+      const user = loginRes.data.data
+      localStorage.setItem('user', JSON.stringify(user));
+      console.log(loginRes)
+
+       const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
+      if (guestCart.length > 0) {
+        await axios.post('http://localhost:3005/api/cart/add/bulk', {
+          userId: user.user_id,
+          cartItems: guestCart
+        });
+        sessionStorage.removeItem('guestCart');
+      }
+      const newCart = dispatch(fetchCart(user.user_id));
+      console.log(newCart)
+        navigate('/');
+
+    } catch (err) {
+      console.error('Login failed:', err);
+      // Optionally show a message to user
+    }
   };
 
   return (
