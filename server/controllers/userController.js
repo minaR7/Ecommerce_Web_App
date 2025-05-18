@@ -29,7 +29,8 @@ exports.saveUser = async (userData, calledFromCheckout = false) => {
         status: 409,
         message: 'User with this email already exists.',
       };
-      return calledFromCheckout ? errorResponse : errorResponse;
+
+      return calledFromCheckout ? existingUser.recordset[0] : errorResponse;
     }
 
     // Insert new user

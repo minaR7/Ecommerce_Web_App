@@ -123,7 +123,7 @@ const ProductDetail = () => {
                     <h1 className="text-2xl font-semibold ">{product.name}</h1>
                     <h2 className="text-xl font-semibold mt-3" style={{ color: "rgb(71, 89, 122)" }}>{`€${product.price}`}</h2>
                     <div className="mt-3">
-                    <Rate disabled value={parseFloat(product.avg_rating)} />
+                        <Rate disabled value={parseFloat(product.avg_rating)} />
                     </div>
 
                     <div className="mt-4">
