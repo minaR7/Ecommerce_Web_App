@@ -102,14 +102,14 @@ const ProductDetail = () => {
             <div className="flex md:flex-row mx-2 px-3" style={{minHeight: "70vh",}}>
                 {/* h-[50vh] First Column */}
                 {/* <div className="flex flex-col */}
-                <Col className=" w-full md:w-1/2 mt-2" style={{height: "70vh",}}>
+                <Col className=" w-full md:w-1/2 mt-2 flex flex-col gap-4" style={{height: "70vh",}}>
                     {/* First Child Container */}
                     <div className="flex items-center justify-center h-[70%]">
-                        <img src={selectedImage} alt={product.name} className="object-contain w-full h-full" />
+                        <img src={selectedImage} alt={product.name} className="object-contain max-w-full max-h-full" />
                     </div>
 
                     {/* Second Child Container */}
-                    <div className="flex items-center justify-center h-[26%] overflow-x-auto">
+                    <div className="flex items-center justify-center h-[26%] overflow-x-auto px-2">
                         {product?.slide_images.map((img, index) => (
                             <div
                                 key={index}
@@ -122,8 +122,9 @@ const ProductDetail = () => {
                     </div>
                 </Col>
 
-                {/* Second Column */}
-                <Col className="w-full md:w-1/2 p-8 bg-[#f5f5f5] overflow-hidden" style={{ height: "65vh", borderRadius: "1rem", overflowY: "auto" }}>
+                {/* Second Column height65 vh overflow auto*/}
+                {/* h-auto md:h-[65vh] overflow-visible */}
+                <Col className="w-full md:w-1/2 p-8 bg-[#f5f5f5] overflow-hidden" style={{ height: "auto", borderRadius: "1rem",}}>
                     <h1 className="text-2xl font-semibold ">{product.name}</h1>
                     <h2 className="text-xl font-semibold mt-3" style={{ color: "rgb(71, 89, 122)" }}>{`€${product.price}`}</h2>
                     <div className="mt-3">
