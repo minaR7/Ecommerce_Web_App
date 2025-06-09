@@ -19,6 +19,7 @@ import Checkout from './pages/Checkout';
 import Category from './pages/Category';
 import ProductListing from './pages/ProductListing';
 import Store from './pages/Store';
+import Cart from './pages/Cart'
 
 const { Header, Content, Footer } = Layout;
 
@@ -49,6 +50,7 @@ const App = () => {
               <Route path="/my-account" element={<MyAccount />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/cart" element={<Cart/>} />
 
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
