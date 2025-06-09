@@ -15,12 +15,45 @@ const verifyToken = require('./middleware/auth');
 
 const app = express();
 
+// const allowedOrigins = ['http://localhost:5173', 'http://example.com', 'http://anotherdomain.com'];
+
+// app.use(cors({
+//     origin: (origin, callback) => {
+//         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+//             callback(null, origin); // Allow the request
+//         } else {
+//             callback(new Error('Not allowed by CORS')); // Reject the request
+//         }
+//     },
+//     credentials: true // Only needed if you're sending cookies or auth headers
+// }));
+
+
 app.use(express.json());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
+
 app.use(cors({
-    origin: 'http://localhost:5173',
-    // 192.168.100.242
-    credentials: true // Only needed if you're sending cookies or auth headers
-  }));
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
+// app.use(cors({
+//     origin: ['http://localhost:5173', 'http://localhost:4173'],
+//     // 192.168.100.242
+//     credentials: true // Only needed if you're sending cookies or auth headers
+// }));
+
 
 // app.options('*', cors());
 
