@@ -85,7 +85,7 @@
 
 
 import { useEffect, useState } from 'react';
-import { Layout } from 'antd';
+import { Layout, Badge } from 'antd';
 import { Link } from 'react-router-dom';
 import { UserOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 
@@ -94,8 +94,15 @@ import Sidebar from './Sidebar';
 import CartDrawer from './CartDrawer';
 
 const { Header } = Layout;
+import { useSelector, useDispatch } from 'react-redux';
+import { openDrawer, closeDrawer } from '../redux/slices/cartSlice';
+
 
 const HeaderMenu = () => {
+    
+  const cartCount = useSelector((state) => state.cart.items.length);
+  const isDrawerOpen = useSelector((state) => state.cart.isDrawerOpen);
+  const dispatch = useDispatch();
    const [cartOpen, setCartOpen] = useState(false);
 
     return (
@@ -134,14 +141,18 @@ const HeaderMenu = () => {
 
                 <div className="border-l h-6 border-gray-400"></div>
 
-                <ShoppingCartOutlined
-                    className="text-2xl cursor-pointer text-black"
-                    onClick={() => setCartOpen(true)}
-                />
+                   <Badge count={cartCount} showZero>
+                        <ShoppingCartOutlined
+                            className="text-2xl cursor-pointer text-black"
+                            onClick={() => dispatch(openDrawer())}
+                        />
+                    </Badge>
             </div>
 
+
             {/* Cart Drawer */}
-            <CartDrawer cartOpen={cartOpen} setCartOpen={setCartOpen} />
+            {/* <CartDrawer cartOpen={cartOpen} setCartOpen={setCartOpen} /> */}
+            <CartDrawer cartOpen={isDrawerOpen} setCartOpen={() => dispatch(closeDrawer())} />
         </Header>
     );
 };

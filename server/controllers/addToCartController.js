@@ -157,8 +157,8 @@ exports.updateCartItem = async (req, res) => {
   const updateQuery = updates;
 
   try {
-    await sql.query(`UPDATE cart_items SET ${updateQuery} WHERE cart_item_id = ${cartItemId}`);
-    res.status(200).json({ message: 'Cart item updated successfully' });
+    const result = await sql.query(`UPDATE cart_items SET ${updateQuery} WHERE cart_item_id = ${cartItemId}`);
+    res.status(200).json({ message: 'Cart item updated successfully', result: result });
   } catch (error) {
     console.error('Error updating cart item:', error);
     res.status(500).json({ message: 'Server error updating cart item' });

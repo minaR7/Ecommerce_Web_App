@@ -8,7 +8,7 @@ import { FaCcVisa, FaCcMastercard, FaCcPaypal, FaGooglePay } from 'react-icons/f
 import { MinusOutlined, PlusOutlined, HeartOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { CheckOutlined } from '@ant-design/icons';
 import { GoArrowRight } from "react-icons/go";
-import { addToCart } from '../redux/slices/cartSlice';
+import { addToCart, openDrawer, closeDrawer, updateCartItem } from '../redux/slices/cartSlice';
 import { addToWishlist } from '../redux/slices/wishlistSlice';
 
 
@@ -23,7 +23,7 @@ const ProductDetail = () => {
     const [selectedColor, setSelectedColor] = useState('');
     const [selectedVariant, setSelectedVariant] = useState('');
     const [selectedQuantity, setSelectedQuantity] = useState(1);
-
+    const userExist = JSON.parse(localStorage.getItem('user'));
     useEffect(() => {
         dispatch(fetchProductById(id)); // Fetch product details based on ID from the URL
     }, []);
@@ -70,6 +70,10 @@ const ProductDetail = () => {
         console.log(payload)
         try {
             const resultAction = await dispatch(addToCart(payload));
+            dispatch(openDrawer());
+            setTimeout(() => {
+            dispatch(closeDrawer());
+            }, 2000);
             console.log('Thunk result:', resultAction);
          
           } catch (err) {

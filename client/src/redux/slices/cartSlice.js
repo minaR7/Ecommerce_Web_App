@@ -6,7 +6,7 @@ import { notification } from 'antd';
 //Add to Cart
 export const addToCart = createAsyncThunk(
   'cart/add',
-  async (payload, { rejectWithValue }) => {
+  async (payload, { getState, dispatch, rejectWithValue }) => {
     console.log('addTocart', payload)
     const user = getLoggedInUser();
     const finalPayload = {
@@ -16,6 +16,32 @@ export const addToCart = createAsyncThunk(
       userId: user ? user.user_id : null,
     }
     if (user) {
+        const { cart } = getState(); // Access cart from Redux store
+        console.log(cart)
+        const existingItem = cart.items?.find(
+          item =>
+            item.productId === finalPayload.productId &&
+            // item.variantId === finalPayload.variantId &&
+            item.size === payload.size &&
+            item.color === payload.color
+        );
+
+        if (existingItem) {
+                  console.log("Duplicate found")
+          // Duplicate found — update instead of add
+          const newQuantity = existingItem.quantity + finalPayload.quantity;
+
+          await dispatch(updateCartItem({
+            cartItemId: existingItem.cart_item_id,
+            productId: finalPayload.productId,
+            size: payload.size,
+            color: payload.color,
+            quantity: newQuantity
+          }));
+
+          notification.success({ message: 'Cart item updated' });
+          return;
+        }
       try {
         const res = await axios.post('/api/cart/add', finalPayload);
         window.dispatchEvent(new Event('cartUpdated'));
@@ -28,7 +54,23 @@ export const addToCart = createAsyncThunk(
       console.log('guest addTocart')
       try{
         let cart = JSON.parse(sessionStorage.getItem('guestCart') || '[]');
-        cart.push(payload);
+
+        const itemIndex = cart.findIndex(
+            item =>
+                item.productId === payload.productId &&
+                item.size === payload.size &&
+                item.color === payload.color
+        );
+
+        if (itemIndex > -1) {
+            // Item exists, increase quantity
+            cart[itemIndex].quantity += payload.quantity;
+        } 
+        else {
+            // Add new item
+            cart.push(payload);
+        }
+
         sessionStorage.setItem('guestCart', JSON.stringify(cart));
         notification.success({ message: 'Added to cart' });
         // Dispatch custom event
@@ -90,10 +132,17 @@ const cartSlice = createSlice({
     items: [],
     loading: false,
     error: null,
+    isDrawerOpen: false,
   },
   reducers: {
     clearCart: (state) => {
       state.items = [];
+    },
+    openDrawer: (state) => {
+      state.isDrawerOpen = true;
+    },
+    closeDrawer: (state) => {
+      state.isDrawerOpen = false;
     },
   },
   extraReducers: (builder) => {
@@ -146,5 +195,5 @@ const cartSlice = createSlice({
   },
 });
 
-export const { clearCart } = cartSlice.actions;
+export const { clearCart,  openDrawer, closeDrawer } = cartSlice.actions;
 export default cartSlice.reducer;
