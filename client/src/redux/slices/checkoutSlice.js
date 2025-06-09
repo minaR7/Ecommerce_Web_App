@@ -4,11 +4,14 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { notification } from 'antd';
 import { clearCart } from './cartSlice';
+// import { useNavigate } from 'react-router-dom';
 
 // Async thunk for order checkout
 export const placeOrder = createAsyncThunk(
   'checkout/placeOrder',
   async ({ validatedValues,  paymentMethodId, cartItems, useDifferentBilling }, { dispatch, rejectWithValue }) => {
+    
+    // const navigate = useNavigate();
     try {
       const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
 // const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) * 1;
@@ -62,9 +65,9 @@ export const placeOrder = createAsyncThunk(
         // Clear cart on successful order
         dispatch(clearCart());
         // Navigate to homepage
-        setTimeout(() => {
-          navigate('/');
-        }, 2000)
+        // setTimeout(() => {
+        //   navigate('/');
+        // }, 2000)
         return res.data;
       } else {
         return rejectWithValue('Unexpected response');

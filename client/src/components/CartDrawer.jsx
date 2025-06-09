@@ -125,7 +125,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                     // const qty = quantities[item.productId] || item.quantity || 1;
                     const qty = quantities[key] || item.quantity || 1;
                     const totalPrice = (item.basePrice || 0) * qty;
-                    console.log(item)
+                    // console.log(item)
                     return (
                         <List.Item>
                             <div className="flex items-center justify-between w-full">
