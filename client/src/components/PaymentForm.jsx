@@ -29,7 +29,22 @@ const StripePaymentForm = ({ onPaymentMethodGenerated }) => {
   return (
     // <form onSubmit={handlePayment}>
       <div className='flex w-full '>
-        <CardElement className="py-4 px-3 border rounded-md w-full" />
+        <CardElement className="py-4 px-3 border rounded-md w-full" 
+         options={{
+          hidePostalCode: true,
+          style: {
+            base: {
+              fontSize: '16px',
+              color: '#32325d',
+              '::placeholder': {
+                color: '#a0aec0',
+              },
+            },
+            invalid: {
+              color: '#fa755a',
+            },
+          },
+        }}/>
         <button
           type="submit"
           onClick={handlePayment}
