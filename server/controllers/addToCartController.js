@@ -175,3 +175,28 @@ exports.removeFromCart = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+//Mark cart items as processed after order is placed
+exports.markCartItemsAsProcessed = async (cartItems, userId) => {
+  try {
+    const request = new sql.Request();
+
+    for (const item of cartItems) {
+        request.input('userId', sql.Int, userId)
+        request.input('productId', sql.Int, item.product_id)
+
+        const processCartItem = await request.query(`
+          UPDATE moroccan_clothing_ecommerce.dbo.cart_items
+          SET processed = 1
+          WHERE user_id = @userId AND product_id = @productId
+        `);
+
+        console.log(processCartItem)
+    }
+
+    return { success: true, message: 'Cart Item updated' };
+  } catch (err) {
+    console.error('Error updating cart_items.processed:', err);
+    return { success: false, message: 'Failed to mark cart items as processed' };
+  }
+};

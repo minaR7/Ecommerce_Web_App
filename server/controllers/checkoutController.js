@@ -5,28 +5,29 @@ const {saveOrder, saveOrderItems} = require('./orderController');
 const {saveShipping} = require('./shippingController');
 const {saveBilling} = require('./billingController');
 const { savePayment } = require('./paymentController');
-
+const {updateProductStock} = require('./inventoryController');
+const {markCartItemsAsProcessed} = require('./addToCartController')
 
 exports.doCheckout = async (req, res) => {
   try {
       const { payload } = req.body;
       console.log("payload",payload)
       
-        // convert total amount to cents
-        const amountInCents = Math.round(payload.totalAmount * 100);
-          // Call Stripe Payment Intent
-        const paymentResponse = await stripe.paymentIntents.create({
-            amount: amountInCents,
-            currency: 'eur', //usd, pkr
-            payment_method: payload.paymentMethodId,
-            // payment_method_types: ['card'], // optional if you want only card
-            // return_url: 'https://your-site.com/checkout/complete', // Add your success URL here
-            confirm: true,
-            automatic_payment_methods: {
-            enabled: true,
-            allow_redirects: 'never', // This avoids redirect-based payments
-            },
-        });
+      // convert total amount to cents
+      const amountInCents = Math.round(payload.totalAmount * 100);
+        // Call Stripe Payment Intent
+      const paymentResponse = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: 'eur', //usd, pkr
+          payment_method: payload.paymentMethodId,
+          // payment_method_types: ['card'], // optional if you want only card
+          // return_url: 'https://your-site.com/checkout/complete', // Add your success URL here
+          confirm: true,
+          automatic_payment_methods: {
+          enabled: true,
+          allow_redirects: 'never', // This avoids redirect-based payments
+          },
+      });
 
       // Save User
       const userResult = await saveUser(payload.user_info, true);
@@ -70,17 +71,29 @@ exports.doCheckout = async (req, res) => {
       
     //   console.log(shippingRes, billingRes, 'all saved')
 
-    // Save Order Items
-    const orderItemsResult = await saveOrderItems(orderId, payload.cartItems);
-    if (!orderItemsResult.success) {
-    return res.status(400).json({ success: false, message: 'Failed to save order items' });
-    }
+      // Save Order Items
+      const orderItemsResult = await saveOrderItems(orderId, payload.cartItems);
+      if (!orderItemsResult.success) {
+      return res.status(400).json({ success: false, message: 'Failed to save order items' });
+      }
 
-    // Save Payment Info
-    const paymentSaveResult = await savePayment(orderId, paymentResponse);
-    if (!paymentSaveResult.success) {
-    return res.status(400).json({ success: false, message: 'Failed to save payment info' });
-    }
+      // Save Payment Info
+      const paymentSaveResult = await savePayment(orderId, paymentResponse);
+      if (!paymentSaveResult.success) {
+      return res.status(400).json({ success: false, message: 'Failed to save payment info' });
+      }
+
+      // Update stock quantity
+      const stockUpdateResult = await updateProductStock(payload.cartItems);
+      if (!stockUpdateResult.success) {
+        return res.status(400).json({ success: false, message: stockUpdateResult.message });
+      }
+
+      // Mark cart items as processed
+      const processCartItemsResult = await markCartItemsAsProcessed(userId, payload.cartItems);
+      if (!processCartItemsResult.success) {
+        return res.status(400).json({ success: false, message: processCartItemsResult.message });
+      }
 
     // Return response
     return res.status(200).json({ success: true, message: 'Order placed successfully', orderId, paymentIntent: paymentResponse });
