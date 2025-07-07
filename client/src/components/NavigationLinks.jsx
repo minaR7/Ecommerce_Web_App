@@ -14,8 +14,10 @@ const NavigationLinks = ({ onClick, isSidebar = false }) => {
         const fetchData = async () => {
             try {
                 const [catRes, subRes] = await Promise.all([
-                    axios.get('http://localhost:3005/api/categories'),
-                    axios.get('http://localhost:3005/api/subcategories')
+                    // axios.get('http://localhost:3005/api/categories'),
+                    // axios.get('http://localhost:3005/api/subcategories')
+                    axios.get(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/categories`),
+                    axios.get(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/subcategories`)
                 ]);
 
                 setCategories(catRes.data);

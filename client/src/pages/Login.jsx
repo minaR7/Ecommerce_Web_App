@@ -63,7 +63,7 @@ const MyAccount = () => {
   const onFinish = async (values) => {
     try {
       console.log('Received values:', values);
-      const loginRes = await axios.post(`http://localhost:3005/api/users/login`, {
+      const loginRes = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/users/login`, {
         identifier: values.username,
         password: values.password,
       });
@@ -74,7 +74,7 @@ const MyAccount = () => {
 
        const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
       if (guestCart.length > 0) {
-        await axios.post('http://localhost:3005/api/cart/add/bulk', {
+        await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/add/bulk`, {
           userId: user.user_id,
           cartItems: guestCart
         });

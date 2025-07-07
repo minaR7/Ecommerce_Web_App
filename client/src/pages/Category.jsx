@@ -90,7 +90,7 @@ const Category = () => {
   useEffect(() => {
     const fetchSubcategories = async () => {
       try {
-        const res = await axios.get(`http://localhost:3005/api/subcategories?category=${categoryName}`);
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/subcategories?category=${categoryName}`);
         setSubcategories(res.data);
       } catch (error) {
         console.error('Error fetching subcategories:', error);

@@ -15,7 +15,7 @@ const ProductListing = () => {
     const fetchProductsBySubcategory = async () => {
       try {
         // First, fetch subcategories to get the ID of the current subcategory
-        const subRes = await axios.get(`http://localhost:3005/api/subcategories?category=${categoryName}`);
+        const subRes = await axios.get(`https://elmaghrib.com/api/subcategories?category=${categoryName}`);
         const matchedSub = subRes.data.find(
           (sub) => sub.name.toLowerCase() === subcategoryName.toLowerCase()
         );
@@ -28,7 +28,7 @@ const ProductListing = () => {
         setSubcategoryId(matchedSub.subcategory_id);
 
         // Now fetch products using subcategory ID
-        const prodRes = await axios.get(`http://localhost:3005/api/products?subcategory=${matchedSub.subcategory_id}`);
+        const prodRes = await axios.get(`https://elmaghrib.com/api/products?subcategory=${matchedSub.subcategory_id}`);
         setProducts(prodRes.data);
       } catch (error) {
         console.error('Error fetching products:', error);
