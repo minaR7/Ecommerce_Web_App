@@ -45,7 +45,7 @@ const Home = () => {
                 <Row className='mt-8 flex justify-center' style={{paddingBottom: '32px',}}> 
                     {subcategories.map((sub) => (
                         <Col xs={24} sm={12} md={8} lg={6} key={sub.key} className='mx-8'>
-                        <Link to={`/men/${sub.key}`}>
+                        <Link to={`store/men/${sub.key}`}>
                             <Card
                                 hoverable
                                 cover={<img alt={sub.label} src={sub.img} width={300} height={320}  />}

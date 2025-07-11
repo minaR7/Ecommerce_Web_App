@@ -1,6 +1,7 @@
 // components/Footer.jsx
 import { Layout } from 'antd';
 import { FaWhatsapp, FaEnvelope, FaPhone, FaInstagram, FaFacebook, FaLinkedin } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 const { Footer } = Layout;
 
@@ -25,7 +26,7 @@ const FooterMenu = () => {
                     <div className="flex-1">
                         <h2 className="text-2xl font-bold mb-2">Collections</h2>
                         <ul className="space-y-1">
-                            <li><a href="/men/djellaba" className="hover:underline">Djellaba</a></li>
+                            <li><Link to={"/men/djellaba"}>Djellaba</Link></li>
                             <li><a href="/men/jabador" className="hover:underline">Jabador</a></li>
                             <li><a href="/men/moroccan-thobe" className="hover:underline">Moroccan Thobe</a></li>
                             <li><a href="/men/accessories" className="hover:underline">Accessories</a></li>

@@ -8,7 +8,7 @@ import StripePaymentForm from '../components/PaymentForm';
 const { Option } = Select;
 const { Panel } = Collapse;
 
-const stripePromise = loadStripe(`${import.meta.env.STRIPE_PUBLISHABLE_KEY}`); // replace with your STRIPE_PUBLISHABLE_KEY
+const stripePromise = loadStripe(`${import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY}`); // replace with your STRIPE_PUBLISHABLE_KEY
 const Checkout = () => {
   const [useDifferentBilling, setUseDifferentBilling] = useState(false);
   const [cartItems, setCartItems] = useState([]);

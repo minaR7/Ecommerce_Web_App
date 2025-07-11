@@ -54,7 +54,7 @@ export const placeOrder = createAsyncThunk(
         cartItems,
       };
 
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/checkout`, { payload });
+      const res = await axios.post(`/api/checkout`, { payload });
 
       if (res.status === 200) {
         notification.success({
