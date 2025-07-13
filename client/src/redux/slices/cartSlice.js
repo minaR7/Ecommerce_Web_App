@@ -39,7 +39,7 @@ export const addToCart = createAsyncThunk(
             quantity: newQuantity
           }));
 
-          notification.success({ message: 'Cart item updated' });
+          // notification.success({ message: 'Cart item updated' });
           return;
         }
       try {
@@ -72,7 +72,7 @@ export const addToCart = createAsyncThunk(
         }
 
         sessionStorage.setItem('guestCart', JSON.stringify(cart));
-        notification.success({ message: 'Added to cart' });
+        // notification.success({ message: 'Added to cart' });
         // Dispatch custom event
         window.dispatchEvent(new Event('guestCartUpdated'));
         return cart;
@@ -88,8 +88,15 @@ export const addToCart = createAsyncThunk(
 export const fetchCart = createAsyncThunk('cart/fetch', async (_, { rejectWithValue }) => {
   try {
     const user = getLoggedInUser();
-    const res = await axios.get(`/api/cart/${user.user_id}`);
-    return res.data;
+    if (user){
+      const res = await axios.get(`/api/cart/${user.user_id}`);
+      return res.data;
+    }
+    else{
+      const cartItem = JSON.parse(sessionStorage.getItem('guestCart') || []);
+      console.log(cartItem)
+      return cartItem
+    }
   } catch (err) {
     return rejectWithValue(err.response?.data || err.message);
   }
@@ -149,6 +156,7 @@ const cartSlice = createSlice({
     builder
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.items = action.payload;
+        console.log(state)
       })
       .addCase(fetchCart.rejected, (state, action) => {
         state.loading = false;

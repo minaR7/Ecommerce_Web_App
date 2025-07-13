@@ -4,7 +4,7 @@ import { Drawer, List, Avatar, Button, InputNumber } from 'antd';
 import { DeleteOutlined, PlusOutlined, MinusOutlined } from '@ant-design/icons';
 import { GoArrowRight } from 'react-icons/go';
 import { useNavigate } from 'react-router-dom';
-import { fetchCart, updateCartItem, removeFromCart } from '../redux/slices/cartSlice';
+import { fetchCart, updateCartItem, removeFromCart, closeDrawer } from '../redux/slices/cartSlice';
 
 const CartDrawer = ({ cartOpen, setCartOpen }) => {
     const dispatch = useDispatch();
@@ -32,29 +32,32 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                 window.removeEventListener('cartUpdated', loadCart);
             };
         } 
-        else {
-            const loadGuestCart = () => {
-                const storedGuestCart = JSON.parse(sessionStorage.getItem('guestCart') || '[]');
-                setGuestCart(storedGuestCart);
-                const qtyMap = {};
-                storedGuestCart.forEach(item => {
-                    const key = `${item.productId}-${item.size}-${item.color}`;
-                    // qtyMap[item.productId] = item.quantity;
-                    qtyMap[key] = item.quantity;
-                });
-                setQuantities(qtyMap);
-            };
-
-            loadGuestCart(); // load once
-    
-            // Listen for guest cart updates
-            window.addEventListener('guestCartUpdated', loadGuestCart);
-    
-            // Cleanup
-            return () => {
-                window.removeEventListener('guestCartUpdated', loadGuestCart);
-            };
+        else{
+              dispatch(fetchCart());
         }
+        // else {
+        //     const loadGuestCart = () => {
+        //         const storedGuestCart = JSON.parse(sessionStorage.getItem('guestCart') || '[]');
+        //         setGuestCart(storedGuestCart);
+        //         const qtyMap = {};
+        //         storedGuestCart.forEach(item => {
+        //             const key = `${item.productId}-${item.size}-${item.color}`;
+        //             // qtyMap[item.productId] = item.quantity;
+        //             qtyMap[key] = item.quantity;
+        //         });
+        //         setQuantities(qtyMap);
+        //     };
+
+        //     loadGuestCart(); // load once
+    
+        //     // Listen for guest cart updates
+        //     window.addEventListener('guestCartUpdated', loadGuestCart);
+    
+        //     // Cleanup
+        //     return () => {
+        //         window.removeEventListener('guestCartUpdated', loadGuestCart);
+        //     };
+        // }
     }, [dispatch]);
     
     const handleQuantityChange = (item, newQuantity) => {
@@ -110,7 +113,8 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
         }
     };
 
-    const displayCart = user ? cartItems : guestCart;
+    // const displayCart = user ? cartItems : guestCart;
+    const displayCart = cartItems
     const isCartEmpty = !displayCart || displayCart.length === 0;
 
     return (
@@ -151,7 +155,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                                     <Button
                                         icon={<PlusOutlined />}
                                         onClick={() => handleQuantityChange(item, Math.min(10, qty + 1))}
-                                        disabled={qty >= 10}
+                                        disabled={qty >= 40}
                                         style={{ backgroundColor: "black", color: 'white', fontWeight: '500' }}
                                     />
                                 </div>
@@ -219,21 +223,38 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                         bottom: 0,
                         right: 0,
                         width: 360, // match your Drawer width
-                        padding: '12px',
+                        padding: '0 1em 1em 0',
                         backgroundColor: 'white',
                         // borderTop: '1px solid #eee',
                         zIndex: 1000,
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        gap: "1em",
                     }}
                     //className="flex mt-4">
                 >
                     <Button
                         type="primary"
-                        icon={<GoArrowRight />}
-                        onClick={() => navigate('/checkout')}
+                        // icon={<GoArrowRight />}
+                        onClick={() => {navigate('/checkout') 
+                            setTimeout(() => {
+                            dispatch(closeDrawer());
+                            }, 300);}}
                         disabled={isCartEmpty}
-                        style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500", width: "100%" }}
+                        style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "700", width: "100%", padding: "1rem 2rem"  }}
                     >
                         Proceed to Checkout
+                    </Button>
+                     <Button
+                        onClick={() => {navigate('/cart')
+                            setTimeout(() => {
+                            dispatch(closeDrawer());
+                            }, 300);}}
+                        // disabled={isCartEmpty}
+                        style={{ borderColor: 'black', color: "black", fontWeight: "700", padding: "1rem 2rem" }}
+                        className="w-full bg-white hover:bg-blue-700 transition-all"
+                    >
+                        View Cart
                     </Button>
                 </div>
             )}

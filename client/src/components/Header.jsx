@@ -100,7 +100,7 @@ import { openDrawer, closeDrawer } from '../redux/slices/cartSlice';
 
 const HeaderMenu = () => {
     
-  const cartCount = useSelector((state) => state.cart.items.length);
+  const cartCount = useSelector((state) => {state.cart.items.length, console.log(state)});
   const isDrawerOpen = useSelector((state) => state.cart.isDrawerOpen);
   const dispatch = useDispatch();
    const [cartOpen, setCartOpen] = useState(false);
