@@ -31,12 +31,17 @@ const app = express();
 
 app.use(express.json());
 const allowedOrigins = [
+  'https://elmaghrib.com',
+  'http://elmaghrib.com',
+  'http://78.159.113.48:80',
+  'https://78.159.113.48:80',
   'http://localhost:5173',
   'http://localhost:4173',
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    console.log(origin)
     // allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {

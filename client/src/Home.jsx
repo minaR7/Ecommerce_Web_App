@@ -8,10 +8,11 @@ const Home = () => {
 
   const showDrawer = () => setVisible(true);
   const closeDrawer = () => setVisible(false);
+
   const subcategories = [
-    { key: 'djellaba', label: 'Djellaba', img: '/assets/men/djellaba-man.jpg.webp', items: 12 },
-    { key: 'jabador', label: 'Jabador', img: '/assets/men/jabador-man.jpg.webp', items: 6 },
-    { key: 'moroccan-thobe', label: 'Moroccan Thobe', img: '/assets/men/moroccan-thobes.jpg.webp', items: 7 },
+    { key: 'Djellaba', label: 'Djellaba', img: '/assets/men/djellaba-man.jpg.webp', items: 12 },
+    { key: 'Jabador', label: 'Jabador', img: '/assets/men/jabador-man.jpg.webp', items: 6 },
+    { key: 'Moroccan Thobe', label: 'Moroccan Thobe', img: '/assets/men/moroccan-thobes.jpg.webp', items: 7 },
   ];
 
   return (
@@ -45,7 +46,7 @@ const Home = () => {
                 <Row className='mt-8 flex justify-center' style={{paddingBottom: '32px',}}> 
                     {subcategories.map((sub) => (
                         <Col xs={24} sm={12} md={8} lg={6} key={sub.key} className='mx-8'>
-                        <Link to={`store/men/${sub.key}`}>
+                        <Link to={`store/Men/${sub.key}`}>
                             <Card
                                 hoverable
                                 cover={<img alt={sub.label} src={sub.img} width={300} height={320}  />}
