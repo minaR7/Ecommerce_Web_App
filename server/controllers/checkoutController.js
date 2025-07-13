@@ -6,15 +6,36 @@ const {saveShipping} = require('./shippingController');
 const {saveBilling} = require('./billingController');
 const { savePayment } = require('./paymentController');
 const {updateProductStock} = require('./inventoryController');
-const {markCartItemsAsProcessed} = require('./addToCartController')
+const {markCartItemsAsProcessed, checkAndAdjustCartItems} = require('./addToCartController')
 
 exports.doCheckout = async (req, res) => {
   try {
       const { payload } = req.body;
       console.log("payload",payload)
       
+      // Step 1: Check stock
+      const stockCheck = await checkAndAdjustCartItems(payload.cartItems);
+      
+      if (!stockCheck.success) {
+        return res.status(400).json({
+          success: false,
+          message: stockCheck.message,
+          stockMessages: stockCheck.stockMessages,
+        });
+      }
+
+      const updatedCartItems = stockCheck.adjustedCartItems;
+      console.log("updatedCartItems", updatedCartItems)
+
+      // Convert total amount based on updated cart
+      const updatedTotalAmount = updatedCartItems.reduce(
+        (sum, item) => sum + item.basePrice * item.quantity,
+        0
+      );
+      
       // convert total amount to cents
-      const amountInCents = Math.round(payload.totalAmount * 100);
+      // const amountInCents = Math.round(payload.totalAmount * 100);
+      const amountInCents = Math.round(updatedTotalAmount * 100);
         // Call Stripe Payment Intent
       const paymentResponse = await stripe.paymentIntents.create({
           amount: amountInCents,
@@ -42,7 +63,7 @@ exports.doCheckout = async (req, res) => {
       console.log("userId",userId)
       
       // Save Order
-      const orderResult = await saveOrder({ userId, totalAmount: payload.totalAmount });
+      const orderResult = await saveOrder({ userId, totalAmount: updatedTotalAmount });
       if (!orderResult?.order_id) {
         return res.status(orderResult.status || 400).json({
           success: false,
@@ -72,7 +93,7 @@ exports.doCheckout = async (req, res) => {
     //   console.log(shippingRes, billingRes, 'all saved')
 
       // Save Order Items
-      const orderItemsResult = await saveOrderItems(orderId, payload.cartItems);
+      const orderItemsResult = await saveOrderItems(orderId, updatedCartItems);
       if (!orderItemsResult.success) {
       return res.status(400).json({ success: false, message: 'Failed to save order items' });
       }
@@ -84,19 +105,20 @@ exports.doCheckout = async (req, res) => {
       }
 
       // Update stock quantity
-      const stockUpdateResult = await updateProductStock(payload.cartItems);
+      const stockUpdateResult = await updateProductStock(updatedCartItems);
       if (!stockUpdateResult.success) {
         return res.status(400).json({ success: false, message: stockUpdateResult.message });
       }
 
       // Mark cart items as processed
-      const processCartItemsResult = await markCartItemsAsProcessed(userId, payload.cartItems);
+      const processCartItemsResult = await markCartItemsAsProcessed(userId, updatedCartItems);
       if (!processCartItemsResult.success) {
         return res.status(400).json({ success: false, message: processCartItemsResult.message });
       }
 
     // Return response
-    return res.status(200).json({ success: true, message: 'Order placed successfully', orderId, paymentIntent: paymentResponse });
+    return res.status(200).json({ success: true, message: 'Order placed successfully', orderId, paymentIntent: paymentResponse,
+      stockMessages: stockCheck.stockMessages, order_items: updatedCartItems });
   } catch (error) {
       console.error('Checkout error:', error);
       res.status(400).json({ error: error.message });
