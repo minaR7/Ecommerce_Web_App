@@ -15,10 +15,11 @@ exports.addToCart = async (req, res) => {
       request.input('productId', sql.Int, productId);
       request.input('quantity', sql.Int, quantity);
       request.input('variantId', sql.Int, variantId);
+      request.input('processed', sql.Bit, 0);
 
       await request.query(`
-        INSERT INTO cart_items (user_id, product_id, quantity, variant_id)
-        VALUES (@userId, @productId, @quantity, @variantId)
+        INSERT INTO cart_items (user_id, product_id, quantity, variant_id, processed)
+        VALUES (@userId, @productId, @quantity, @variantId, @processed)
       `);
       return res.status(200).json({ message: 'Item added to cart successfully' });
       
@@ -72,10 +73,11 @@ exports.addBulkToCart = async (req, res) => {
         insertRequest.input('productId', sql.Int, productId);
         insertRequest.input('quantity', sql.Int, quantity);
         insertRequest.input('variantId', sql.Int, variantId || null);
+        insertRequest.input('processed', sql.Bit, 0);
 
         await insertRequest.query(`
-          INSERT INTO cart_items (user_id, product_id, quantity, variant_id)
-          VALUES (@userId, @productId, @quantity, @variantId)
+          INSERT INTO cart_items (user_id, product_id, quantity, variant_id, processed)
+          VALUES (@userId, @productId, @quantity, @variantId, @processed)
         `);
       }
     }
@@ -112,7 +114,7 @@ exports.getCart = async (req, res) => {
             JOIN product_variants v ON ci.variant_id = v.variant_id
             LEFT JOIN product_colors c ON v.color_id = c.color_id
             LEFT JOIN product_sizes s ON v.size_id = s.size_id
-            WHERE ci.user_id = ${userId}
+            WHERE ci.user_id = ${userId} AND ci.processed = 0
         `)
         
         if (!result.recordset.length) {
@@ -125,6 +127,7 @@ exports.getCart = async (req, res) => {
             size: item.size,
             color: item.color,
             cart_item_id: item.cart_item_id,
+            variant_id: item.variant_id,
             basePrice: item.base_price,
             productId: item.product_id,
             quantity: item.quantity,
@@ -177,26 +180,84 @@ exports.removeFromCart = async (req, res) => {
 };
 
 //Mark cart items as processed after order is placed
-exports.markCartItemsAsProcessed = async (cartItems, userId) => {
+exports.markCartItemsAsProcessed = async (userId, cartItems) => {
   try {
-    const request = new sql.Request();
+        console.log('markCartItemsAsProcessed', userId)
 
     for (const item of cartItems) {
+        const request = new sql.Request();
         request.input('userId', sql.Int, userId)
-        request.input('productId', sql.Int, item.product_id)
+        request.input('cart_item_id', sql.Int, item.cart_item_id)
+        // request.input('productId', sql.Int, item.product_id)
+        // request.input('variantId', sql.Int, item.variant_id)
 
         const processCartItem = await request.query(`
-          UPDATE moroccan_clothing_ecommerce.dbo.cart_items
+          UPDATE cart_items
           SET processed = 1
-          WHERE user_id = @userId AND product_id = @productId
+          WHERE cart_item_id = @cart_item_id
         `);
 
-        console.log(processCartItem)
+        console.log(processCartItem, "processCartItem")
     }
 
     return { success: true, message: 'Cart Item updated' };
   } catch (err) {
     console.error('Error updating cart_items.processed:', err);
     return { success: false, message: 'Failed to mark cart items as processed' };
+  }
+};
+
+exports.checkAndAdjustCartItems = async (cartItems) => {
+
+  const adjustedCartItems = [];
+  const stockMessages = [];
+
+  try{
+    for (const item of cartItems) {
+    const { productId, variant_id, color, size, quantity } = item;
+
+    // Query available stock
+      const request = new sql.Request();
+      request.input('variantId', sql.Int, variant_id)
+      const result = await request.query(`
+        SELECT stock_quantity
+        FROM product_variants
+        WHERE variant_id = @variantId
+      `);
+
+
+    console.log("resultttt", result)
+    const availableStock = result.recordset[0]?.stock_quantity ?? 0;
+
+    if (availableStock <= 0) {
+      stockMessages.push(
+        `Cart item with productId: ${productId}, variantId: ${variant_id}, color: ${color}, size: ${size} is out of stock.`
+      );
+      console.log(`Cart item with productId: ${productId}, variantId: ${variant_id}, color: ${color}, size: ${size} is out of stock.`)
+      continue;
+    }
+
+    if (quantity > availableStock) {
+      stockMessages.push(
+        `Cart item with productId: ${productId}, variantId: ${variant_id}, color: ${color}, size: ${size} only has quantity ${availableStock}.`
+      );
+      console.log(`Cart item with productId: ${productId}, variantId: ${variant_id}, color: ${color}, size: ${size} only has quantity ${availableStock}.`)
+      adjustedCartItems.push({ ...item, quantity: availableStock });
+    } else {
+      adjustedCartItems.push(item);
+    }
+  }
+
+  if (adjustedCartItems.length === 0) {
+    return { success: false, message: 'All items are out of stock.', stockMessages };
+  }
+
+  return { success: true, adjustedCartItems, stockMessages };
+  }
+  catch(error)
+  {
+    console.log("stokc qunaityt upodate",error)
+    return { success: true, message: 'Error while checking stock quantity', };
+
   }
 };
