@@ -3,14 +3,14 @@ import {React, useState, useEffect} from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductById } from '../redux/slices/productSlice';
-import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber,Tooltip, Radio, notification } from 'antd';
+import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber, Tooltip, Radio, Modal, List } from 'antd';
 import { FaCcVisa, FaCcMastercard, FaCcPaypal, FaGooglePay } from 'react-icons/fa';
-import { MinusOutlined, PlusOutlined, HeartOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { MinusOutlined, PlusOutlined, HeartOutlined, ShoppingCartOutlined, DeleteOutlined } from '@ant-design/icons';
 import { CheckOutlined } from '@ant-design/icons';
 import { GoArrowRight } from "react-icons/go";
+import Items from '../components/ItemsList';
 import { addToCart, openDrawer, closeDrawer, updateCartItem } from '../redux/slices/cartSlice';
 import { addToWishlist } from '../redux/slices/wishlistSlice';
-
 
 const ProductDetail = () => {
 
@@ -23,6 +23,7 @@ const ProductDetail = () => {
     const [selectedColor, setSelectedColor] = useState('');
     const [selectedVariant, setSelectedVariant] = useState('');
     const [selectedQuantity, setSelectedQuantity] = useState(1);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const userExist = JSON.parse(localStorage.getItem('user'));
     useEffect(() => {
         dispatch(fetchProductById(id)); // Fetch product details based on ID from the URL
@@ -70,10 +71,11 @@ const ProductDetail = () => {
         console.log(payload)
         try {
             const resultAction = await dispatch(addToCart(payload));
-            dispatch(openDrawer());
-            setTimeout(() => {
-            dispatch(closeDrawer());
-            }, 2000);
+            setIsModalOpen(true); 
+            // dispatch(openDrawer());
+            // setTimeout(() => {
+            // dispatch(closeDrawer());
+            // }, 2000);
             console.log('Thunk result:', resultAction);
          
           } catch (err) {
@@ -88,6 +90,7 @@ const ProductDetail = () => {
     if (!product) return <div>Product not found.</div>;
 
     return (
+      <>
         <div style={{ backgroundColor: 'white' }}>
             <div style={{ width: '100%', padding: '2rem 6rem 1rem', backgroundColor: 'rgba(132, 152, 176, 0.5)', margin: '16px 0px' }}>
                 <Breadcrumb style={{ marginBottom: '16px', font: '32px', color: 'black' }}>
@@ -313,6 +316,19 @@ const ProductDetail = () => {
 
             </div>
         </div>
+        <Modal
+            title="Item Added to Cart"
+            open={isModalOpen}
+            onCancel={() => setIsModalOpen(false)}
+            footer={[
+                <Button key="close" type="primary" onClick={() => setIsModalOpen(false)}>
+                Close
+                </Button>,
+            ]}
+            >
+            <Items noDrawerBtn={true}/>
+        </Modal>
+      </>
     );
 };
 
