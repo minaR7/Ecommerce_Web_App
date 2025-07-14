@@ -60,7 +60,7 @@ const ProductDetail = () => {
     const handleAddToCart = async () => {
         const payload = {
             productId: product.product_id,
-            variant: selectedVariant.variant_id,
+            variant_id: selectedVariant.variant_id,
             quantity: selectedQuantity,
             coverImg: product.cover_img,
             name: product.name,

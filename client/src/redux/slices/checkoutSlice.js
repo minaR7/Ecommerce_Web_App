@@ -10,7 +10,7 @@ import { clearCart } from './cartSlice';
 export const placeOrder = createAsyncThunk(
   'checkout/placeOrder',
   async ({ validatedValues,  paymentMethodId, cartItems, useDifferentBilling }, { dispatch, rejectWithValue }) => {
-    
+
     // const navigate = useNavigate();
     try {
       const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
@@ -53,8 +53,8 @@ export const placeOrder = createAsyncThunk(
         totalAmount,
         cartItems,
       };
-
-      const res = await axios.post(`/api/checkout`, { payload });
+      // http://localhost:3005
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/checkout`, { payload });
 
       if (res.status === 200) {
         notification.success({
@@ -73,6 +73,7 @@ export const placeOrder = createAsyncThunk(
         return rejectWithValue('Unexpected response');
       }
     } catch (error) {
+      console.log(error)
       const message =
         error?.response?.data?.message || 'Something went wrong. Please try again.';
       notification.error({

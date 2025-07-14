@@ -16,7 +16,7 @@ export const migrateGuestCartToUser = async () => {
       userId: user.user_id,
     }));
 
-    await axios.post('/api/cart/bulk', payload); // You need this endpoint on backend
+    await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/bulk`, payload); // You need this endpoint on backend
     sessionStorage.removeItem('guestCart'); // clear guest cart after successful sync
   } catch (err) {
     console.error('Error migrating guest cart:', err);
