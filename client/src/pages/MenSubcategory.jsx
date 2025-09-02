@@ -122,10 +122,10 @@ const MenSubcategory = () => {
                             <Link to={`/product/${product.productId}`}>
                                 <Card.Meta title={product.productName} description={`$${product.price.M}`} />
                             </Link>
-                            <div style={{ marginTop: '8px' }}>
+                            {/* <div style={{ marginTop: '8px' }}>
                                 <Rate disabled defaultValue={product.rating} />
                                 <span style={{ marginLeft: '8px' }}>{product.reviewCount} reviews</span>
-                            </div>
+                            </div> */}
                         </Card>
 
                         </Col>

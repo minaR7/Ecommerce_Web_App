@@ -106,9 +106,9 @@ const CustomCarousel = () => {
                 }
               >
                 <Meta title={item.name} description={item.price} />
-                <div style={{ marginTop: '0.5rem' }}>
+                {/* <div style={{ marginTop: '0.5rem' }}>
                   <Rate allowHalf disabled defaultValue={item.value} />
-                </div>
+                </div> */}
               </Card>
             ))}
           </div>
