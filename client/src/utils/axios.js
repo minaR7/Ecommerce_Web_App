@@ -1,5 +1,6 @@
 // axios.js
 import axios from 'axios';
+import { message } from 'antd';
 
 // Create an Axios instance
 const axiosInstance = axios.create({
@@ -23,13 +24,41 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    console.log("AXIOS ERROR HANDLING: Error", error, error.response)  
+    if (error && error.response)
+    {
+      const status = error.response.status;
+      const errorMsg = error.response.data?.message || "Something went wrong";
+
+      if( error.response.status === 404 && error.response.data?.message === "Cart is empty")
+      {
+        return;
+      }
+      if( error.response.status === 500 && error.response.data?.message === "Server error adding to cart")
+      {
+        return;
+      }
+      message.error(`${status}: ${errorMsg}`);
+      
+      if(error.response.status === 401)
+      {
+        // Token expired or unauthorized
+        console.warn('Unauthorized, redirecting to login...');
+        // Optional: remove token and redirect
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
+    }  
+    else if (error && error.code === "ERR_NETWORK") {
+      // Token expired or unauthorized
+      console.warn('NETWORK ERROR');
+      message.error("Network error. Please check your connection or try again later.");
+    }    
+    if (error.response && error.response.status === 405) {
       // Token expired or unauthorized
       console.warn('Unauthorized, redirecting to login...');
-      // Optional: remove token and redirect
-      localStorage.removeItem('token');
-      window.location.href = '/login'; // or use Next.js router
     }
+
 
     return Promise.reject(error);
   }
