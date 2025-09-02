@@ -32,8 +32,8 @@ const Home = () => {
                 </p>
             </div>
         </section>
-        <section className="w-full bg-[#f5f5f5]">
-        {/* h-[400px] md:h-[600px]  */}
+       {/* <section className="w-full bg-[#f5f5f5]">
+        {/* h-[400px] md:h-[600px] //
             <div className="flex flex-col justify-center items-center text-center px-4"  style={{paddingTop: "2rem", color: "#111226"}}>
                 <h1 className="text-3xl md:text-5xl font-bold mb-2">
                 Men's Collection.
@@ -42,7 +42,7 @@ const Home = () => {
                 The MUST-HAVE
                 </p>
             </div>
-            {/* <div style={{ width: '100%', padding: '2rem 6rem 1em', margin: '16px 0px'}}> */}
+            {/* <div style={{ width: '100%', padding: '2rem 6rem 1em', margin: '16px 0px'}}> //
                 <Row className='mt-8 flex justify-center' style={{paddingBottom: '32px',}}> 
                     {subcategories.map((sub) => (
                         <Col xs={24} sm={12} md={8} lg={6} key={sub.key} className='mx-8'>
@@ -58,7 +58,7 @@ const Home = () => {
                     </Col>
                         ))}
                 </Row>
-        </section>
+        </section>*/}
         {/* <section className="relative w-full h-24 bg-black flex justify-center items-center px-4">
             <div className="max-w-5xl text-white text-center">
                 <p className="text-sm md:text-lg leading-relaxed">
@@ -76,7 +76,7 @@ const Home = () => {
                 style={{ height: '100px', width: '200px' }}
             />
         </div> */}
-        <section className="flex flex-col" 
+        <section className="flex flex-col mt-6" 
             style={{background: "radial-gradient(circle,rgba(132, 152, 176, 1) 0%, rgba(71, 89, 122, 1) 45%, rgba(17, 18, 38, 1) 100%)"}}>
             <div className="flex flex-col md:flex-row items-center justify-between max-w-7xl mx-auto flex-grow px-6 md:px-6 py-8 md:py-18 gap-10 md:gap-0">
                 <div className="max-w-xl text-white">
