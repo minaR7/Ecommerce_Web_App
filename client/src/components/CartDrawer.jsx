@@ -33,7 +33,18 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
             };
         } 
         else{
-              dispatch(fetchCart());
+            //   dispatch(fetchCart());
+            const loadGuestCart = () => {
+                const cart = JSON.parse(sessionStorage.getItem('guestCart') || '[]');
+                setGuestCart(cart);
+                dispatch(fetchCart());
+            };
+            loadGuestCart();
+            window.addEventListener('guestCartUpdated', loadGuestCart);
+
+            return () => {
+            window.removeEventListener('guestCartUpdated', loadGuestCart);
+            };
         }
         // else {
         //     const loadGuestCart = () => {
@@ -60,6 +71,22 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
         // }
     }, [dispatch]);
     
+    // useEffect(() => {
+    //     const loadCart = () => {
+    //         const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
+    //         setGuestCart(reduxCart.length ? reduxCart : guestCart);
+    //     };
+    
+    //     loadCart(); // Initial load
+    
+    //     // Listen for guest cart updates
+    //     window.addEventListener('guestCartUpdated', loadCart);
+    
+    //     return () => {
+    //     window.removeEventListener('guestCartUpdated', loadCart);
+    //     };
+    // }, [cartItems]);
+
     const handleQuantityChange = (item, newQuantity) => {
     
         if (user) {
@@ -74,7 +101,8 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
             }));
             // Update quantity for this specific variant only
             setQuantities(prev => ({ ...prev, [itemKey]: newQuantity }));
-        } else {
+        } 
+        else {
             
         const itemKey = `${item.productId}-${item.size}-${item.color}`;
             const updatedCart = guestCart.map(ci => ci.productId === item.productId && ci.size === item.size 
