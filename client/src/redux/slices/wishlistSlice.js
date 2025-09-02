@@ -9,7 +9,7 @@ export const addToWishlist = createAsyncThunk(
     const user = getLoggedInUser();
     if (user) {
       try {
-        const res = await axios.post('/api/wishlist', { productId: product.id });
+        const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/wishlist`, { productId: product.id });
         notification.success({ message: 'Added to wishlist!' });
         return res.data;
       } catch (err) {
@@ -26,12 +26,12 @@ export const addToWishlist = createAsyncThunk(
 );
 
 export const fetchWishlist = createAsyncThunk('wishlist/fetch', async () => {
-  const res = await axios.get('/api/wishlist');
+  const res = await axios.get(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/wishlist`);
   return res.data;
 });
 
 export const removeFromWishlist = createAsyncThunk('wishlist/remove', async (productId) => {
-  await axios.delete(`/api/wishlist/${productId}`);
+  await axios.delete(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/wishlist/${productId}`);
   return productId;
 });
 

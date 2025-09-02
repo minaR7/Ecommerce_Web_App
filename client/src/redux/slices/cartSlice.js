@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from '../../utils/axios';
 import { getLoggedInUser } from '../../utils/getLoggedInUser';
 import { notification } from 'antd';
+import { toast } from 'react-toastify';
 
 //Add to Cart
 export const addToCart = createAsyncThunk(
@@ -11,7 +12,7 @@ export const addToCart = createAsyncThunk(
     const user = getLoggedInUser();
     const finalPayload = {
       productId: payload.productId,
-      variantId: payload.variant,
+      variantId: payload.variant_id,
       quantity: payload.quantity,
       userId: user ? user.user_id : null,
     }
@@ -43,7 +44,7 @@ export const addToCart = createAsyncThunk(
           return;
         }
       try {
-        const res = await axios.post('/api/cart/add', finalPayload);
+        const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/add`, finalPayload);
         window.dispatchEvent(new Event('cartUpdated'));
         return res.data;
       } catch (err) {
@@ -75,6 +76,7 @@ export const addToCart = createAsyncThunk(
         // notification.success({ message: 'Added to cart' });
         // Dispatch custom event
         window.dispatchEvent(new Event('guestCartUpdated'));
+                window.dispatchEvent(new Event('cartUpdated'));
         return cart;
       } catch (err) {
         notification.error({ message: 'Failed to add to cart.' });
@@ -89,7 +91,7 @@ export const fetchCart = createAsyncThunk('cart/fetch', async (_, { rejectWithVa
   try {
     const user = getLoggedInUser();
     if (user){
-      const res = await axios.get(`/api/cart/${user.user_id}`);
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/${user.user_id}`);
       return res.data;
     }
     else{
@@ -110,10 +112,13 @@ export const updateCartItem = createAsyncThunk(
       productId, size, color, quantity
     }
     try {
-      const res = await axios.put(`/api/cart/${cartItemId}`, payload);
+      const res = await axios.put(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/${cartItemId}`, payload);
         window.dispatchEvent(new Event('cartUpdated'));
+        toast.success('Cart updated successfully!');
       return { cartItemId, data };
     } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to update cart';
+      toast.error(errorMsg);
       return rejectWithValue(err.response?.data || err.message);
     }
   }
