@@ -57,11 +57,14 @@ export const placeOrder = createAsyncThunk(
       const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/checkout`, { payload });
 
       if (res.status === 200) {
+        const stockMessages = res.data.stockMessages;
+
         notification.success({
           message: 'Order Placed',
-          description: 'Your order has been placed successfully!',
+          description: stockMessages && stockMessages.length > 0
+            ? stockMessages.join(', ')
+            : 'Your order has been placed successfully!',
         });
-
         // Clear cart on successful order
         dispatch(clearCart());
         // Navigate to homepage
