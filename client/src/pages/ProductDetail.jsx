@@ -4,7 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductById } from '../redux/slices/productSlice';
 import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber, Tooltip, Radio, Modal, List } from 'antd';
-import { FaCcVisa, FaCcMastercard, FaCcPaypal, FaGooglePay } from 'react-icons/fa';
+import { FaCcVisa, FaCcMastercard, FaCcPaypal, FaGooglePay, FaArrowLeft, FaArrowRight, FaTimes  } from 'react-icons/fa';
 import { MinusOutlined, PlusOutlined, HeartOutlined, ShoppingCartOutlined, DeleteOutlined } from '@ant-design/icons';
 import { CheckOutlined } from '@ant-design/icons';
 import { GoArrowRight } from "react-icons/go";
@@ -24,7 +24,10 @@ const ProductDetail = () => {
     const [selectedVariant, setSelectedVariant] = useState('');
     const [selectedQuantity, setSelectedQuantity] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isImgModalOpen, setIsImgModalOpen] = useState(false);
+    const [currentIndex, setCurrentIndex] = useState(0);
     const userExist = JSON.parse(localStorage.getItem('user'));
+
     useEffect(() => {
         dispatch(fetchProductById(id)); // Fetch product details based on ID from the URL
     }, []);
@@ -57,6 +60,28 @@ const ProductDetail = () => {
       setSelectedColor(color);
     };
 
+     const handleImageClick = (index) => {
+        setCurrentIndex(index);
+        setIsImgModalOpen(true);
+    };
+
+    const nextImage = () => {
+        setCurrentIndex((prevIndex) =>
+        prevIndex === product?.slide_images.length - 1 ? 0 : prevIndex + 1
+        );
+    };
+
+    const prevImage = () => {
+        setCurrentIndex((prevIndex) =>
+        prevIndex === 0 ? product?.slide_images.length - 1 : prevIndex - 1
+        );
+    };
+
+    
+    const originalPrice = product?.price;
+    const discount = product?.discount_percentage || 0;
+    const discountedPrice = discount > 0 ? (originalPrice - (originalPrice * discount) / 100).toFixed(2) : originalPrice;
+
     const handleAddToCart = async () => {
         const payload = {
             productId: product.product_id,
@@ -64,7 +89,9 @@ const ProductDetail = () => {
             quantity: selectedQuantity,
             coverImg: product.cover_img,
             name: product.name,
-            basePrice: product.price,
+            basePrice:  discount > 0 ?  (originalPrice - (originalPrice * discount) / 100).toFixed(2) : product.price,
+            discountRate: product.discount_percentage,
+            discountedPrice: discountedPrice,
             size: selectedVariant.size,
             color: selectedVariant.color,
         }
@@ -102,13 +129,19 @@ const ProductDetail = () => {
                 {/* <h1 className="text-xxl font-semibold" style={{ margin: '16px 0', color: "rgb(71, 89, 122)" }}>{product.productName}</h1> */}
             </div>
 
-            <div className="flex md:flex-row mx-2 px-3" style={{minHeight: "70vh",}}>
+            <div className="flex flex-col md:flex-row gap-6  mx-2 px-3" style={{minHeight: "70vh",}}>
                 {/* h-[50vh] First Column */}
                 {/* <div className="flex flex-col */}
                 <Col className=" w-full md:w-1/2 mt-2 flex flex-col gap-4" style={{height: "70vh",}}>
                     {/* First Child Container */}
                     <div className="flex items-center justify-center h-[70%]">
-                        <img src={selectedImage} alt={product.name} className="object-contain max-w-full max-h-full" />
+                        {/* <img src={selectedImage} alt={product.name} className="object-contain max-w-full max-h-full" / > */}
+                         <img
+                            src={selectedImage || product?.slide_images[0]}
+                            alt={product?.name}
+                            className="object-contain max-w-full max-h-full cursor-pointer"
+                            onClick={() => handleImageClick(product?.slide_images.indexOf(selectedImage || product?.slide_images[0]))}
+                        />
                     </div>
 
                     {/* Second Child Container */}
@@ -119,20 +152,71 @@ const ProductDetail = () => {
                                 className="flex-shrink-0 w-24 h-24 mx-2 cursor-pointer"
                                 onClick={() => setSelectedImage(img)}
                             >
-                                <img src={img} alt={`Thumbnail ${index}`} className="object-cover w-full h-full" />
+                                <img src={img} alt={`Thumbnail ${index}`} className="object-cover w-full h-full border-2 border-gray-200 hover:border-blue-500" />
                             </div>
                         ))}
                     </div>
                 </Col>
 
+        {/* Modal for Zoomed Image */}
+            {isImgModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+                <button
+                    className="absolute top-4 right-4 text-white text-3xl"
+                    onClick={() => setIsImgModalOpen(false)}
+                >
+                    <FaTimes />
+                </button>
+
+                <button
+                    className="absolute left-4 text-white text-3xl"
+                    onClick={prevImage}
+                >
+                    <FaArrowLeft />
+                </button>
+
+                <img
+                    src={product?.slide_images[currentIndex]}
+                    alt="Zoomed"
+                    className="max-h-[80%] max-w-[80%] object-contain"
+                />
+
+                <button
+                    className="absolute right-4 text-white text-3xl"
+                    onClick={nextImage}
+                >
+                    <FaArrowRight />
+                </button>
+                </div>
+            )}
                 {/* Second Column height65 vh overflow auto*/}
                 {/* h-auto md:h-[65vh] overflow-visible */}
                 <Col className="w-full md:w-1/2 p-8 bg-[#f5f5f5] overflow-hidden" style={{ height: "auto", borderRadius: "1rem",}}>
                     <h1 className="text-2xl font-semibold ">{product.name}</h1>
-                    <h2 className="text-xl font-semibold mt-3" style={{ color: "rgb(71, 89, 122)" }}>{`€${product.price}`}</h2>
-                    <div className="mt-3">
-                        <Rate disabled value={parseFloat(product.avg_rating)} />
+                    {/* <h2 className="text-xl font-semibold mt-3" style={{ color: "rgb(71, 89, 122)" }}>{`€${product.price}`}</h2> */}
+                    <div className="flex items-center gap-3 mt-3">
+                        {discount > 0 ? (
+                            <>
+                            <span style={{ textDecoration: 'line-through', color: 'gray', fontSize: '22px' }}>
+                                €{originalPrice}
+                            </span>
+                            <span style={{ fontSize: '22px', fontWeight: '600', color: 'rgb(220, 38, 38)' }}>
+                                €{discountedPrice}
+                            </span>
+                            <Tag color="green" style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                -{discount}%
+                            </Tag>
+                            </>
+                        ) : (
+                            <span style={{ fontSize: '22px', fontWeight: '600', color: 'rgb(71, 89, 122)' }}>
+                            €{originalPrice}
+                            </span>
+                        )}
                     </div>
+
+                    {/* <div className="mt-3">
+                        <Rate disabled value={parseFloat(product.avg_rating)} />
+                    </div> */}
 
                     <div className="mt-4">
                         <h2 className="text-xl font-medium text-gray-800">{product.description}</h2>
@@ -323,6 +407,12 @@ const ProductDetail = () => {
             footer={[
                 <Button key="close" type="primary" onClick={() => setIsModalOpen(false)}>
                 Close
+                </Button>,
+                     <Button key="close" type="primary" onClick={() => {navigate('/cart')
+                                        setTimeout(() => {
+                                        dispatch(closeDrawer());
+                                        }, 300);}}>
+                View Cart
                 </Button>,
             ]}
             >
