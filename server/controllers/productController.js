@@ -22,7 +22,7 @@ exports.getProducts = async (req, res) => {
     try {
         let query = `
             SELECT 
-                p.product_id, p.name, p.description, p.price,  p.stock_quantity, p.cover_img,
+                p.product_id, p.name, p.description, p.price,  p.stock_quantity, p.cover_img,  p.discount_percentage,
                 COUNT(r.review_id) AS total_reviews, 
                 ROUND(AVG(CAST(r.rating AS FLOAT)),2) AS avg_rating
             FROM products p
@@ -33,16 +33,26 @@ exports.getProducts = async (req, res) => {
             query += ` WHERE p.subcategory_id = ${subcategory}`;
         }
 
-        query += ' GROUP BY p.product_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img';  // include all your product columns here
+        query += ' GROUP BY p.product_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.discount_percentage';  // include all your product columns here
 
         const result = await sql.query(query);
-        // res.json(result.recordset);
+         // res.json(result.recordset);
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        // Append base URL to each subcategory's cover_img
-        const modifiedProducts = result.recordset.map((product) => ({
-            ...product,
-            cover_img: `${baseUrl}/${product.cover_img}`
-        }));
+        const modifiedProducts = result.recordset.map((product) => 
+        {
+            // Compute discounted price
+            const price = parseFloat(product.price);
+            const discount = parseFloat(product.discount_percentage || 0);
+            const discountedPrice = discount > 0
+                ? (price - (price * discount) / 100).toFixed(2)
+                : price;     
+            return (
+            {
+                ...product,
+                cover_img: `${baseUrl}/${product.cover_img}`,  // Append base URL to each subcategory's cover_img
+                discounted_price: discountedPrice
+            })
+        });
         
         res.status(200).json(modifiedProducts);
     } catch (err) {
@@ -73,12 +83,12 @@ exports.getProducts = async (req, res) => {
 // };
 exports.getProductById = async (req, res) => {
     const { id } = req.params;
-    console.log("req recieved", id)
+    console.log("req recieved FOR GET SINGLE PRODUCT", id)
     try {
       // 1. Get product + avg rating
       const productResult = await sql.query`
         SELECT 
-        p.product_id, p.name, p.description, p.cover_img, p.price, p.images,
+        p.product_id, p.name, p.description, p.cover_img, p.price, p.images, p.discount_percentage,
         AVG(CAST(r.rating AS FLOAT)) AS avg_rating,
         c.name AS category,
         sc.name AS subcategory
@@ -87,7 +97,7 @@ exports.getProductById = async (req, res) => {
         LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN subcategories sc ON p.subcategory_id = sc.subcategory_id
         WHERE p.product_id = ${id}
-        GROUP BY p.product_id, p.name, p.description, p.cover_img, p.price, p.images, c.name, sc.name;    
+        GROUP BY p.product_id, p.name, p.description, p.cover_img, p.price, p.images, p.discount_percentage, c.name, sc.name;    
       `;
   
       if (productResult.recordset.length === 0) {
@@ -97,7 +107,14 @@ exports.getProductById = async (req, res) => {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const product = productResult.recordset[0];
   
-      // 2. Get product variants (with color + size names)
+      // 2. Compute discounted price
+      const price = parseFloat(product.price);
+      const discount = parseFloat(product.discount_percentage || 0);
+      const discountedPrice = discount > 0
+        ? (price - (price * discount) / 100).toFixed(2)
+        : price;
+
+      // 3. Get product variants (with color + size names)
       const variantsResult = await sql.query`
         SELECT v.variant_id, v.price, v.stock_quantity,
                c.name AS color, s.name AS size
@@ -118,13 +135,14 @@ exports.getProductById = async (req, res) => {
     //     console.error("Failed to parse product.images", err);
     //     }
 
-      // 3. Return product with variant details
+      // 4. Return product with variant details
       res.json({
         ...product,
         cover_img: `${baseUrl}/${product.cover_img}`,
         // slide_images: product.images.map(img => `${baseUrl}/${img}`),
         slide_images: JSON.parse(product.images).map(img => `${baseUrl}/${img.replace(/^\/+/, '')}`),
         avg_rating: parseFloat(product.avg_rating || 0).toFixed(1),
+        discounted_price: discountedPrice,
         variants: variantsResult.recordset,
       });
   
