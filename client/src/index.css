@@ -203,3 +203,7 @@ button:focus-visible {
   color: black;
   font-size: medium;
 }
+
+.ant-image{
+  height: 100%;
+}

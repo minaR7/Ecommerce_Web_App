@@ -3,7 +3,7 @@ import {React, useState, useEffect} from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductById } from '../redux/slices/productSlice';
-import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber, Tooltip, Radio, Modal, List } from 'antd';
+import { Rate, Button, Select, Breadcrumb, Tag, Row, Col, InputNumber, Tooltip, Radio, Modal, List, Image } from 'antd';
 import { FaCcVisa, FaCcMastercard, FaCcPaypal, FaGooglePay, FaArrowLeft, FaArrowRight, FaTimes  } from 'react-icons/fa';
 import { MinusOutlined, PlusOutlined, HeartOutlined, ShoppingCartOutlined, DeleteOutlined } from '@ant-design/icons';
 import { CheckOutlined } from '@ant-design/icons';
@@ -11,6 +11,8 @@ import { GoArrowRight } from "react-icons/go";
 import Items from '../components/ItemsList';
 import { addToCart, openDrawer, closeDrawer, updateCartItem } from '../redux/slices/cartSlice';
 import { addToWishlist } from '../redux/slices/wishlistSlice';
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
 
 const ProductDetail = () => {
 
@@ -62,7 +64,7 @@ const ProductDetail = () => {
 
      const handleImageClick = (index) => {
         setCurrentIndex(index);
-        setIsImgModalOpen(true);
+        // setIsImgModalOpen(true);
     };
 
     const nextImage = () => {
@@ -135,13 +137,37 @@ const ProductDetail = () => {
                 <Col className=" w-full md:w-1/2 mt-2 flex flex-col gap-4" style={{height: "70vh",}}>
                     {/* First Child Container */}
                     <div className="flex items-center justify-center h-[70%]">
-                        {/* <img src={selectedImage} alt={product.name} className="object-contain max-w-full max-h-full" / > */}
-                         <img
+                       
+                                        <button
+                    className="absolute left-4 text-white text-3xl"
+                    onClick={prevImage}
+                >
+                    <FaArrowLeft />
+                </button>
+                 <Image src={selectedImage || product?.slide_images[0]} alt={product?.name} className="object-contain max-w-full max-h-full" / >
+                 {/*         <img
                             src={selectedImage || product?.slide_images[0]}
                             alt={product?.name}
                             className="object-contain max-w-full max-h-full cursor-pointer"
                             onClick={() => handleImageClick(product?.slide_images.indexOf(selectedImage || product?.slide_images[0]))}
-                        />
+                        /> */} 
+                <button
+                    className="absolute right-4 text-white text-3xl"
+                    onClick={nextImage}
+                >
+                    <FaArrowRight />
+                </button>
+                         {/* <Image
+                            src={selectedImage || product?.slide_images[0]}
+                            alt={product?.name}
+                            className="object-contain max-w-full max-h-full cursor-pointer"
+                            preview={{
+                                visible: isImgModalOpen,
+                                onVisibleChange: (visible) => setIsImgModalOpen(visible),
+                                current: product?.slide_images.indexOf(selectedImage || product?.slide_images[0]),
+                                src: product?.slide_images, // 👈 gives full gallery with zoom & arrows
+                            }}
+                            /> */}
                     </div>
 
                     {/* Second Child Container */}
@@ -152,6 +178,12 @@ const ProductDetail = () => {
                                 className="flex-shrink-0 w-24 h-24 mx-2 cursor-pointer"
                                 onClick={() => setSelectedImage(img)}
                             >
+                                {/* <Image
+                                    src={img}
+                                    alt={`Thumbnail ${index}`}
+                                    className="object-cover w-full h-full border-2 border-gray-200 hover:border-blue-500"
+                                    preview={false} // disable preview on thumbnails
+                                /> */}
                                 <img src={img} alt={`Thumbnail ${index}`} className="object-cover w-full h-full border-2 border-gray-200 hover:border-blue-500" />
                             </div>
                         ))}
@@ -175,11 +207,18 @@ const ProductDetail = () => {
                     <FaArrowLeft />
                 </button>
 
-                <img
+                <Zoom>
+                    <img
+                        src={product?.slide_images[currentIndex]}
+                        alt="Zoomed"
+                        // className="max-h-[80%] max-w-[80%] object-contain"
+                    />
+                </Zoom>
+                {/* <img
                     src={product?.slide_images[currentIndex]}
                     alt="Zoomed"
                     className="max-h-[80%] max-w-[80%] object-contain"
-                />
+                /> */}
 
                 <button
                     className="absolute right-4 text-white text-3xl"
