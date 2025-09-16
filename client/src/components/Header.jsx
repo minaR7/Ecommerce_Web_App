@@ -124,10 +124,10 @@ const HeaderMenu = () => {
             <div className="flex justify-center">
                 <Link to="/">
                     <img
-                        src="/assets/logo-jabador.png"
+                        src="/assets/logo/El-Maghrib-logos-black.png"
                         alt="Logo"
                         className="object-contain"
-                        style={{ padding: "1rem 1rem 1rem 3rem", height: "80px", width: "480px" }}
+                        style={{ padding: "1rem 1rem 1rem 3rem", height: "250px", width: "600px" }}
                     />
                 </Link>
             </div>
