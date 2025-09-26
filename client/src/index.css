@@ -1,4 +1,12 @@
 @import "tailwindcss";
+
+@theme {
+  --breakpoint-xs: 380px; /* custom breakpoint */
+}
+
+@custom-variant xs (max-width: 380px);
+
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -107,12 +115,12 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
-  a:hover {
+  /* a:hover {
     color: #747bff;
   }
   button {
     background-color: #f9f9f9;
-  }
+  } */
 }
 
 
@@ -206,4 +214,37 @@ button:focus-visible {
 
 .ant-image{
   height: 100%;
+}
+
+.product-list-card-details{
+    font-size: 22px;
+}
+
+@media (min-width: 780px) {
+  .product-list-card-details{
+    font-size: 16px !important;
+  }
+}
+@media (max-width: 380px) {
+  .product-list-container{
+    padding: 2rem 3rem 1rem !important;
+  }
+  .product-list-card-details{
+    font-size: 16px !important;
+  }
+  .quantity-cart-div{
+    gap: 10px;
+  }
+  .quantity-input{
+    width: 2rem !important;
+  }
+  .size-chart-btn {
+    width: 100% !important;
+    margin-top: 1rem !important; /* ~mt-2 */
+  }
+
+  .add-to-cart-btn {
+    flex: 1 1 100% !important; /* Take full width */
+    padding: 2px 2px;
+  }
 }

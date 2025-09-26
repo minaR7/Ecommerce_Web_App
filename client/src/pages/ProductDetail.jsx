@@ -286,7 +286,7 @@ const ProductDetail = () => {
                             </div>
                        </div>
                         <div className="flex">
-                            <Button type="primary" style={{ backgroundColor: "rgb(71, 89, 122)" }}>Size Chart</Button>
+                            <Button type="primary" style={{ backgroundColor: "rgb(71, 89, 122)" }}  className='size-chart-btn'>Size Chart</Button>
                         </div>
                     </div>
 
@@ -337,7 +337,7 @@ const ProductDetail = () => {
                     )}
 
                     {/* Quantity + Wishlist + Cart Buttons */}
-                    <div className="flex items-center gap-3 mt-3">
+                    <div className="quantity-cart-div flex items-center gap-3 mt-3">
                         {/* Quantity with +/- buttons */}
                         <div className="flex items-center gap-1">
                             {/* <h3 className="text-xl font-semibold mr-2">Quantity:</h3> */}
@@ -352,10 +352,11 @@ const ProductDetail = () => {
                             <InputNumber
                                 min={1}
                                 max={10}
+                                style={{ width: 60, textAlign: 'center' }}
+                                className='quantity-input'
                                 value={selectedQuantity}
                                 onChange={(value) => setSelectedQuantity(value)}
                                 controls={false}
-                                style={{ width: 60, textAlign: 'center' }}
                             />
 
                             <Button
@@ -380,6 +381,7 @@ const ProductDetail = () => {
                         {/* Add to Cart button */}
                         <Button
                             type="primary"
+                           className='add-to-cart-btn'
                             style={{ backgroundColor: 'black', borderColor: 'black', color: 'white', fontWeight: '500' }}
                             disabled={selectedVariant?.stock_quantity <= 0}
                             onClick={handleAddToCart}

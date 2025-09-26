@@ -63,7 +63,7 @@ const ProductListing = () => {
           </div>
         ))}
       </div> */}
-        <div style={{ width: '100%', padding: '2rem 6rem 1em', margin: '16px 0px'}}>
+        <div className='product-list-container' style={{ width: '100%', padding: '2rem 6rem 1em', margin: '16px 0px'}}>
             <Row gutter={[16,16]}>
                 { products?.length === 0 ? (
                     <p>No products found in this category.</p>) 
@@ -118,13 +118,13 @@ const ProductListing = () => {
                               €{product.price}
                               
                             </h4> */}
-                            <div className="flex items-center gap-3 mt-3">
+                            <div className="product-list-card-details flex items-center gap-3 mt-3">
                                 {discount > 0 ? (
                                     <>
-                                    <span style={{ textDecoration: 'line-through', color: 'gray', fontSize: '22px' }}>
+                                    <span style={{ textDecoration: 'line-through', color: 'gray'}}>
                                         €{product.price}
                                     </span>
-                                    <span style={{ fontSize: '22px', fontWeight: '600', color: 'rgb(220, 38, 38)' }}>
+                                    <span style={{ fontWeight: '600', color: 'rgb(220, 38, 38)' }}>
                                         €{discountedPrice}
                                     </span>
                                     <Tag color="green" style={{ fontSize: '14px', fontWeight: 'bold' }}>
