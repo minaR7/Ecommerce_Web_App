@@ -34,6 +34,15 @@ a:hover {
   color: lightblue;
 }
 
+.link-text a{
+  font-weight: 400;
+  color: black;
+  font-size: medium;
+}
+.link-text a:hover {
+  color: lightblue;
+}
+
 .ant-drawer-body a span{
   font-weight: 600;
   color: black;

@@ -49,7 +49,8 @@ const NavigationLinks = ({ onClick, isSidebar = false }) => {
 
     return (
         <ul className={`flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0 ${!isSidebar ? 'md:rounded-2xl md:px-6' : ''}`}>
-            {categories?.map((category) => {
+            {console.log(categories)}
+            {categories && categories?.map((category) => {
                 const categorySubs = getSubcategoriesByCategory(category.category_id);
                 const hasSubs = categorySubs.length > 0;
 

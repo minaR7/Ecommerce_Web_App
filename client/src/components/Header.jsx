@@ -100,7 +100,7 @@ import { openDrawer, closeDrawer } from '../redux/slices/cartSlice';
 
 const HeaderMenu = () => {
     
-  const cartCount = useSelector((state) => {state.cart.items.length, console.log(state)});
+  const cartCount = useSelector((state) => state.cart.items.length);
   const isDrawerOpen = useSelector((state) => state.cart.isDrawerOpen);
   const dispatch = useDispatch();
    const [cartOpen, setCartOpen] = useState(false);
@@ -127,7 +127,7 @@ const HeaderMenu = () => {
                         src="/assets/logo/El-Maghrib-logos-black.png"
                         alt="Logo"
                         className="object-contain"
-                        style={{ padding: "1rem 1rem 1rem 3rem", height: "250px", width: "600px" }}
+                        style={{ padding: "1rem", height: "250px", width: "600px" }}
                     />
                 </Link>
             </div>
