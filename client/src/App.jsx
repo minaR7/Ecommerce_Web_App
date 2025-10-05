@@ -20,6 +20,7 @@ import Category from './pages/Category';
 import ProductListing from './pages/ProductListing';
 import Store from './pages/Store';
 import Cart from './pages/Cart'
+import Signup from './pages/Signup';
 
 const { Header, Content, Footer } = Layout;
 
@@ -48,6 +49,7 @@ const App = () => {
               <Route path="/store/:categoryName" element={<Category />} />
               <Route path="/store/:categoryName/:subcategoryName" element={<ProductListing />} />
               <Route path="/my-account" element={<MyAccount />} />
+              <Route path="/register" element={<Signup/>}/>
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/cart" element={<Cart/>} />
