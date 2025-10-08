@@ -12,7 +12,7 @@ const Navbar = () => {
                     style={{padding: "1rem 0rem", height: "80px", width: "480px"}}
                 />
             </div> */}
-            <NavigationLinks />
+            <NavigationLinks/>
         </nav>
     );
 };

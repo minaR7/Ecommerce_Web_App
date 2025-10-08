@@ -48,7 +48,8 @@ const NavigationLinks = ({ onClick, isSidebar = false }) => {
     if (loading) return null; // Or show a spinner
 
     return (
-        <ul className={`flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0 ${!isSidebar ? 'md:rounded-2xl md:px-6' : ''}`}>
+        // <ul className={`flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0 ${!isSidebar ? 'md:rounded-2xl md:px-6' : ''}`}>
+         <ul className={`flex flex-col space-y-4 ${!isSidebar ? 'md:rounded-2xl md:px-6' : ''}`}>
             {console.log(categories)}
             {categories && categories?.map((category) => {
                 const categorySubs = getSubcategoriesByCategory(category.category_id);

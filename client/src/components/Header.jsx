@@ -132,7 +132,7 @@ const HeaderMenu = () => {
                 </Link>
             </div>
 
-            <Navbar />
+            {/* <Navbar /> */}
 
             <div className="flex items-center space-x-4 ml-auto header-icons">
                 <Link to="/my-account" className="account-icon">

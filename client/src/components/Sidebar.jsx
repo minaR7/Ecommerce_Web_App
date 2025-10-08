@@ -18,7 +18,8 @@ const Sidebar = () => {
     const [open, setOpen] = useState(false);
 
     return (
-        <div className="md:hidden flex justify-between items-center px-4 py-3">
+        <div className="flex justify-between items-center px-4 py-3">
+            {/* md:hidden  */}
             <MenuOutlined
                 className="text-2xl cursor-pointer text-black"
                 onClick={() => setOpen(true)}
