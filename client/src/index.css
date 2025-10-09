@@ -229,7 +229,12 @@ button:focus-visible {
     font-size: 22px;
 }
 
-@media (min-width: 780px) {
+@media (min-width: 780px) and (max-width: 1020px){
+  .product-list-card-details{
+    font-size: 16px !important;
+  }
+}
+@media (max-width: 576px){
   .product-list-card-details{
     font-size: 16px !important;
   }
