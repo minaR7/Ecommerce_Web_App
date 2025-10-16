@@ -85,9 +85,9 @@
 
 
 import { useEffect, useState } from 'react';
-import { Layout, Badge } from 'antd';
-import { Link } from 'react-router-dom';
-import { UserOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { Layout, Badge, Dropdown, Menu  } from 'antd';
+import { Link, useNavigate  } from 'react-router-dom';
+import { UserOutlined, ShoppingCartOutlined, DownOutlined  } from '@ant-design/icons';
 
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
@@ -104,6 +104,29 @@ const HeaderMenu = () => {
   const isDrawerOpen = useSelector((state) => state.cart.isDrawerOpen);
   const dispatch = useDispatch();
    const [cartOpen, setCartOpen] = useState(false);
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) setUser(JSON.parse(storedUser));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+    navigate('/');
+  };
+
+  const userMenu = (
+    <Menu
+      items={[
+        // { key: '1', label: <Link to="/my-account">My Account</Link> },
+        { key: '2', label: <div onClick={handleLogout}>Logout</div> },
+      ]}
+    />
+  );
 
     return (
         <Header
@@ -135,10 +158,25 @@ const HeaderMenu = () => {
             {/* <Navbar /> */}
 
             <div className="flex items-center space-x-4 ml-auto header-icons">
+                {/* User section */}
+                {user ? (
+                <Dropdown overlay={userMenu} trigger={['click']}>
+                    <div className="cursor-pointer flex items-center gap-1">
+                    <UserOutlined className="text-xl text-black" />
+                    <span className="font-medium text-black">
+                      Hi,&nbsp;
+                      {Array.isArray(user)
+                        ? user[0]?.username || user[0]?.email || 'User'
+                        : user?.username || user?.email || 'User'}
+                    </span>
+                    <DownOutlined className="text-xs text-gray-600" />
+                    </div>
+                </Dropdown>
+                ) : (
                 <Link to="/my-account" className="account-icon">
                     <UserOutlined className="text-xl cursor-pointer text-black" />
                 </Link>
-
+                )}
                 <div className="border-l h-6 border-gray-400"></div>
 
                    <Badge count={cartCount} showZero>
