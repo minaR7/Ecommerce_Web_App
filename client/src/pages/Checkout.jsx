@@ -10,7 +10,6 @@ import { useDispatch } from 'react-redux';
 import { placeOrder } from '../redux/slices/checkoutSlice';
 import countries from 'world-countries';
 
-
 const { Option } = Select;
 const { Panel } = Collapse;
 
@@ -25,6 +24,9 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [paymentMethodId, setPaymentMethodId] = useState(null);
   const [selectedMethod, setSelectedMethod] = useState("card");
+  const [couponCode, setCouponCode] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   // useEffect(() => {
   //   const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
@@ -56,12 +58,54 @@ const Checkout = () => {
         });
   };
   
+  const calculateTotalWithDiscount = () => {
+    const subtotal = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0);
+    const shipping = 35;
+    const total = subtotal + shipping;
+    const discountedTotal = discount ? total - (total * discount) / 100 : total;
+    return discountedTotal.toFixed(2);
+  };
+
+  // Handle coupon
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      notification.warning({ message: 'Enter a coupon code first.' });
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    try {
+      // Example: replace this with your API endpoint
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/validate-coupon`, { code: couponCode });
+      // Simulated response
+      // const res = { data: { valid: true, discountPercentage: 10 } };
+
+      if (res.data.valid) {
+        const percentage = res.data.discountPercentage;
+        setDiscount(percentage);
+        notification.success({
+          message: 'Coupon Applied!',
+          description: `You got ${percentage}% off your order.`,
+        });
+      } else {
+        setDiscount(0);
+        notification.error({ message: 'Invalid Coupon Code' });
+      }
+    } catch (err) {
+      console.error(err);
+      notification.error({ message: 'Error applying coupon' });
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
   //This function will be triggered on Confirm Order click
   const handleCheckout = async () => {
     try {
       const validatedValues = await form.validateFields(); // ✅ Try validating
       console.log('Form is valid. Values:', validatedValues);
-      const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
+      // const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
+      const totalAmount = calculateTotalWithDiscount();
 
       // Validate if Stripe Paymnet is completed first
       if (!paymentMethodId) {
@@ -108,6 +152,7 @@ const Checkout = () => {
           validatedValues,
           paymentMethodId,
           cartItems,
+          totalAmount, // ✅ send discounted total
           useDifferentBilling,
         })
       );
@@ -338,6 +383,26 @@ const Checkout = () => {
         ))}
       </div>
 
+      {/* Coupon Section */}
+      <div className="mb-1">
+        <h3 className="text-lg font-semibold mb-2">Have a coupon?</h3>
+        <div className="flex gap-2">
+          <Input 
+            placeholder="Enter coupon code"
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value)}
+            disabled={isApplyingCoupon}
+          />
+          <button
+            onClick={handleApplyCoupon}
+            className="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-all"
+            disabled={isApplyingCoupon}
+          >
+            {isApplyingCoupon ? 'Applying...' : 'Apply'}
+          </button>
+        </div>
+      </div>
+
     {/* Summary Footer */}
       <div className="mt-1 space-y-3 pt-1">
         <div className="flex justify-between text-base">
@@ -350,13 +415,22 @@ const Checkout = () => {
           <span>Shipping Charges</span>
           <span className="font-semibold">€35.00</span>
         </div>
+        {discount > 0 && (
+          <div className="flex justify-between text-base text-green-600 font-semibold">
+            <span>Discount ({discount}%)</span>
+            <span>-€{(
+              ((cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35) * discount) / 100
+            ).toFixed(2)}</span>
+          </div>
+        )}
         <div className="flex justify-between text-lg font-bold">
           <span>Total</span>
-          <span>
+          <span>€{calculateTotalWithDiscount()}</span>
+          {/* <span>
             €{(
               cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35
             ).toFixed(2)}
-          </span>
+          </span> */}
         </div>
 
         {/* Confirm Order Button */}
