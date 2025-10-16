@@ -11,6 +11,7 @@ const addToCartRoute = require('./routes/addToCartRoutes');
 const wishlistRoute = require('./routes/wishlistRoutes');
 const checkoutRoute = require('./routes/checkout');
 const userRoutes = require('./routes/userRoutes');
+const couponRoute = require('./routes/coupon')
 const verifyToken = require('./middleware/auth');
 
 const app = express();
@@ -70,6 +71,7 @@ app.use('/api/cart', addToCartRoute);
 app.use('/api/wishlist', wishlistRoute);
 app.use('/api/users', userRoutes);
 app.use('/api/checkout', checkoutRoute);
+app.use('/api', couponRoute)
 // router.post('/add', verifyToken, addToCart);
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
