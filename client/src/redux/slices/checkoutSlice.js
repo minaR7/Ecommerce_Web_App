@@ -9,12 +9,24 @@ import { clearCart } from './cartSlice';
 // Async thunk for order checkout
 export const placeOrder = createAsyncThunk(
   'checkout/placeOrder',
-  async ({ validatedValues,  paymentMethodId, cartItems, useDifferentBilling }, { dispatch, rejectWithValue }) => {
+  async ({ validatedValues,  paymentMethodId, cartItems, discount, useDifferentBilling }, { dispatch, rejectWithValue }) => {
 
     // const navigate = useNavigate();
     try {
       const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
-// const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) * 1;
+      // const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) * 1;
+      // Calculate subtotal (items total)
+      // const subtotal = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0);
+      // const shippingCharges = 35;
+
+      // // Apply discount if any
+      // let discountedSubtotal = subtotal;
+      // if (discount > 0) {
+      //   discountedSubtotal = subtotal - (subtotal * discount) / 100;
+      // }
+
+      // // Final total after discount
+      // const totalAmount = discountedSubtotal + shippingCharges;
       if (!paymentMethodId) {
         notification.error({
           message: 'Payment not completed',
@@ -50,7 +62,7 @@ export const placeOrder = createAsyncThunk(
               phone: validatedValues.phone,
             },
         paymentMethodId,
-        totalAmount,
+        totalAmount: discount > 0 ? totalAmount - (totalAmount * discount) / 100 : totalAmount,
         cartItems,
       };
       // http://localhost:3005

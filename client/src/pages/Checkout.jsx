@@ -152,7 +152,7 @@ const Checkout = () => {
           validatedValues,
           paymentMethodId,
           cartItems,
-          totalAmount, // ✅ send discounted total
+          discount, // send discounted amount
           useDifferentBilling,
         })
       );
