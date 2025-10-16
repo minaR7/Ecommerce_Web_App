@@ -111,6 +111,19 @@ const HeaderMenu = () => {
     
     const storedUser = localStorage.getItem('user');
     if (storedUser) setUser(JSON.parse(storedUser));
+
+    // Listen for login events to update instantly
+    const handleLogin = () => {
+        const updatedUser = JSON.parse(localStorage.getItem('user'));
+        setUser(updatedUser);
+    };
+
+    window.addEventListener('user-login', handleLogin);
+
+    // Cleanup listener
+    return () => {
+        window.removeEventListener('user-login', handleLogin);
+    };
   }, []);
 
   const handleLogout = () => {

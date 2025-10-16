@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchCart } from '../redux/slices/cartSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const MyAccount = () => {
 
@@ -23,6 +24,9 @@ const MyAccount = () => {
       localStorage.setItem('user', JSON.stringify(user));
       console.log(loginRes)
 
+      // Notify other componentsthat user logged in
+      window.dispatchEvent(new Event('user-login'));
+      
        const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
       if (guestCart.length > 0) {
         await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/add/bulk`, {
@@ -31,12 +35,21 @@ const MyAccount = () => {
         });
         sessionStorage.removeItem('guestCart');
       }
-      const newCart = dispatch(fetchCart(user.user_id));
-      console.log(newCart)
+      // const newCart = dispatch(fetchCart(user.user_id));
+      // console.log(newCart)
+
+      await dispatch(fetchCart(user.user_id));
+
+      // ✅ Success toast
+      toast.success(`Welcome back, ${user.username || user.email}!`);
+
         navigate('/');
+      toast.success('Logged in successfully!');
 
     } catch (err) {
       console.error('Login failed:', err);
+      toast.error('Log in failed!');
+      toast.error('Invalid username or password. Please try again.');
       // Optionally show a message to user
     }
   };

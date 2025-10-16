@@ -22,6 +22,10 @@ import Store from './pages/Store';
 import Cart from './pages/Cart'
 import Signup from './pages/Signup';
 
+
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 const { Header, Content, Footer } = Layout;
 
 const App = () => {
@@ -57,6 +61,7 @@ const App = () => {
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
           </Routes>
+            <ToastContainer position="top-right" autoClose={3000} />
          </Content>
       <FooterMenu></FooterMenu>
     </Layout>
