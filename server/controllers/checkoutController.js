@@ -7,6 +7,7 @@ const {saveBilling} = require('./billingController');
 const { savePayment } = require('./paymentController');
 const {updateProductStock} = require('./inventoryController');
 const {markCartItemsAsProcessed, checkAndAdjustCartItems} = require('./addToCartController')
+const {sendInvoiceEmail}= require('./invoiceController')
 
 exports.doCheckout = async (req, res) => {
   try {
@@ -115,6 +116,16 @@ exports.doCheckout = async (req, res) => {
       if (!processCartItemsResult.success) {
         return res.status(400).json({ success: false, message: processCartItemsResult.message });
       }
+
+      // After all database saves succeed
+      const orderSummary = {
+        orderId,
+        subtotal: updatedTotalAmount,
+        total: updatedTotalAmount + 35, // or handle discount if applied
+        discount: payload.discount || 0
+      };
+
+      await sendInvoiceEmail(payload.user_info, orderSummary, updatedCartItems);
 
     // Return response
     return res.status(200).json({ success: true, message: 'Order placed successfully', orderId, paymentIntent: paymentResponse,
