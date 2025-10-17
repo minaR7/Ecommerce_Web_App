@@ -61,9 +61,9 @@ const Checkout = () => {
   const calculateTotalWithDiscount = () => {
     const subtotal = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0);
     const shipping = 35;
-    const total = subtotal + shipping;
-    const discountedTotal = discount ? total - (total * discount) / 100 : total;
-    return discountedTotal.toFixed(2);
+    const discountedTotal = discount ? subtotal - (subtotal * discount) / 100 : subtotal;
+    const total = discountedTotal + shipping;
+    return total.toFixed(2);
   };
 
   // Handle coupon
@@ -77,8 +77,6 @@ const Checkout = () => {
     try {
       // Example: replace this with your API endpoint
       const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/validate-coupon`, { code: couponCode });
-      // Simulated response
-      // const res = { data: { valid: true, discountPercentage: 10 } };
 
       if (res.data.valid) {
         const percentage = res.data.discountPercentage;
