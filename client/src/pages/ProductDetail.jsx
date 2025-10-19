@@ -67,18 +67,28 @@ const ProductDetail = () => {
         // setIsImgModalOpen(true);
     };
 
+    // const nextImage = () => {
+    //     setCurrentIndex((prevIndex) =>
+    //     prevIndex === product?.slide_images.length - 1 ? 0 : prevIndex + 1
+    //     );
+    // };
+
     const nextImage = () => {
-        setCurrentIndex((prevIndex) =>
-        prevIndex === product?.slide_images.length - 1 ? 0 : prevIndex + 1
-        );
-    };
-
-    const prevImage = () => {
-        setCurrentIndex((prevIndex) =>
-        prevIndex === 0 ? product?.slide_images.length - 1 : prevIndex - 1
-        );
-    };
-
+        setCurrentIndex((prevIndex) => {
+          const newIndex = prevIndex === product?.slide_images.length - 1 ? 0 : prevIndex + 1;
+          setSelectedImage(product?.slide_images[newIndex]);
+          return newIndex;
+        });
+      };
+      
+      const prevImage = () => {
+        setCurrentIndex((prevIndex) => {
+          const newIndex = prevIndex === 0 ? product?.slide_images.length - 1 : prevIndex - 1;
+          setSelectedImage(product?.slide_images[newIndex]);
+          return newIndex;
+        });
+      };
+      
     
     const originalPrice = product?.price;
     const discount = product?.discount_percentage || 0;
