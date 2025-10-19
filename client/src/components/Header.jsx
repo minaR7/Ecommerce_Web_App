@@ -160,10 +160,10 @@ const HeaderMenu = () => {
             <div className="flex justify-center">
                 <Link to="/">
                     <img
-                        src="/assets/logo/El-Maghrib-logos-black.png"
+                        src="/assets/logo/El-Maghrib-logo.png"
                         alt="Logo"
                         className="object-contain"
-                        style={{ padding: "1rem", height: "250px", width: "600px" }}
+                        style={{ padding: "1rem", height: "90px", width: "600px" }}
                     />
                 </Link>
             </div>
