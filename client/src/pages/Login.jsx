@@ -48,7 +48,7 @@ const MyAccount = () => {
 
     } catch (err) {
       console.error('Login failed:', err);
-      toast.error('Log in failed!');
+      // toast.error('Log in failed!');
       toast.error('Invalid username or password. Please try again.');
       // Optionally show a message to user
     }
