@@ -21,7 +21,7 @@ const StripePaymentForm = ({ onPaymentMethodGenerated }) => {
       console.error(error);
     } else {
       console.log('PaymentMethod:', paymentMethod);
-      // ✅ Pass the paymentMethod.id up to the parent
+      // Pass the paymentMethod.id up to the parent
       onPaymentMethodGenerated(paymentMethod.id);
     }
   };

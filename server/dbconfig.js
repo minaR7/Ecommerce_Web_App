@@ -1,17 +1,35 @@
+// const config = {
+//     user: 'ecom_app_user',
+//     password: 'Kafka851*',
+//     server: 'DESKTOP-E4ASPST',
+//     // database: 'ecommerce_16_5_2025',
+//     database: 'moroccan_clothing_ecommerce',
+//     options: {
+//         encrypt: true, // This enables SSL/TLS
+//         trustServerCertificate: true,
+//         trustedconnection: true,
+//         // enableArithAort: true,
+//         instancename: 'SQLEXPRESS',
+//     },
+//     port: 1433
+// }
+
+// module.exports = config
+
 const config = {
-    user: 'ecom_app_user',
-    password: 'Kafka851*',
-    server: 'DESKTOP-E4ASPST',
-    // database: 'ecommerce_16_5_2025',
-    database: 'moroccan_clothing_ecommerce',
+    user: 'Elmaghrib_Elmaghrib',
+    password: 'Ka$#if050992',
+    // server: '78.159.113.47,783',
+    server: 'ASPHOST922\\SQL2019',
+    database: 'Elmaghrib_Clothing_Store',
     options: {
         encrypt: true, // This enables SSL/TLS
         trustServerCertificate: true,
-        trustedconnection: true,
+        //trustedconnection: true,
         // enableArithAort: true,
-        instancename: 'SQLEXPRESS',
+        // instancename: 'SQLEXPRESS',
     },
-    port: 1433
+    port: 783
 }
 
 module.exports = config

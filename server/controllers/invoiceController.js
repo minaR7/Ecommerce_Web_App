@@ -73,7 +73,7 @@ exports.sendInvoiceEmail = async (userInfo, orderInfo, orderItems) => {
       ],
     });
 
-    console.log('✅ Invoice sent to', userInfo.email);
+    console.log('Invoice sent to', userInfo.email);
     return { success: true, message: 'Invoice sent successfully' };
   } catch (error) {
     console.error('Error sending invoice:', error);

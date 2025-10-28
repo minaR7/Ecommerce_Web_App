@@ -100,7 +100,7 @@ const Checkout = () => {
   //This function will be triggered on Confirm Order click
   const handleCheckout = async () => {
     try {
-      const validatedValues = await form.validateFields(); // ✅ Try validating
+      const validatedValues = await form.validateFields(); // Try validating
       console.log('Form is valid. Values:', validatedValues);
       // const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
       const totalAmount = calculateTotalWithDiscount();

@@ -40,7 +40,7 @@ const MyAccount = () => {
 
       await dispatch(fetchCart(user.user_id));
 
-      // ✅ Success toast
+      // Success toast
       toast.success(`Welcome back, ${user.username || user.email}!`);
 
         navigate('/');
