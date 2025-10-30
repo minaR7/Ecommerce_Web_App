@@ -145,7 +145,7 @@ const Checkout = () => {
       //     cartItems: cartItems,
       // };
 
-      dispatch(
+      await dispatch(
         placeOrder({
           validatedValues,
           paymentMethodId,
@@ -156,7 +156,7 @@ const Checkout = () => {
       );
       setTimeout(() => {
           navigate('/');
-        }, 2000)
+        }, 200)
       
     } catch (error) {
       console.log(error)
