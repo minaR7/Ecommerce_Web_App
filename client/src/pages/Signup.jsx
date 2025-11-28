@@ -18,9 +18,12 @@ const Signup = () => {
       );
 
       console.log('Signup success:', res.data);
+        toast.success(`User, ${user.username || user.email} registered!`);
       navigate('/my-account'); // redirect to login after signup
+       // Success toast
     } catch (err) {
       console.error('Signup failed:', err);
+      toast.error(`Signup failed. ${err}`);
     }
   };
 
