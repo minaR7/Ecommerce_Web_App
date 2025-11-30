@@ -7,7 +7,7 @@ const { Footer } = Layout;
 
 const FooterMenu = () => {
     return (
-        <Footer style={{ padding: 0, background: 'linear-gradient(180deg,rgba(132, 152, 176, 1) 0%, rgba(71, 89, 122, 1) 45%, rgba(17, 18, 38, 1) 100%)' }}>
+        <Footer style={{ padding: 0, background: 'linear-gradient(180deg,rgba(52, 63, 77, 1) 0%, rgba(32, 40, 54, 1) 45%, rgba(14, 15, 17, 1) 100%)' }}>
             <div className="w-full text-white px-6 py-8">
                 {/* {bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 } */}
                 {/* Row 1  border-b border-blue-300*/} 
@@ -40,10 +40,10 @@ const FooterMenu = () => {
                     <div className="flex-1">
                         <h2 className="text-2xl font-bold mb-2">About Us</h2>
                         <ul className="space-y-1">
-                            <li><a href="#" className="hover:underline">Our History</a></li>
-                            <li><a href="#" className="hover:underline">Legal Notice</a></li>
-                            <li><a href="#" className="hover:underline">Privacy Policy</a></li>
-                            <li><a href="#" className="hover:underline">Conditions of Sale</a></li>
+                            <li><Link to="/our-history" className="hover:underline">Our History</Link></li>
+                            <li><Link to="/legal-notice" className="hover:underline">Legal Notice</Link></li>
+                            <li><Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link></li>
+                            <li><Link to="/conditions-of-sale" className="hover:underline">Conditions of Sale</Link></li>
                         </ul>
                     </div>
 
@@ -51,10 +51,10 @@ const FooterMenu = () => {
                     <div className="flex-1">
                         <h2 className="text-2xl font-bold mb-2">Quick Links</h2>
                         <ul className="space-y-1">
-                            <li><a href="#" className="hover:underline">Exchange & Return</a></li>
-                            <li><a href="#" className="hover:underline">Delivery Time</a></li>
-                            <li><a href="#" className="hover:underline">Payment Method</a></li>
-                            <li><a href="#" className="hover:underline">Blog</a></li>
+                            <li><Link to="/exchange-return" className="hover:underline">Exchange & Return</Link></li>
+                            <li><Link to="/delivery-time" className="hover:underline">Delivery Time</Link></li>
+                            <li><Link to="/payment-method" className="hover:underline">Payment Method</Link></li>
+                            <li><Link to="/blog" className="hover:underline">Blog</Link></li>
                         </ul>
                     </div>
                 </div>
