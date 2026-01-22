@@ -10,8 +10,10 @@ const productRoutes = require('./routes/productRoutes');
 const addToCartRoute = require('./routes/addToCartRoutes');
 const wishlistRoute = require('./routes/wishlistRoutes');
 const checkoutRoute = require('./routes/checkout');
+const orderRoutes = require('./routes/orderRoutes');
 const userRoutes = require('./routes/userRoutes');
 const couponRoute = require('./routes/coupon')
+const shippingRoutes = require('./routes/shipping')
 const verifyToken = require('./middleware/auth');
 
 const app = express();
@@ -37,6 +39,7 @@ const allowedOrigins = [
   'http://78.159.113.48:80',
   'https://78.159.113.48:80',
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:4173',
 ];
 
@@ -71,15 +74,54 @@ app.use('/api/cart', addToCartRoute);
 app.use('/api/wishlist', wishlistRoute);
 app.use('/api/users', userRoutes);
 app.use('/api/checkout', checkoutRoute);
-app.use('/api', couponRoute)
+app.use('/api/orders', orderRoutes);
+app.use('/api/coupons', couponRoute)
+app.use('/api/shipping', shippingRoutes)
 // router.post('/add', verifyToken, addToCart);
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+const extractRoutes = (router, basePath = '') => {
+  const out = [];
+  const walk = (r, bp) => {
+    r.stack.forEach((layer) => {
+      if (layer.route && layer.route.path) {
+        const methods = Object.keys(layer.route.methods).map((m) => m.toUpperCase());
+        out.push({ path: `${bp}${layer.route.path}`, methods });
+      } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
+        walk(layer.handle, bp);
+      }
+    });
+  };
+  walk(router, basePath);
+  return out;
+};
+
+const listAllRoutes = () => {
+  const routes = [
+    ...extractRoutes(categoryRoutes, '/api/categories'),
+    ...extractRoutes(subcategoryRoutes, '/api/subcategories'),
+    ...extractRoutes(productRoutes, '/api/products'),
+    ...extractRoutes(addToCartRoute, '/api/cart'),
+    ...extractRoutes(wishlistRoute, '/api/wishlist'),
+    ...extractRoutes(userRoutes, '/api/users'),
+    ...extractRoutes(checkoutRoute, '/api/checkout'),
+    ...extractRoutes(orderRoutes, '/api/orders'),
+    ...extractRoutes(couponRoute, '/api/coupons'),
+    ...extractRoutes(shippingRoutes, '/api/shipping'),
+  ];
+  return routes;
+};
+
+app.get('/api/_routes', (req, res) => {
+  res.json(listAllRoutes());
+});
 
 const startServer = async () => {
     try {
         // await sql.connect(process.env.DB_CONNECTION_STRING);
         await sql.connect(config);
         console.log('Connected successfully');
+        console.table(listAllRoutes());
         app.listen(3005,'0.0.0.0', () => console.log('Server running on port 3005'));
     } catch (err) {
         console.error('Database connection failed', err);
