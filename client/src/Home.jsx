@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Layout, Menu, Drawer, Button, Card, Row, Col } from 'antd';
 import CustomCarousel from './components/Carousel';
+import BestSellerCarousel from './components/BestSellers';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
@@ -77,7 +78,7 @@ const Home = () => {
             />
         </div> */}
         <section className="flex flex-col mt-6" 
-            style={{background: "radial-gradient(circle,rgba(132, 152, 176, 1) 0%, rgba(71, 89, 122, 1) 45%, rgba(17, 18, 38, 1) 100%)"}}>
+            style={{background: "radial-gradient(circle,rgba(52, 63, 77, 1) 0%, rgba(32, 40, 54, 1) 45%, rgba(17, 18, 38, 1) 100%)"}}>
             <div className="flex flex-col md:flex-row items-center justify-between max-w-7xl mx-auto flex-grow px-6 md:px-6 py-8 md:py-18 gap-10 md:gap-0">
                 <div className="max-w-xl text-white">
                     {/* <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-6 select-none">
@@ -117,6 +118,7 @@ const Home = () => {
             </div>
         </section>
         <CustomCarousel></CustomCarousel>
+        <BestSellerCarousel></BestSellerCarousel>
     </>
   );
 };

@@ -16,7 +16,7 @@ const FooterMenu = () => {
                 <div className="flex flex-col md:flex-row justify-between gap-8 pb-6">
                     {/* Column 1 */}
                     <div className="flex-1">
-                        <h2 className="text-2xl font-bold mb-2">Jabador Shop</h2>
+                        <h2 className="text-2xl font-bold mb-2">Elmaghrib</h2>
                         <p className="text-lg">
                             Our shop offers classy and modern Moroccan outfits made with passion in our workshops in Morocco.
                         </p>
