@@ -53,18 +53,22 @@ exports.sendInvoiceEmail = async (userInfo, orderInfo, orderItems) => {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,
-      secure: false,
+      secure: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+       greetingTimeout: 10000,
+       tls: {
+    rejectUnauthorized: false, // ⚠️ Ignore expired cert (TESTING ONLY)
+  },
     });
 
     await transporter.sendMail({
-      from: `"Your Store" <${process.env.SMTP_USER}>`,
+      from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
       to: userInfo.email,
       subject: `Invoice for Order #${orderInfo.orderId}`,
-      text: `Hi ${userInfo.firstName},\n\nThank you for your order! Please find your invoice attached.\n\n- The Store Team`,
+      text: `Hi ${userInfo.firstName},\n\nThank you for your order! Please find your invoice attached.\n\n- The Elmaghrib Team`,
       attachments: [
         {
           filename: `invoice-${orderInfo.orderId}.pdf`,
@@ -73,7 +77,7 @@ exports.sendInvoiceEmail = async (userInfo, orderInfo, orderItems) => {
       ],
     });
 
-    console.log('✅ Invoice sent to', userInfo.email);
+    console.log('Invoice sent to', userInfo.email);
     return { success: true, message: 'Invoice sent successfully' };
   } catch (error) {
     console.error('Error sending invoice:', error);
