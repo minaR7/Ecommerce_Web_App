@@ -61,6 +61,82 @@ exports.getProducts = async (req, res) => {
     }
 };
 
+exports.getAllProducts = async (req, res) => {
+    const { subcategory } = req.query;
+    // console.log(req)
+    try {
+        let query = `
+            SELECT 
+                p.product_id,
+                p.name,
+                p.description,
+                p.price,
+                p.stock_quantity,
+                p.cover_img,
+                p.images,
+                p.discount_percentage,
+                COUNT(r.review_id) AS total_reviews,
+                ROUND(AVG(CAST(r.rating AS FLOAT)),2) AS avg_rating,
+                c.name AS category,
+                sc.name AS subcategory,
+                ca.colors
+            FROM products p
+            LEFT JOIN reviews r ON p.product_id = r.product_id
+            LEFT JOIN categories c ON p.category_id = c.category_id
+            LEFT JOIN subcategories sc ON p.subcategory_id = sc.subcategory_id
+            LEFT JOIN (
+                SELECT v.product_id, STRING_AGG(pc.name, ',') AS colors
+                FROM product_variants v
+                JOIN product_colors pc ON v.color_id = pc.color_id
+                GROUP BY v.product_id
+            ) ca ON ca.product_id = p.product_id
+        `;
+
+        if (subcategory) {
+            query += ` WHERE p.subcategory_id = ${subcategory}`;
+        }
+
+        query += ' GROUP BY p.product_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors';
+
+        const result = await sql.query(query);
+         // res.json(result.recordset);
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const modifiedProducts = result.recordset.map((product) => 
+        {
+            // Compute discounted price
+            const price = parseFloat(product.price);
+            const discount = parseFloat(product.discount_percentage || 0);
+            const discountedPrice = discount > 0
+                ? (price - (price * discount) / 100).toFixed(2)
+                : price;
+            let slideImages = [];
+            try {
+                const parsedImages = product.images ? JSON.parse(product.images) : [];
+                if (Array.isArray(parsedImages)) {
+                    slideImages = parsedImages.map(img => `${baseUrl}/${String(img).replace(/^\/+/, '')}`);
+                }
+            } catch (_) {
+                slideImages = [];
+            }
+            const colorsArray = product.colors ? product.colors.split(',') : [];
+            return (
+            {
+                ...product,
+                cover_img: `${baseUrl}/${product.cover_img}`,  // Append base URL to each subcategory's cover_img
+                discounted_price: discountedPrice,
+                slide_images: slideImages,
+                colors: colorsArray
+            })
+        });
+        
+        res.status(200).json(modifiedProducts);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+
 // GET single product
 // exports.getProductById = async (req, res) => {
 //     const { id } = req.params;
