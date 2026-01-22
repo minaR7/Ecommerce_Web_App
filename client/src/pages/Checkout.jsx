@@ -27,6 +27,7 @@ const Checkout = () => {
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [shippingFee, setShippingFee] = useState(35);
 
   // useEffect(() => {
   //   const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
@@ -60,9 +61,8 @@ const Checkout = () => {
   
   const calculateTotalWithDiscount = () => {
     const subtotal = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0);
-    const shipping = 35;
     const discountedTotal = discount ? subtotal - (subtotal * discount) / 100 : subtotal;
-    const total = discountedTotal + shipping;
+    const total = discountedTotal + (shippingFee || 0);
     return total.toFixed(2);
   };
 
@@ -100,7 +100,7 @@ const Checkout = () => {
   //This function will be triggered on Confirm Order click
   const handleCheckout = async () => {
     try {
-      const validatedValues = await form.validateFields(); // ✅ Try validating
+      const validatedValues = await form.validateFields(); // Try validating
       console.log('Form is valid. Values:', validatedValues);
       // const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
       const totalAmount = calculateTotalWithDiscount();
@@ -237,7 +237,19 @@ const Checkout = () => {
             <Col span ={8}>
               {/* <Form.Item label="Country" name="country" rules={[{ required: true }]}><Select><Option value="usa">USA</Option></Select></Form.Item> */}
               <Form.Item label="Country" name="country" rules={[{ required: true }]}>
-                <Select showSearch placeholder="Select a country" optionFilterProp="label">
+                <Select showSearch placeholder="Select a country" optionFilterProp="label" onChange={async (value) => {
+                  try {
+                    const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/shipping/${value}`, { credentials: 'include' });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setShippingFee(Number(data.fee));
+                    } else {
+                      setShippingFee(35);
+                    }
+                  } catch {
+                    setShippingFee(35);
+                  }
+                }}>
                   {countryOptions.map((country) => (
                     <Select.Option key={country.value} value={country.label} label={country.label}>
                       {country.label}
@@ -259,12 +271,12 @@ const Checkout = () => {
       {/* 3. Shipping Method */}
       <div className="bg-white p-4 shadow rounded-xl">
         <h2 className="text-xl font-semibold mb-4">Shipping Method</h2>
-        <p className="mb-2">International delivery, shipping charges: <strong>€35</strong></p>
+        <p className="mb-2">International delivery, shipping charges: <strong>€{(shippingFee || 0).toFixed(2)}</strong></p>
         <Form.Item label="Order Notes" name="notes"><Input.TextArea rows={3} /></Form.Item>
-      </div>
+      </div> 
 
       {/* 4. Billing Details */}
-      {/* <div className="bg-white p-4 shadow rounded-xl">
+      <div className="bg-white p-4 shadow rounded-xl">
         <h2 className="text-xl font-semibold mb-4">Billing Details</h2>
         <Radio.Group
           onChange={(e) => setUseDifferentBilling(e.target.value === 'different')}
@@ -317,7 +329,7 @@ const Checkout = () => {
             </Panel>
           </Collapse>
         )}
-      </div> */}
+      </div>
       {/* </Form> */}
       <div className="bg-white p-4 shadow rounded-xl">
         <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
@@ -411,13 +423,13 @@ const Checkout = () => {
         </div>
         <div className="flex justify-between text-base">
           <span>Shipping Charges</span>
-          <span className="font-semibold">€35.00</span>
+          <span className="font-semibold">€{(shippingFee || 0).toFixed(2)}</span>
         </div>
         {discount > 0 && (
           <div className="flex justify-between text-base text-green-600 font-semibold">
             <span>Discount ({discount}%)</span>
             <span>-€{(
-              ((cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35) * discount) / 100
+              ((cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + (shippingFee || 0)) * discount) / 100
             ).toFixed(2)}</span>
           </div>
         )}
