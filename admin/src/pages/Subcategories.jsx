@@ -73,9 +73,26 @@ const Subcategories = () => {
     }
     setIsModalOpen(true); 
   };
-  const handleUploadChange = ({ fileList: newFileList }) => {
+  const handleUploadChange = async ({ file, fileList: newFileList }) => {
     if (newFileList.length > 1) return;
     setFileList(newFileList);
+    if (file && file.status === 'done' && file.response?.url) {
+      return;
+    }
+    if (file && file.originFileObj) {
+      try {
+        const res = await subcategoriesApi.upload(file.originFileObj);
+        const updated = [{
+          uid: file.uid,
+          name: file.name,
+          status: 'done',
+          url: `${import.meta.env.VITE_API_URL}/${res.url}`,
+        }];
+        setFileList(updated);
+      } catch {
+        message.error('Upload failed');
+      }
+    }
   };
 
   const columns = [
@@ -125,7 +142,6 @@ const Subcategories = () => {
                 listType="picture-card"
                 fileList={fileList}
                 onChange={handleUploadChange}
-                beforeUpload={() => false}
                 maxCount={1}
                 accept="image/*"
               >
