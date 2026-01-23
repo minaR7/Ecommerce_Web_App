@@ -49,13 +49,13 @@ const Users = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const data = await usersApi.getAll();
+      const data = await usersApi.getAdmins();
       setUsers(data);
     } catch (error) {
       message.error('Failed to fetch users');
       // Fallback: map existing mockUsers into API-like shape
       setUsers(
-        mockUsers.map((u) => {
+        mockUsers.filter((u) => u.role === 'admin').map((u) => {
           const [firstName, ...rest] = (u.name || '').split(' ');
           return {
             user_id: Number(u.id),
@@ -66,7 +66,7 @@ const Users = () => {
             created_at: u.createdAt || '',
             is_registered: true,
             username: u.email?.split('@')[0] || u.name || '',
-            is_admin: u.role === 'admin',
+            is_admin: true,
           };
         })
       );
