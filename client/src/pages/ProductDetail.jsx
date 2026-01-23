@@ -182,19 +182,20 @@ const ProductDetail = () => {
 
                     {/* Second Child Container */}
                     <div className="flex items-center justify-center h-[26%] overflow-x-auto px-2">
-                        {product?.slide_images.map((img, index) => (
+                        {(Array.isArray(product?.slide_images) && product.slide_images.length ? product.slide_images : [null]).map((img, index) => (
                             <div
                                 key={index}
                                 className="flex-shrink-0 w-24 h-24 mx-2 cursor-pointer"
-                                onClick={() => setSelectedImage(img)}
+                                onClick={() => img && setSelectedImage(img)}
                             >
-                                {/* <Image
-                                    src={img}
-                                    alt={`Thumbnail ${index}`}
-                                    className="object-cover w-full h-full border-2 border-gray-200 hover:border-blue-500"
-                                    preview={false} // disable preview on thumbnails
-                                /> */}
-                                <img src={img} alt={`Thumbnail ${index}`} className="object-cover w-full h-full border-2 border-gray-200 hover:border-blue-500" />
+                                {img ? (
+                                  <img src={img} alt={`Thumbnail ${index}`} className="object-cover w-full h-full border-2 border-gray-200 hover:border-blue-500" />
+                                ) : (
+                                  <div
+                                    className="w-full h-full border-2 border-gray-200"
+                                    style={{ background: 'linear-gradient(135deg, #f0f0f0 0%, #d9d9d9 100%)' }}
+                                  />
+                                )}
                             </div>
                         ))}
                     </div>
@@ -218,11 +219,18 @@ const ProductDetail = () => {
                 </button>
 
                 <Zoom>
-                    <img
-                        src={product?.slide_images[currentIndex]}
-                        alt="Zoomed"
-                        // className="max-h-[80%] max-w-[80%] object-contain"
+                  {product?.slide_images?.[currentIndex] ? (
+                    <img src={product?.slide_images[currentIndex]} alt="Zoomed" />
+                  ) : (
+                    <div
+                      style={{
+                        width: '60vw',
+                        height: '60vh',
+                        background: 'linear-gradient(135deg, #202020 0%, #2a2a2a 100%)',
+                        borderRadius: 12,
+                      }}
                     />
+                  )}
                 </Zoom>
                 {/* <img
                     src={product?.slide_images[currentIndex]}
