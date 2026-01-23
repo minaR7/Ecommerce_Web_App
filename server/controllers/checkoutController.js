@@ -28,15 +28,35 @@ exports.doCheckout = async (req, res) => {
       const updatedCartItems = stockCheck.adjustedCartItems;
       console.log("updatedCartItems", updatedCartItems)
 
-      // Convert total amount based on updated cart
-      const updatedTotalAmount = updatedCartItems.reduce(
+      // Convert subtotal based on updated cart
+      const updatedSubtotal = updatedCartItems.reduce(
         (sum, item) => sum + item.basePrice * item.quantity,
         0
       );
+      // Compute shipping fee by country
+      const shippingCountry = payload?.shipping?.country;
+      let shippingFee = 0;
+      if (shippingCountry) {
+        try {
+          const feeResult = await sql.query`
+            SELECT TOP 1 fee FROM shipping_rates 
+            WHERE LOWER(country) = LOWER(${shippingCountry}) AND status = 'active'
+          `;
+          if (feeResult.recordset.length > 0) {
+            shippingFee = Number(feeResult.recordset[0].fee);
+          } else {
+            shippingFee = 35; // default fallback
+          }
+        } catch (e) {
+          shippingFee = 35;
+        }
+      } else {
+        shippingFee = 35;
+      }
       
       // convert total amount to cents
       // const amountInCents = Math.round(payload.totalAmount * 100);
-      const amountInCents = Math.round(updatedTotalAmount * 100);
+      const amountInCents = Math.round((updatedSubtotal + shippingFee) * 100);
         // Call Stripe Payment Intent
       const paymentResponse = await stripe.paymentIntents.create({
           amount: amountInCents,
@@ -64,7 +84,7 @@ exports.doCheckout = async (req, res) => {
       console.log("userId",userId)
       
       // Save Order
-      const orderResult = await saveOrder({ userId, totalAmount: updatedTotalAmount });
+      const orderResult = await saveOrder({ userId, totalAmount: updatedSubtotal + shippingFee });
       if (!orderResult?.order_id) {
         return res.status(orderResult.status || 400).json({
           success: false,
@@ -120,8 +140,9 @@ exports.doCheckout = async (req, res) => {
       // After all database saves succeed
       const orderSummary = {
         orderId,
-        subtotal: updatedTotalAmount,
-        total: updatedTotalAmount + 35, // or handle discount if applied
+        subtotal: updatedSubtotal,
+        shipping: shippingFee,
+        total: updatedSubtotal + shippingFee, // or handle discount if applied
         discount: payload.discount || 0
       };
 

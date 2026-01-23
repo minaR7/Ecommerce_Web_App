@@ -21,7 +21,13 @@ import ProductListing from './pages/ProductListing';
 import Store from './pages/Store';
 import Cart from './pages/Cart'
 import Signup from './pages/Signup';
-
+import OurHistory from './pages/about-us/OurHistory';
+import ConditionsOfSale from './pages/about-us/ConditionsOfSale';
+import PrivacyPolicy from './pages/about-us/PrivacyPolicy';
+import LegalNotice from './pages/about-us/LegalNotice';
+import PaymentMethods from './pages/quick-links/PaymentMethods';
+import ExchangeReturn from './pages/quick-links/ExchangeReturn';
+import DeliveryPolicy from './pages/quick-links/DeliveryTime';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -57,7 +63,15 @@ const App = () => {
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/cart" element={<Cart/>} />
-
+              <Route path="/our-history" element={<OurHistory />} />
+              <Route path="/legal-notice" element={<LegalNotice />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} /> 
+              <Route path="/conditions-of-sale" element={<ConditionsOfSale />} />
+              <Route path="/exchange-return" element={<ExchangeReturn />} />
+              <Route path="/delivery-time" element={<DeliveryPolicy />} />
+               <Route path="/blog" element={<NotFound />} />
+              <Route path="/payment-method" element={<PaymentMethods />} />
+              {/* <Route path="/blog" element={<Blog />} /> */}
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
           </Routes>

@@ -24,6 +24,12 @@ const MyAccount = () => {
       localStorage.setItem('user', JSON.stringify(user));
       console.log(loginRes)
 
+      if (user?.is_admin) {
+        const adminBase = import.meta.env.VITE_ADMIN_BASE_URL || 'http://admin.elmaghrib.com';
+        window.location.href = adminBase;
+        return;
+      }
+
       // Notify other componentsthat user logged in
       window.dispatchEvent(new Event('user-login'));
       

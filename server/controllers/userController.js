@@ -123,7 +123,7 @@ exports.registerUser = async (req, res) => {
 };
 
 exports.getUsers = async (req, res) => {
-  const { registered, admin } = req.query;
+  const { registered, admin, isAdmin } = req.query;
 
   let query = `
     SELECT u.user_id, u.first_name, u.last_name, u.email, u.address, u.created_at, u.is_registered,
@@ -140,17 +140,44 @@ exports.getUsers = async (req, res) => {
     query += ' AND u.is_registered = false';
   }
 
-  if (admin === 'true') {
+  const adminFlag = typeof isAdmin !== 'undefined' ? isAdmin : admin;
+  if (adminFlag === 'true') {
     query += ' AND c.is_admin = true';
-  } else if (admin === 'false') {
+  } else if (adminFlag === 'false') {
     query += ' AND (c.is_admin = false OR c.is_admin IS NULL)';
   }
 
   try {
     const result = await sql.query(query, values);
+    console.log('users:', result.recordset)
     res.status(200).json(result.recordset);
   } catch (error) {
     console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+exports.getCustomers = async (req, res) => {
+  try {
+    const result = await sql.query(`
+      SELECT 
+        u.user_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.created_at AS since,
+        COUNT(o.order_id) AS orders_count,
+        COALESCE(SUM(o.total_amount), 0) AS total_spent
+      FROM users u
+      LEFT JOIN orders o ON o.user_id = u.user_id
+      LEFT JOIN credentials c ON c.user_id = u.user_id
+      WHERE (c.is_admin = 0 OR c.is_admin IS NULL) AND u.is_registered = 1
+      GROUP BY u.user_id, u.first_name, u.last_name, u.email, u.created_at
+      ORDER BY total_spent DESC
+    `);
+    res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error('Error fetching customers:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
@@ -163,7 +190,7 @@ exports.loginUser = async (req, res) => {
 
   try {
     const userResult = await request.query(`
-      SELECT u.user_id, u.is_registered, c.password, c.username, c.is_admin
+      SELECT u.user_id, u.email, u.is_registered, c.password, c.username, c.is_admin
       FROM users u
       JOIN credentials c ON u.user_id = c.user_id
       WHERE u.email = @identifier OR c.username = @identifier
@@ -174,6 +201,13 @@ exports.loginUser = async (req, res) => {
     }
 
     const user = userResult.recordset[0];
+
+    const isAdminRequest =
+      (req.headers['x-admin-request'] === 'true') ||
+      (req.headers['x-admin-request'] === '1');
+    if (isAdminRequest && !user.is_admin) {
+      return res.status(401).json({ error: 'Admin access only' });
+    }
 
     if (!user.is_registered) {
       return res.status(403).json({ error: 'User is not registered' });

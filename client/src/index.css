@@ -262,3 +262,32 @@ button:focus-visible {
     padding: 2px 2px;
   }
 }
+
+
+.story-text {
+  @apply text-[19px] md:text-[17px] leading-[1.9] text-[#4a4a4a] mb-7 text-justify;
+}
+
+.story-text:first-letter {
+  font-size: 64px;
+  font-weight: 600;
+  float: left;
+  line-height: 48px;
+  padding-right: 10px;
+  color: #202836;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.emphasis {
+  @apply italic text-[#2c5f6f] font-medium;
+}
+
+.pull-quote {
+  @apply text-[26px] md:text-[22px] italic text-center text-[#202836] 
+         my-12 py-8 px-10 border-l-4 border-r-4 
+         border-[#202836] bg-gradient-to-b from-[#f9f7f4] to-[#ede9e3]  leading-[1.6];
+}
+
+.closing-text {
+  @apply text-[20px] md:text-[18px] leading-[1.8] text-[#4a4a4a] mb-6;
+}

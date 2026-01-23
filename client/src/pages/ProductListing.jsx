@@ -97,17 +97,22 @@ const ProductListing = () => {
                     //             }}/>}
                     //         style={{ position: 'relative',  boxShadow: '2px 3px 4px lightgray', fontSize: '20px', color: 'black' }}
                             cover={
-                              // <div style={{ width: '100%', height: '200px', overflow: 'hidden' }}>
+                              product.cover_img ? (
                                 <img
                                   alt={product.name}
                                   src={product.cover_img}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <div
                                   style={{
                                     width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover', // maintains aspect ratio and fills the box
+                                    height: 220,
+                                    borderRadius: 8,
+                                    background: 'linear-gradient(135deg, #f0f0f0 0%, #d9d9d9 100%)',
                                   }}
                                 />
-                            // </div> 
+                              )
                             }
                           >
                             <Card.Meta title={product.name} />
