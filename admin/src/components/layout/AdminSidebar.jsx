@@ -56,6 +56,11 @@ const menuItems = [
     label: 'Users',
   },
   {
+    key: '/customers',
+    icon: <UserOutlined />,
+    label: 'Customers',
+  },
+  {
     key: '/coupons',
     icon: <GiftOutlined />,
     label: 'Coupons',
