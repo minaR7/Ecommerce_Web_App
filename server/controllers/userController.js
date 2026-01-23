@@ -123,7 +123,7 @@ exports.registerUser = async (req, res) => {
 };
 
 exports.getUsers = async (req, res) => {
-  const { registered, admin } = req.query;
+  const { registered, admin, isAdmin } = req.query;
 
   let query = `
     SELECT u.user_id, u.first_name, u.last_name, u.email, u.address, u.created_at, u.is_registered,
@@ -140,9 +140,10 @@ exports.getUsers = async (req, res) => {
     query += ' AND u.is_registered = false';
   }
 
-  if (admin === 'true') {
+  const adminFlag = typeof isAdmin !== 'undefined' ? isAdmin : admin;
+  if (adminFlag === 'true') {
     query += ' AND c.is_admin = true';
-  } else if (admin === 'false') {
+  } else if (adminFlag === 'false') {
     query += ' AND (c.is_admin = false OR c.is_admin IS NULL)';
   }
 
@@ -152,6 +153,31 @@ exports.getUsers = async (req, res) => {
     res.status(200).json(result.recordset);
   } catch (error) {
     console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+exports.getCustomers = async (req, res) => {
+  try {
+    const result = await sql.query(`
+      SELECT 
+        u.user_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.created_at AS since,
+        COUNT(o.order_id) AS orders_count,
+        COALESCE(SUM(o.total_amount), 0) AS total_spent
+      FROM users u
+      LEFT JOIN orders o ON o.user_id = u.user_id
+      LEFT JOIN credentials c ON c.user_id = u.user_id
+      WHERE (c.is_admin = 0 OR c.is_admin IS NULL) AND u.is_registered = 1
+      GROUP BY u.user_id, u.first_name, u.last_name, u.email, u.created_at
+      ORDER BY total_spent DESC
+    `);
+    res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error('Error fetching customers:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
