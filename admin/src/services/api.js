@@ -40,6 +40,19 @@ export const categoriesApi = {
   delete: (id) => fetchApi(`/categories/${id}`, {
     method: 'DELETE',
   }),
+  upload: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    return fetch(`${API_BASE_URL}/categories/upload`, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
+  }
 };
 
 // Subcategories API
@@ -58,6 +71,19 @@ export const subcategoriesApi = {
   delete: (id) => fetchApi(`/subcategories/${id}`, {
     method: 'DELETE',
   }),
+  upload: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    return fetch(`${API_BASE_URL}/subcategories/upload`, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
+  }
 };
 
 // Products API
