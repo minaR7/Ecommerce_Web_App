@@ -24,6 +24,7 @@ import { AdminLayout } from '../components/layout/AdminLayout';
 import { mockUsers } from '../data/mockData';
 import { usersApi } from '../services/api';
 import { AppButton } from '../components/AppButton';
+import { formatAdminDate } from '../utils/date';
 
 const roleColors = {
   admin: 'purple',
@@ -181,6 +182,7 @@ const Users = () => {
       title: 'Created At',
       dataIndex: 'created_at',
       key: 'created_at',
+      render: (val) => formatAdminDate(val),
     },
     // {
     //   title: 'Status',
