@@ -92,11 +92,18 @@ const Coupons = () => {
         <Modal title={editingCoupon ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={600}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
             <Form.Item name="code" label="Code" rules={[{ required: true }]}><Input /></Form.Item>
-            <Form.Item name="discountValue" label="Value" rules={[{ required: true }]}><InputNumber className="w-full" /></Form.Item>
-            <Form.Item name="usageLimit" label="Usage Limit" rules={[{ required: false }]}><InputNumber className="w-full" /></Form.Item>
             <Form.Item name="validFrom" label="From" rules={[{ required: true }]}><DatePicker className="w-full" /></Form.Item>
             <Form.Item name="validUntil" label="Until" rules={[{ required: true }]}><DatePicker className="w-full" /></Form.Item>
-            <Form.Item name="status" label="Status"><Select><Select.Option value="active">Active</Select.Option><Select.Option value="inactive">Inactive</Select.Option></Select></Form.Item>
+            <div className="grid grid-cols-3 gap-4">
+              <Form.Item name="discountValue" label="Value" rules={[{ required: true }]}><InputNumber className="w-full" /></Form.Item>
+              <Form.Item name="usageLimit" label="Usage Limit" rules={[{ required: false }]}><InputNumber className="w-full" /></Form.Item>
+              <Form.Item name="status" label="Status">
+                <Select>
+                  <Select.Option value="active">Active</Select.Option>
+                  <Select.Option value="inactive">Inactive</Select.Option>
+                </Select>
+              </Form.Item>
+            </div>
             <Space>
               <AppButton onClick={() => setIsModalOpen(false)}>Cancel</AppButton>
               <AppButton type="primary" htmlType="submit" style={{ color: '#000', fontWeight: 500 }}>
