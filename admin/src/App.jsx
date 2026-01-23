@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Orders from "./pages/Orders";
 import Users from "./pages/Users";
+import Customers from "./pages/Customers";
 // import Settings from "./pages/Settings";
 import Categories from "./pages/Categories";
 import Subcategories from "./pages/Subcategories";
@@ -75,6 +76,14 @@ const App = () => (
             element={
               <Protected>
                 <Users />
+              </Protected>
+            }
+          />
+          <Route
+            path="/customers"
+            element={
+              <Protected>
+                <Customers />
               </Protected>
             }
           />
