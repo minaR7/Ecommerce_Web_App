@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { Form, Input, Button, Card } from 'antd';
+import { Form, Input, Card } from 'antd';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AdminLayout } from '../components/layout/AdminLayout';
+import { AppButton } from '../components/AppButton';
 
 const Login = () => {
 
@@ -19,10 +20,16 @@ const Login = () => {
 
   const onFinish = async (values) => {
     try {
-      const loginRes = await axios.post(`${import.meta.env.VITE_API_URL}/api/users/login`, {
-        identifier: values.username,
-        password: values.password,
-      });
+      const loginRes = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/users/login`,
+        {
+          identifier: values.username,
+          password: values.password,
+        },
+        {
+          headers: { 'x-admin-request': 'true' },
+        }
+      );
 
       const user = loginRes.data.data;
       if (!user?.is_admin) {
@@ -61,9 +68,9 @@ const Login = () => {
             <Input.Password placeholder="Password" />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit" className="w-full" style={{ fontWeight: 500 }}>
+            <AppButton type="primary" htmlType="submit" className="w-full" style={{ backgroundColor: 'white', fontWeight: 500 }}>
               Login
-            </Button>
+            </AppButton>
           </Form.Item>
         </Form>
       </Card>
