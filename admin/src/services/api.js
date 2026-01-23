@@ -126,6 +126,7 @@ export const ordersApi = {
 // Users API
 export const usersApi = {
   getAll: () => fetchApi('/users'),
+  getAdmins: () => fetchApi('/users?isAdmin=true'),
   getById: (id) => fetchApi(`/users/${id}`),
   create: (data) => fetchApi('/users', {
     method: 'POST',
@@ -138,6 +139,7 @@ export const usersApi = {
   delete: (id) => fetchApi(`/users/${id}`, {
     method: 'DELETE',
   }),
+  getCustomers: () => fetchApi('/users/customers'),
 };
 
 // Coupons API
