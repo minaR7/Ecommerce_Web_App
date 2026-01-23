@@ -18,6 +18,7 @@ import {
 import { AdminLayout } from '../components/layout/AdminLayout';
 import { mockOrders } from '../data/mockData';
 import { ordersApi } from '../services/api';
+import { formatAdminDate } from '../utils/date';
 
 const statusColors = {
   pending: 'orange',
@@ -148,6 +149,7 @@ const Orders = () => {
       dataIndex: 'created_at',
       key: 'created_at',
       sorter: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      render: (val) => formatAdminDate(val),
     },
     {
       title: 'Actions',
@@ -224,7 +226,7 @@ const Orders = () => {
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Payment Status">{selectedOrder.payment_status}</Descriptions.Item>
-              <Descriptions.Item label="Order Date">{selectedOrder.created_at}</Descriptions.Item>
+              <Descriptions.Item label="Order Date">{formatAdminDate(selectedOrder.created_at)}</Descriptions.Item>
               <Descriptions.Item label="Total">
                 <span className="font-bold text-lg">${Number(selectedOrder.total_amount || 0).toFixed(2)}</span>
               </Descriptions.Item>

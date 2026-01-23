@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, Table, Tag } from 'antd';
 import { mockOrders } from '../../data/mockData';
 import { ordersApi } from '../../services/api';
+import { formatAdminDate } from '../../utils/date';
 
 const statusColors = {
   pending: 'orange',
@@ -43,6 +44,7 @@ const columns = [
     title: 'Date',
     dataIndex: 'createdAt',
     key: 'createdAt',
+    render: (val) => formatAdminDate(val),
   },
 ];
 
