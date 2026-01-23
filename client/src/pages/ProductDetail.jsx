@@ -188,6 +188,12 @@ const ProductDetail = () => {
                                 className="flex-shrink-0 w-24 h-24 mx-2 cursor-pointer"
                                 onClick={() => img && setSelectedImage(img)}
                             >
+                                 {/* <Image
+                                    src={img}
+                                    alt={`Thumbnail ${index}`}
+                                    className="object-cover w-full h-full border-2 border-gray-200 hover:border-blue-500"
+                                    preview={false} // disable preview on thumbnails
+                                /> */}
                                 {img ? (
                                   <img src={img} alt={`Thumbnail ${index}`} className="object-cover w-full h-full border-2 border-gray-200 hover:border-blue-500" />
                                 ) : (
