@@ -28,6 +28,6 @@ exports.loginUser = async (req, res) => {
     res.status(200).json({ token, user });
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error ${err}` });
   }
 };

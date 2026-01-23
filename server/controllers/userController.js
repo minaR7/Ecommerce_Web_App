@@ -148,6 +148,7 @@ exports.getUsers = async (req, res) => {
 
   try {
     const result = await sql.query(query, values);
+    console.log('users:', result.recordset)
     res.status(200).json(result.recordset);
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -163,7 +164,7 @@ exports.loginUser = async (req, res) => {
 
   try {
     const userResult = await request.query(`
-      SELECT u.user_id, u.is_registered, c.password, c.username, c.is_admin
+      SELECT u.user_id, u.email, u.is_registered, c.password, c.username, c.is_admin
       FROM users u
       JOIN credentials c ON u.user_id = c.user_id
       WHERE u.email = @identifier OR c.username = @identifier
@@ -174,6 +175,13 @@ exports.loginUser = async (req, res) => {
     }
 
     const user = userResult.recordset[0];
+
+    const isAdminRequest =
+      (req.headers['x-admin-request'] === 'true') ||
+      (req.headers['x-admin-request'] === '1');
+    if (isAdminRequest && !user.is_admin) {
+      return res.status(401).json({ error: 'Admin access only' });
+    }
 
     if (!user.is_registered) {
       return res.status(403).json({ error: 'User is not registered' });
