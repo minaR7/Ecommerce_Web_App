@@ -232,7 +232,19 @@ const Products = () => {
       key: 'product',
       render: (_, record) => (
         <div className="flex items-center gap-3">
-          <Avatar shape="square" size={48} src={record.cover_img || record.image} className="rounded-lg" />
+          {(record.cover_img || record.image) ? (
+            <Avatar shape="square" size={48} src={record.cover_img || record.image} className="rounded-lg" />
+          ) : (
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 8,
+                background: 'linear-gradient(135deg, #1c1c1c 0%, #2a2a2a 100%)',
+                border: '1px solid #333',
+              }}
+            />
+          )}
           <div>
             <p className="text-foreground font-medium m-0">{record.name}</p>
             <p className="text-muted-foreground text-sm m-0 truncate max-w-xs">
