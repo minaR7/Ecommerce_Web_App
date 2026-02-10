@@ -24,3 +24,5 @@ export const AdminLayout = ({ children, title }) => {
     </Layout>
   );
 };
+
+export default AdminLayout;
