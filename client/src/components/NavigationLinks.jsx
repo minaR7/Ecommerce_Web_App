@@ -37,11 +37,11 @@ const NavigationLinks = ({ onClick, isSidebar = false }) => {
     };
 
     const handleCategoryClick = (categoryId, categoryName, hasSubcategories) => {
-        if (hasSubcategories) {
+        // if (hasSubcategories) {
             navigate(`/store/${categoryName}`);
-        } else {
-            navigate(`/products/${categoryName}`);
-        }
+        // } else {
+        //     navigate(`/products/${categoryName}`);
+        // }
         if (onClick) onClick();
     };
 
