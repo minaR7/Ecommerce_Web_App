@@ -5,7 +5,7 @@ import { Table, Button, Card, Typography, Space } from 'antd';
 import { EditOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
-import { api } from '../services/api';
+import { pagesApi } from '../services/api';
 
 const { Title } = Typography;
 
@@ -15,8 +15,7 @@ const Pages = () => {
   const { data: pages, isLoading } = useQuery({
     queryKey: ['pages'],
     queryFn: async () => {
-      const response = await api.get('/pages');
-      return response.data;
+      return await pagesApi.getAll();
     },
   });
 
