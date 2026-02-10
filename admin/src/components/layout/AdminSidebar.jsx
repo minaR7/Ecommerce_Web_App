@@ -94,7 +94,7 @@ export const AdminSidebar = () => {
       collapsed={collapsed}
       onCollapse={setCollapsed}
       trigger={null}
-      width={260}
+      width={208}
       collapsedWidth={80}
       className="min-h-screen border-r border-border"
       style={{
