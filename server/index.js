@@ -110,6 +110,7 @@ const listAllRoutes = () => {
     ...extractRoutes(orderRoutes, '/api/orders'),
     ...extractRoutes(couponRoute, '/api/coupons'),
     ...extractRoutes(shippingRoutes, '/api/shipping'),
+    ...extractRoutes(pageRoutes, '/api/pages'),
   ];
   return routes;
 };
