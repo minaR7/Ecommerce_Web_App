@@ -14,6 +14,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const userRoutes = require('./routes/userRoutes');
 const couponRoute = require('./routes/coupon')
 const shippingRoutes = require('./routes/shipping')
+const pageRoutes = require('./routes/pageRoutes');
 const verifyToken = require('./middleware/auth');
 
 const app = express();
@@ -77,6 +78,7 @@ app.use('/api/checkout', checkoutRoute);
 app.use('/api/orders', orderRoutes);
 app.use('/api/coupons', couponRoute)
 app.use('/api/shipping', shippingRoutes)
+app.use('/api/pages', pageRoutes);
 // router.post('/add', verifyToken, addToCart);
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
