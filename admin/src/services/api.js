@@ -90,22 +90,14 @@ export const subcategoriesApi = {
 export const productsApi = {
   getAll: () => fetchApi('/products'),
   getById: (id) => fetchApi(`/products/${id}`),
-  create: (data) => fetch(`${API_BASE_URL}/products`, {
+  create: (data) => fetchApi('/products', {
     method: 'POST',
-    body: data,
-    credentials: 'include',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('authToken') || ''}`,
-    },
-  }).then(res => res.json()),
-  update: (id, data) => fetch(`${API_BASE_URL}/products/${id}`, {
+    body: JSON.stringify(data),
+  }),
+  update: (id, data) => fetchApi(`/products/${id}`, {
     method: 'PUT',
-    body: data,
-    credentials: 'include',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('authToken') || ''}`,
-    },
-  }).then(res => res.json()),
+    body: JSON.stringify(data),
+  }),
   delete: (id) => fetchApi(`/products/${id}`, {
     method: 'DELETE',
   }),
@@ -128,7 +120,7 @@ export const usersApi = {
   getAll: () => fetchApi('/users'),
   getAdmins: () => fetchApi('/users?isAdmin=true'),
   getById: (id) => fetchApi(`/users/${id}`),
-  create: (data) => fetchApi('/users', {
+  create: (data) => fetchApi('/users/register', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -207,6 +199,19 @@ export const shippingApi = {
     body: JSON.stringify(data),
   }),
   delete: (id) => fetchApi(`/shipping/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// Pages API
+export const pagesApi = {
+  getAll: () => fetchApi('/pages'),
+  getBySlug: (slug) => fetchApi(`/pages/${slug}`),
+  update: (slug, data) => fetchApi(`/pages/${slug}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  delete: (id) => fetchApi(`/sizes/${id}`, {
     method: 'DELETE',
   }),
 };
