@@ -157,6 +157,59 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+exports.updateUser = async (req, res) => {
+  const { id } = req.params;
+  const { first_name, last_name, email, address, is_admin } = req.body;
+
+  const request = new sql.Request();
+  request.input('id', sql.Int, id);
+  request.input('first_name', sql.VarChar, first_name);
+  request.input('last_name', sql.VarChar, last_name);
+  request.input('email', sql.VarChar, email);
+  request.input('address', sql.VarChar, address);
+  request.input('is_admin', sql.Bit, is_admin);
+
+  try {
+    // Update users table
+    await request.query(`
+      UPDATE users
+      SET first_name = @first_name, last_name = @last_name, email = @email, address = @address
+      WHERE user_id = @id
+    `);
+
+    // Update credentials table (for is_admin)
+    // Note: This assumes a credential record exists. If not, we might need to insert one, but for now update.
+    await request.query(`
+      UPDATE credentials
+      SET is_admin = @is_admin
+      WHERE user_id = @id
+    `);
+
+    res.status(200).json({ message: 'User updated successfully' });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  const { id } = req.params;
+  const request = new sql.Request();
+  request.input('id', sql.Int, id);
+
+  try {
+    // Delete from credentials first (foreign key)
+    await request.query('DELETE FROM credentials WHERE user_id = @id');
+    // Delete from users
+    await request.query('DELETE FROM users WHERE user_id = @id');
+
+    res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 exports.getCustomers = async (req, res) => {
   try {
     const result = await sql.query(`
