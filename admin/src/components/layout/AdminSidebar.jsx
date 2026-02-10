@@ -11,6 +11,7 @@ import {
   TagsOutlined,
   GiftOutlined,
   GlobalOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -69,6 +70,11 @@ const menuItems = [
     key: '/shipping',
     icon: <GlobalOutlined />,
     label: 'Shipping',
+  },
+  {
+    key: '/pages',
+    icon: <FileTextOutlined />,
+    label: 'Site Content',
   },
   // {
   //   key: '/settings',

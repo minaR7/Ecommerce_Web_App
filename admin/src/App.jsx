@@ -12,6 +12,8 @@ import Categories from "./pages/Categories";
 import Subcategories from "./pages/Subcategories";
 import Coupons from "./pages/Coupons";
 import Shipping from "./pages/Shipping";
+import Pages from "./pages/Pages";
+import PageEditor from "./pages/PageEditor";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
@@ -100,6 +102,22 @@ const App = () => (
             element={
               <Protected>
                 <Shipping />
+              </Protected>
+            }
+          />
+          <Route
+            path="/pages"
+            element={
+              <Protected>
+                <Pages />
+              </Protected>
+            }
+          />
+          <Route
+            path="/pages/edit/:slug"
+            element={
+              <Protected>
+                <PageEditor />
               </Protected>
             }
           />
