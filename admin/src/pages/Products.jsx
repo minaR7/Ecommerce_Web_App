@@ -175,15 +175,23 @@ const Products = () => {
       const subcategory = subcategories.find(s => (s.subcategory_id || s.id) === values.subcategoryId);
       
       // Prepare payload for backend
-      // Backend expects: subcategory_id, name, description, price, stock_quantity
+      // Prepare image URLs from fileList
+      const imageUrls = fileList
+        .filter(file => file.status === 'done' || file.url)
+        .map(file => file.url || file.response?.url || URL.createObjectURL(file.originFileObj));
+
       const payload = {
+        category_id: values.categoryId,
         subcategory_id: values.subcategoryId,
         name: values.name,
         description: values.description,
         price: values.price,
         stock_quantity: values.stock_quantity,
-        // Note: Backend currently doesn't support image upload in create/update endpoints
-        // so we ignore fileList for API call, but we can't persist it yet.
+        cover_img: imageUrls[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&h=100&fit=crop',
+        // slide_images: imageUrls,
+        // discounted_price: (values.price !== undefined && values.discount_percentage !== undefined)
+        //   ? Number((values.price * (1 - (values.discount_percentage / 100))).toFixed(2))
+        //   : values.price,
       };
 
       if (editingProduct) {
@@ -389,6 +397,7 @@ const Products = () => {
           rowKey={(record) => record.product_id || record.id}
           className="admin-table"
           pagination={{ pageSize: 10 }}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
 
