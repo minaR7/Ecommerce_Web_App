@@ -25,6 +25,7 @@ import DeliveryPolicy from './pages/quick-links/DeliveryTime';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import ScrollToTop from './components/ScrollToTop';
 
 const { Header, Content, Footer } = Layout;
 
@@ -38,6 +39,7 @@ const App = () => {
 
   return (
      <Layout style={{ backgroundColor: "#ffffff"}} >
+        <ScrollToTop />
         <HeaderMenu> </HeaderMenu>
         <Content style={{ padding: '0rem 0rem 1rem 0rem', minHeight: "75vh", backgroundColor: "#fff" }}> 
           {/* {marginTop: 64, #f5f5f5 } */}
