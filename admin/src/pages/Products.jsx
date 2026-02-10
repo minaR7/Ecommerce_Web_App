@@ -45,61 +45,64 @@ const Products = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [form] = Form.useForm();
 
+  // Fetch data function
+  const fetchData = async () => {
+    try {
+      const [prodData, catData, subData] = await Promise.all([
+        productsApi.getAll(),
+        categoriesApi.getAll(),
+        subcategoriesApi.getAll(),
+      ]);
+      setProducts(prodData)
+      setCategories(catData);
+      setSubcategories(subData);
+      setColors([
+        { color_id: '1', name: 'Red' },
+        { color_id: '2', name: 'Blue' },
+        { color_id: '3', name: 'Green' },
+        { color_id: '4', name: 'Black' },
+        { color_id: '5', name: 'White' },
+        { color_id: '6', name: 'Yellow' },
+        { color_id: '7', name: 'Purple' },
+        { color_id: '8', name: 'Orange' },
+      ]);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+      // Use mock data for demo if API fails
+      setProducts(mockProducts)
+      setCategories([
+        { id: '1', name: 'Electronics', status: 'active' },
+        { id: '2', name: 'Clothing', status: 'active' },
+        { id: '3', name: 'Home & Garden', status: 'active' },
+        { id: '4', name: 'Accessories', status: 'active' },
+        { id: '5', name: 'Bags', status: 'active' },
+      ]);
+      setSubcategories([
+        { id: '1', categoryId: '1', name: 'Smartphones', status: 'active' },
+        { id: '2', categoryId: '1', name: 'Laptops', status: 'active' },
+        { id: '3', categoryId: '1', name: 'Audio', status: 'active' },
+        { id: '4', categoryId: '2', name: 'Men', status: 'active' },
+        { id: '5', categoryId: '2', name: 'Women', status: 'active' },
+        { id: '6', categoryId: '3', name: 'Furniture', status: 'active' },
+        { id: '7', categoryId: '4', name: 'Watches', status: 'active' },
+        { id: '8', categoryId: '4', name: 'Sunglasses', status: 'active' },
+        { id: '9', categoryId: '5', name: 'Backpacks', status: 'active' },
+      ]);
+      setColors([
+        { color_id: '1', name: 'Red' },
+        { color_id: '2', name: 'Blue' },
+        { color_id: '3', name: 'Green' },
+        { color_id: '4', name: 'Black' },
+        { color_id: '5', name: 'White' },
+        { color_id: '6', name: 'Yellow' },
+        { color_id: '7', name: 'Purple' },
+        { color_id: '8', name: 'Orange' },
+      ]);
+    }
+  };
+
   // Fetch categories, subcategories, and colors on mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prodData, catData, subData] = await Promise.all([
-          productsApi.getAll(),
-          categoriesApi.getAll(),
-          subcategoriesApi.getAll(),
-        ]);
-        setProducts(prodData)
-        setCategories(catData);
-        setSubcategories(subData);
-        setColors([
-          { color_id: '1', name: 'Red' },
-          { color_id: '2', name: 'Blue' },
-          { color_id: '3', name: 'Green' },
-          { color_id: '4', name: 'Black' },
-          { color_id: '5', name: 'White' },
-          { color_id: '6', name: 'Yellow' },
-          { color_id: '7', name: 'Purple' },
-          { color_id: '8', name: 'Orange' },
-        ]);
-      } catch (error) {
-        // Use mock data for demo
-        setProducts(mockProducts)
-        setCategories([
-          { id: '1', name: 'Electronics', status: 'active' },
-          { id: '2', name: 'Clothing', status: 'active' },
-          { id: '3', name: 'Home & Garden', status: 'active' },
-          { id: '4', name: 'Accessories', status: 'active' },
-          { id: '5', name: 'Bags', status: 'active' },
-        ]);
-        setSubcategories([
-          { id: '1', categoryId: '1', name: 'Smartphones', status: 'active' },
-          { id: '2', categoryId: '1', name: 'Laptops', status: 'active' },
-          { id: '3', categoryId: '1', name: 'Audio', status: 'active' },
-          { id: '4', categoryId: '2', name: 'Men', status: 'active' },
-          { id: '5', categoryId: '2', name: 'Women', status: 'active' },
-          { id: '6', categoryId: '3', name: 'Furniture', status: 'active' },
-          { id: '7', categoryId: '4', name: 'Watches', status: 'active' },
-          { id: '8', categoryId: '4', name: 'Sunglasses', status: 'active' },
-          { id: '9', categoryId: '5', name: 'Backpacks', status: 'active' },
-        ]);
-        setColors([
-          { color_id: '1', name: 'Red' },
-          { color_id: '2', name: 'Blue' },
-          { color_id: '3', name: 'Green' },
-          { color_id: '4', name: 'Black' },
-          { color_id: '5', name: 'White' },
-          { color_id: '6', name: 'Yellow' },
-          { color_id: '7', name: 'Purple' },
-          { color_id: '8', name: 'Orange' },
-        ]);
-      }
-    };
     fetchData();
   }, []);
 
@@ -166,47 +169,41 @@ const Products = () => {
   };
 
   const handleSubmit = async (values) => {
-    // Get category and subcategory names
-    const category = categories.find(c => (c.category_id || c.id) === values.categoryId);
-    const subcategory = subcategories.find(s => (s.subcategory_id || s.id) === values.subcategoryId);
-    
-    // Prepare image URLs from fileList
-    const imageUrls = fileList
-      .filter(file => file.status === 'done' || file.url)
-      .map(file => file.url || file.response?.url || URL.createObjectURL(file.originFileObj));
-
-    const productData = {
-      ...values,
-      category: category?.name || '',
-      categoryName: category?.name || '',
-      subcategory: subcategory?.name || '',
-      subcategoryName: subcategory?.name || '',
-      cover_img: imageUrls[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&h=100&fit=crop',
-      slide_images: imageUrls,
-      discounted_price: (values.price !== undefined && values.discount_percentage !== undefined)
-        ? Number((values.price * (1 - (values.discount_percentage / 100))).toFixed(2))
-        : values.price,
-    };
-
-    if (editingProduct) {
-      setProducts(
-        products.map((p) =>
-          (p.product_id || p.id) === (editingProduct.product_id || editingProduct.id) ? { ...p, ...productData } : p
-        )
-      );
-      message.success('Product updated successfully');
-    } else {
-      const newProduct = {
-        ...productData,
-        product_id: Date.now(),
-        created_at: new Date().toISOString(),
+    try {
+      // Get category and subcategory names (for optimistic update if needed, but we reload data)
+      const category = categories.find(c => (c.category_id || c.id) === values.categoryId);
+      const subcategory = subcategories.find(s => (s.subcategory_id || s.id) === values.subcategoryId);
+      
+      // Prepare payload for backend
+      // Backend expects: subcategory_id, name, description, price, stock_quantity
+      const payload = {
+        subcategory_id: values.subcategoryId,
+        name: values.name,
+        description: values.description,
+        price: values.price,
+        stock_quantity: values.stock_quantity,
+        // Note: Backend currently doesn't support image upload in create/update endpoints
+        // so we ignore fileList for API call, but we can't persist it yet.
       };
-      setProducts([newProduct, ...products]);
-      message.success('Product added successfully');
+
+      if (editingProduct) {
+        await productsApi.update(editingProduct.product_id || editingProduct.id, payload);
+        message.success('Product updated successfully');
+      } else {
+        await productsApi.create(payload);
+        message.success('Product added successfully');
+      }
+      
+      // Refresh data from server
+      await fetchData();
+      
+      setIsModalOpen(false);
+      form.resetFields();
+      setFileList([]);
+    } catch (error) {
+      console.error('Failed to save product:', error);
+      message.error('Failed to save product');
     }
-    setIsModalOpen(false);
-    form.resetFields();
-    setFileList([]);
   };
 
   // Handle image upload
