@@ -92,6 +92,7 @@ export const RecentOrders = () => {
         loading={loading}
         size="small"
         className="admin-table"
+        scroll={{ x: 'max-content' }}
       />
     </Card>
   );

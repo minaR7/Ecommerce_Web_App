@@ -85,6 +85,7 @@ const Customers = () => {
           className="admin-table"
           pagination={{ pageSize: 10 }}
           loading={loading}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
     </AdminLayout>

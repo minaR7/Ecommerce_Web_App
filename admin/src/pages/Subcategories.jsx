@@ -130,7 +130,7 @@ const Subcategories = () => {
         </div>
         <div className="bg-card rounded-xl border border-border p-6">
           <Input placeholder="Search..." prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="max-w-sm mb-4" />
-          <Table columns={columns} dataSource={subcategories.filter(s => s.name.toLowerCase().includes(searchText.toLowerCase()))} rowKey="subcategory_id" loading={loading} />
+          <Table columns={columns} dataSource={subcategories.filter(s => s.name.toLowerCase().includes(searchText.toLowerCase()))} rowKey="subcategory_id" loading={loading} scroll={{ x: 'max-content' }} />
         </div>
         <Modal title={editingSubcategory ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>

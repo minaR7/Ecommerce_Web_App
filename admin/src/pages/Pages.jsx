@@ -69,6 +69,7 @@ const Pages = () => {
             rowKey="id"
             loading={isLoading}
             pagination={false}
+            scroll={{ x: 'max-content' }}
           />
         </Card>
       </div>

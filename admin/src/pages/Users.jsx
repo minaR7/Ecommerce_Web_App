@@ -264,6 +264,7 @@ const Users = () => {
           rowKey="user_id"
           className="admin-table"
           pagination={{ pageSize: 10 }}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
 

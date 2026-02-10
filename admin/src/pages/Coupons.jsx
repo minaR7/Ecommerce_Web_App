@@ -87,7 +87,7 @@ const Coupons = () => {
         </div>
         <div className="bg-card rounded-xl border border-border p-6">
           <Input placeholder="Search..." prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="max-w-sm mb-4" />
-          <Table columns={columns} dataSource={coupons.filter(c => c.code.toLowerCase().includes(searchText.toLowerCase()))} rowKey="id" loading={loading} />
+          <Table columns={columns} dataSource={coupons.filter(c => c.code.toLowerCase().includes(searchText.toLowerCase()))} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
         </div>
         <Modal title={editingCoupon ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={600}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
