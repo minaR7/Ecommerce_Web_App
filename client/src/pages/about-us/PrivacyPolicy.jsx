@@ -1,9 +1,36 @@
 import React from "react";
-import { Card, Typography } from "antd";
+import { Card, Typography, Spin } from "antd";
+import { usePageContent } from "../../hooks/usePageContent";
 
 const { Title, Paragraph } = Typography;
 
 const PrivacyPolicy = () => {
+  const { page, loading } = usePageContent('privacy-policy');
+
+  if (loading) {
+    return <div className="min-h-screen flex justify-center items-center"><Spin size="large" /></div>;
+  }
+
+  if (page) {
+    return (
+      <div className="min-h-screen w-full py-10 px-4 flex justify-center">
+        <div className="w-full max-w-4xl">
+          <Card className="text-center shadow-md rounded-xl mb-8">
+            <Title level={1} className="!text-4xl md:!text-5xl font-bold text-gray-900 mb-0">
+              {page.title}
+            </Title>
+            <p className="text-gray-500 italic text-base">
+              Last Updated: {new Date(page.updated_at).toLocaleDateString()}
+            </p>
+          </Card>
+          <Card className="shadow-md rounded-xl p-6 md:p-10">
+            <div dangerouslySetInnerHTML={{ __html: page.content }} className="prose max-w-none" />
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full py-10 px-4 flex justify-center">
       <div className="w-full max-w-4xl">
