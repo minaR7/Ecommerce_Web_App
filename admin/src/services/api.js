@@ -90,15 +90,84 @@ export const subcategoriesApi = {
 export const productsApi = {
   getAll: () => fetchApi('/products'),
   getById: (id) => fetchApi(`/products/${id}`),
-  create: (data) => fetchApi('/products', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+  create: (data) => {
+    if (data instanceof FormData) {
+      const token = localStorage.getItem('authToken');
+      return fetch(`${API_BASE_URL}/products`, {
+        method: 'POST',
+        body: data,
+        headers: {
+           ...(token && { Authorization: `Bearer ${token}` }),
+        }
+      }).then(async res => {
+         if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || err.message || 'Failed to create product');
+         }
+         return res.json();
+      });
+    }
+    return fetchApi('/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
   update: (id, data) => fetchApi(`/products/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
   delete: (id) => fetchApi(`/products/${id}`, {
+    method: 'DELETE',
+  }),
+  uploadSizeChart: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    const token = localStorage.getItem('authToken');
+    return fetch(`${API_BASE_URL}/products/size-chart`, {
+      method: 'POST',
+      body: form,
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      }
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
+  },
+  getSizeChart: () => fetchApi('/products/size-chart'),
+};
+
+// Colors API
+export const colorsApi = {
+  getAll: () => fetchApi('/colors'),
+  getById: (id) => fetchApi(`/colors/${id}`),
+  create: (data) => fetchApi('/colors', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  update: (id, data) => fetchApi(`/colors/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  delete: (id) => fetchApi(`/colors/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// Sizes API
+export const sizesApi = {
+  getAll: () => fetchApi('/sizes'),
+  getById: (id) => fetchApi(`/sizes/${id}`),
+  create: (data) => fetchApi('/sizes', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  update: (id, data) => fetchApi(`/sizes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  delete: (id) => fetchApi(`/sizes/${id}`, {
     method: 'DELETE',
   }),
 };
@@ -152,40 +221,6 @@ export const couponsApi = {
   validate: (code) => fetchApi(`/coupons/validate/${code}`),
 };
 
-// Colors API
-export const colorsApi = {
-  getAll: () => fetchApi('/colors'),
-  getById: (id) => fetchApi(`/colors/${id}`),
-  create: (data) => fetchApi('/colors', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-  update: (id, data) => fetchApi(`/colors/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
-  delete: (id) => fetchApi(`/colors/${id}`, {
-    method: 'DELETE',
-  }),
-};
-
-// Sizes API
-export const sizesApi = {
-  getAll: () => fetchApi('/sizes'),
-  getById: (id) => fetchApi(`/sizes/${id}`),
-  create: (data) => fetchApi('/sizes', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-  update: (id, data) => fetchApi(`/sizes/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
-  delete: (id) => fetchApi(`/sizes/${id}`, {
-    method: 'DELETE',
-  }),
-};
-
 // Shipping API
 export const shippingApi = {
   getAll: () => fetchApi('/shipping'),
@@ -207,6 +242,10 @@ export const shippingApi = {
 export const pagesApi = {
   getAll: () => fetchApi('/pages'),
   getBySlug: (slug) => fetchApi(`/pages/${slug}`),
+  create: (data) => fetchApi('/pages', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
   update: (slug, data) => fetchApi(`/pages/${slug}`, {
     method: 'PUT',
     body: JSON.stringify(data),
