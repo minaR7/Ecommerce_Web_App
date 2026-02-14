@@ -1,4 +1,8 @@
 const sql = require('mssql');
+const path = require('path');
+const fs = require('fs');
+
+const SIZE_CHART_FILE = path.join(__dirname, '../data/sizeChart.json');
 
 // GET all products, or filter by subcategory
 // exports.getProducts = async (req, res) => {
@@ -252,17 +256,116 @@ exports.searchProducts = async (req, res) => {
 
 // POST new product
 exports.createProduct = async (req, res) => {
-    const { subcategory_id, name, description, price, stock_quantity } = req.body;
+    const { category_id, subcategory_id, name, description, price, stock_quantity } = req.body;
+    let { sizes, colors } = req.body;
+
     if (!name) return res.status(400).json({ error: 'Product name is required' });
 
+    // Handle array parsing (FormData sends arrays as multiple entries with same key, or JSON strings)
+    // If sent as JSON string manually:
+    try { if (typeof sizes === 'string') sizes = JSON.parse(sizes); } catch (e) { sizes = [sizes]; }
+    try { if (typeof colors === 'string') colors = JSON.parse(colors); } catch (e) { colors = [colors]; }
+    
+    // Ensure arrays
+    if (!Array.isArray(sizes)) sizes = sizes ? [sizes] : [];
+    if (!Array.isArray(colors)) colors = colors ? [colors] : [];
+
+    // Handle images
+    const files = req.files || [];
+    const imagePaths = files.map(f => `assets/uploads/products/${f.filename}`);
+    const cover_img = imagePaths.length > 0 ? imagePaths[0] : null;
+    const imagesJson = JSON.stringify(imagePaths);
+
+    const transaction = new sql.Transaction();
     try {
-        await sql.query`
-            INSERT INTO products (subcategory_id, name, description, price, stock_quantity)
-            VALUES (${subcategory_id}, ${name}, ${description}, ${price}, ${stock_quantity})
+        await transaction.begin();
+        const request = new sql.Request(transaction);
+
+        // Insert Product
+        const result = await request.query`
+            INSERT INTO products (category_id, subcategory_id, name, description, price, stock_quantity, cover_img, images)
+            OUTPUT INSERTED.product_id
+            VALUES (${category_id}, ${subcategory_id || null}, ${name}, ${description}, ${price}, ${stock_quantity}, ${cover_img}, ${imagesJson})
         `;
-        res.status(201).json({ message: 'Product created' });
+        const productId = result.recordset[0].product_id;
+
+        // Get IDs for colors and sizes
+        let colorIds = [];
+        if (colors.length > 0) {
+            const allColors = await request.query`SELECT color_id, name FROM product_colors`;
+            const colorMap = new Map(allColors.recordset.map(c => [c.name.toLowerCase(), c.color_id]));
+            colorIds = colors.map(n => colorMap.get(String(n).toLowerCase())).filter(id => id);
+        }
+
+        let sizeIds = [];
+        if (sizes.length > 0) {
+            const allSizes = await request.query`SELECT size_id, name FROM product_sizes`;
+            const sizeMap = new Map(allSizes.recordset.map(s => [s.name.toLowerCase(), s.size_id]));
+            sizeIds = sizes.map(n => sizeMap.get(String(n).toLowerCase())).filter(id => id);
+        }
+
+        // Generate Variants
+        if (colorIds.length > 0 && sizeIds.length > 0) {
+            for (const colorId of colorIds) {
+                for (const sizeId of sizeIds) {
+                    await request.query`
+                        INSERT INTO product_variants (product_id, color_id, size_id, price, image, stock_quantity)
+                        VALUES (${productId}, ${colorId}, ${sizeId}, ${price}, ${cover_img}, ${stock_quantity})
+                    `;
+                }
+            }
+        } else if (colorIds.length > 0) {
+             for (const colorId of colorIds) {
+                 await request.query`
+                    INSERT INTO product_variants (product_id, color_id, price, image, stock_quantity)
+                    VALUES (${productId}, ${colorId}, ${price}, ${cover_img}, ${stock_quantity})
+                 `;
+             }
+        } else if (sizeIds.length > 0) {
+             for (const sizeId of sizeIds) {
+                 await request.query`
+                    INSERT INTO product_variants (product_id, size_id, price, image, stock_quantity)
+                    VALUES (${productId}, ${sizeId}, ${price}, ${cover_img}, ${stock_quantity})
+                 `;
+             }
+        }
+
+        await transaction.commit();
+        res.status(201).json({ message: 'Product created', productId });
     } catch (err) {
+        if (transaction._aborted === false) await transaction.rollback();
         console.error(err);
+        res.status(500).json({ error: 'Server error: ' + err.message });
+    }
+};
+
+exports.uploadSizeChart = async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    
+    const imageUrl = `assets/uploads/size-charts/${req.file.filename}`;
+    
+    // Save to JSON file
+    try {
+        const dir = path.dirname(SIZE_CHART_FILE);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(SIZE_CHART_FILE, JSON.stringify({ url: imageUrl }));
+    } catch (err) {
+        console.error("Failed to save size chart config", err);
+    }
+    
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.json({ url: `${baseUrl}/${imageUrl}` });
+};
+
+exports.getSizeChart = async (req, res) => {
+    try {
+        if (fs.existsSync(SIZE_CHART_FILE)) {
+            const data = JSON.parse(fs.readFileSync(SIZE_CHART_FILE));
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            return res.json({ url: `${baseUrl}/${data.url}` });
+        }
+        res.status(404).json({ error: 'Size chart not found' });
+    } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
 };
