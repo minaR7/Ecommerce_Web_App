@@ -123,7 +123,8 @@ exports.registerUser = async (req, res) => {
 };
 
 exports.getUsers = async (req, res) => {
-  const { registered, admin, isAdmin } = req.query;
+  const { admin, isAdmin } = req.query;
+  const request = new sql.Request();
 
   let query = `
     SELECT u.user_id, u.first_name, u.last_name, u.email, u.address, u.created_at, u.is_registered,
@@ -132,28 +133,30 @@ exports.getUsers = async (req, res) => {
     LEFT JOIN credentials c ON u.user_id = c.user_id
     WHERE 1=1
   `;
-  const values = [];
 
-  if (registered === 'true') {
-    query += ' AND u.is_registered = true';
-  } else if (registered === 'false') {
-    query += ' AND u.is_registered = false';
+  if (isAdmin === 'true' || isAdmin === 'false') {
+    query += ' AND u.is_registered = @is_registered';
+    request.input('is_registered', sql.Bit, isAdmin === 'true' ? 1 : 0);
   }
 
   const adminFlag = typeof isAdmin !== 'undefined' ? isAdmin : admin;
-  if (adminFlag === 'true') {
-    query += ' AND c.is_admin = true';
-  } else if (adminFlag === 'false') {
-    query += ' AND (c.is_admin = false OR c.is_admin IS NULL)';
+  if (adminFlag === 'true' || adminFlag === 'false') {
+    if (adminFlag === 'true') {
+      query += ' AND c.is_admin = @is_admin';
+      request.input('is_admin', sql.Bit, 1);
+    } else {
+      query += ' AND (c.is_admin = @is_admin OR c.is_admin IS NULL)';
+      request.input('is_admin', sql.Bit, 0);
+    }
   }
 
   try {
-    const result = await sql.query(query, values);
+    const result = await request.query(query);
     console.log('users:', result.recordset)
     res.status(200).json(result.recordset);
   } catch (error) {
     console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
