@@ -58,6 +58,7 @@ exports.createCoupon = async (req, res) => {
     }
     const exists = await sql.query`SELECT coupon_id FROM coupons WHERE code = ${code}`;
     if (exists.recordset.length > 0) return res.status(409).json({ message: 'Code already exists' });
+    
     const result = await sql.query`
       INSERT INTO coupons (code, discount_type, discount_value, valid_from, valid_until, status, usage_limit, used_count, created_at)
       VALUES (${code}, ${discountType}, ${discountValue}, ${validFrom}, ${validUntil}, ${status || 'active'}, ${usageLimit || null}, ${usedCount || 0}, GETDATE());
@@ -87,6 +88,7 @@ exports.updateCoupon = async (req, res) => {
     const { code, discountType, discountValue, validFrom, validUntil, status, usageLimit, usedCount } = req.body;
     const exists = await sql.query`SELECT coupon_id FROM coupons WHERE coupon_id = ${id}`;
     if (exists.recordset.length === 0) return res.status(404).json({ message: 'Not found' });
+    
     await sql.query`
       UPDATE coupons
       SET code = ${code}, discount_type = ${discountType}, discount_value = ${discountValue},
