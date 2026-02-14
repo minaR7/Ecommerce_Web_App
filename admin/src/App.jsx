@@ -114,6 +114,14 @@ const App = () => (
             }
           />
           <Route
+            path="/pages/create"
+            element={
+              <Protected>
+                <PageEditor />
+              </Protected>
+            }
+          />
+          <Route
             path="/pages/edit/:slug"
             element={
               <Protected>
