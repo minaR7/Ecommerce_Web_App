@@ -41,3 +41,15 @@ exports.uploadSubcategoryImage = multer({
   fileFilter: imageFilter,
   limits: { fileSize: 10 * 1024 * 1024 },
 }).single('image');
+
+exports.uploadProductImages = multer({
+  storage: makeStorage('products'),
+  fileFilter: imageFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
+}).array('images', 10);
+
+exports.uploadSizeChart = multer({
+    storage: makeStorage('size-charts'),
+    fileFilter: imageFilter,
+    limits: { fileSize: 10 * 1024 * 1024 },
+  }).single('image');
