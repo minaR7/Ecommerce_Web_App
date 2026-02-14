@@ -4,8 +4,14 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, GlobalOutli
 import { AdminLayout } from '../components/layout/AdminLayout';
 import { shippingApi } from '../services/api';
 import { AppButton } from '../components/AppButton';
+import countries from 'world-countries';
 
-const COUNTRIES = [{ code: 'US', name: 'United States' }, { code: 'CA', name: 'Canada' }, { code: 'GB', name: 'United Kingdom' }, { code: 'DE', name: 'Germany' }, { code: 'FR', name: 'France' }];
+const COUNTRY_OPTIONS = countries
+  .map((country) => ({
+    code: country.cca2,
+    name: country.name.common,
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 const Shipping = () => {
   const [fees, setFees] = useState([]);
@@ -23,7 +29,10 @@ const Shipping = () => {
   }, []);
 
   const handleSubmit = async (values) => {
-    const payload = { ...values, country: COUNTRIES.find(c => c.code === values.countryCode)?.name };
+    const payload = {
+      ...values,
+      country: COUNTRY_OPTIONS.find((c) => c.code === values.countryCode)?.name,
+    };
     try {
       if (editingFee) await shippingApi.update(editingFee.id, payload);
       else await shippingApi.create(payload);
@@ -67,7 +76,20 @@ const Shipping = () => {
         </div>
         <Modal title={editingFee ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
-            <Form.Item name="countryCode" label="Country" rules={[{ required: true }]}><Select disabled={!!editingFee}>{COUNTRIES.map(c => <Select.Option key={c.code} value={c.code}>{c.name}</Select.Option>)}</Select></Form.Item>
+            <Form.Item name="countryCode" label="Country" rules={[{ required: true }]}>
+              <Select
+                disabled={!!editingFee}
+                showSearch
+                placeholder="Select a country"
+                optionFilterProp="children"
+              >
+                {COUNTRY_OPTIONS.map((c) => (
+                  <Select.Option key={c.code} value={c.code}>
+                    {c.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
             <Form.Item name="fee" label="Fee (USD)" rules={[{ required: true }]}><InputNumber className="w-full" min={0} precision={2} /></Form.Item>
             <Form.Item name="estimatedDays" label="Delivery Time" rules={[{ required: true }]}><Input placeholder="e.g., 5-7 days" /></Form.Item>
             <Form.Item name="status" label="Status"><Select><Select.Option value="active">Active</Select.Option><Select.Option value="inactive">Inactive</Select.Option></Select></Form.Item>
