@@ -52,7 +52,7 @@ const Users = () => {
       const data = await usersApi.getAdmins();
       setUsers(data);
     } catch (error) {
-      message.error('Failed to fetch users');
+      message.error(error.message || 'Failed to fetch users');
       // Fallback: map existing mockUsers into API-like shape
       setUsers(
         mockUsers.filter((u) => u.role === 'admin').map((u) => {
@@ -103,7 +103,7 @@ const Users = () => {
       fetchUsers();
     } catch (error) {
       console.error('Failed to delete user:', error);
-      message.error('Failed to delete user');
+      message.error(error.message || 'Failed to delete user');
     }
   };
 
