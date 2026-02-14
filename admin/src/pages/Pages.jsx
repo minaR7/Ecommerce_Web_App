@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Table, Button, Card, Typography, Space } from 'antd';
-import { EditOutlined, FileTextOutlined } from '@ant-design/icons';
+import { EditOutlined, FileTextOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
 import { pagesApi } from '../services/api';
@@ -42,12 +42,13 @@ const Pages = () => {
       key: 'actions',
       render: (_, record) => (
         <Button 
-          type="primary" 
-          icon={<EditOutlined />} 
-          onClick={() => navigate(`/pages/edit/${record.slug}`)}
-        >
-          Edit
-        </Button>
+            type="primary" 
+            icon={<EditOutlined />} 
+            onClick={() => navigate(`/pages/edit/${record.slug}`)}
+            style={{ color: '#000', fontWeight: 500 }}
+          >
+            Edit
+          </Button>
       ),
     },
   ];
@@ -60,6 +61,14 @@ const Pages = () => {
             <Title level={2}>Site Content</Title>
             <p className="text-gray-400">Manage static page content</p>
           </div>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => navigate('/pages/create')}
+            style={{ color: '#000', fontWeight: 500 }}
+          >
+            Create Page
+          </Button>
         </div>
 
         <Card className="bg-[#141414] border-gray-800">
