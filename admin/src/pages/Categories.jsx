@@ -95,7 +95,9 @@ const Categories = () => {
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
         <AppButton type="text" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
-        <Popconfirm title="Delete?" onConfirm={() => handleDelete(r.category_id)}><AppButton type="text" icon={<DeleteOutlined />} className="text-red-400" /></Popconfirm>
+        <Popconfirm title="Delete?" onConfirm={() => handleDelete(r.category_id)} okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}>
+          <AppButton type="text" icon={<DeleteOutlined />} className="text-red-400" />
+        </Popconfirm>
       </Space>
     )}
   ];
