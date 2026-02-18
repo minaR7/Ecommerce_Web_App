@@ -29,7 +29,7 @@ const FooterMenu = () => {
                             <li><Link to={"/store/Men/Djellaba"} className="hover:underline">Djellaba</Link></li>
                              <li><Link to={"/store/Men/Jabador"} className="hover:underline">Jabador</Link></li>
                             <li><Link to={"/store/Men/Moroccan Thobe"} className="hover:underline">Moroccan Thobe</Link></li>
-                            <li><Link to={"/store/Men/accessories"} className="hover:underline">Accessories</Link></li>
+                            <li><Link to={"/store/Men/Accessories"} className="hover:underline">Accessories</Link></li>
                             {/* <li><a href="/men/jabador" className="hover:underline">Jabador</a></li>
                             <li><a href="/men/moroccan-thobe" className="hover:underline">Moroccan Thobe</a></li>
                             <li><a href="/men/accessories" className="hover:underline">Accessories</a></li> */}
