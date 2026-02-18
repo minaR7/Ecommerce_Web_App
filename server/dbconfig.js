@@ -19,7 +19,7 @@
 const config = {
     user: 'Elmaghrib_Elmaghrib',
     password: 'Ka$#if050992',
-    server: '78.159.113.47,783',
+    // server: '78.159.113.47,783',
     server: '212.95.42.78',
     // server: 'ASPHOST923\\SQL2019',
     database: 'Elmaghrib_Clothing_Store',

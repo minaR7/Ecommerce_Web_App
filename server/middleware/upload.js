@@ -52,4 +52,4 @@ exports.uploadSizeChart = multer({
     storage: makeStorage('size-charts'),
     fileFilter: imageFilter,
     limits: { fileSize: 10 * 1024 * 1024 },
-  }).single('image');
+  }).single('size_chart');
