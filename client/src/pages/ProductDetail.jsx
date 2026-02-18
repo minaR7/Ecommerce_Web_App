@@ -64,21 +64,13 @@ const ProductDetail = () => {
       setSelectedColor(color);
     };
 
-    const openSizeChart = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/products/size-chart`, {
-          credentials: 'include'
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to load size chart');
-        }
-        setSizeChartUrl(data.url);
-        setIsSizeChartOpen(true);
-      } catch (err) {
-        // Fallback: do nothing or show toast in future
-        console.error('Size chart error', err);
+    const openSizeChart = () => {
+      if (product?.size_chart) {
+        setSizeChartUrl(product.size_chart);
+      } else {
+        setSizeChartUrl('');
       }
+      setIsSizeChartOpen(true);
     };
 
      const handleImageClick = (index) => {
