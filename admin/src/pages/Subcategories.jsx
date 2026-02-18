@@ -108,7 +108,19 @@ const Subcategories = () => {
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
         <AppButton type="text" icon={<EditOutlined />} onClick={() => handleEditOpen(r)} />
-        <Popconfirm title="Delete?" onConfirm={() => setSubcategories(subcategories.filter(s => s.subcategory_id !== (r.subcategory_id || r.id)))}>
+        <Popconfirm
+          title="Delete?"
+          onConfirm={async () => {
+            try {
+              await subcategoriesApi.delete(r.subcategory_id || r.id);
+              message.success('Deleted');
+              setSubcategories(subcategories.filter(s => s.subcategory_id !== (r.subcategory_id || r.id)));
+            } catch (err) {
+              message.error(err.message || 'Failed to delete subcategory');
+            }
+          }}
+          okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
+        >
           <AppButton type="text" icon={<DeleteOutlined />} className="text-red-400" />
         </Popconfirm>
       </Space>
