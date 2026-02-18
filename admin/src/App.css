@@ -44,3 +44,11 @@
 .read-the-docs {
   color: #888;
 }
+
+.ant-menu .ant-menu-sub .ant-menu-inline{
+  background: transparent;
+}
+
+.ant-menu-dark.ant-menu-inline .ant-menu-sub.ant-menu-inline{
+  background: transparent;
+}
