@@ -19,9 +19,6 @@ import {
   EditOutlined,
   DeleteOutlined,
   SearchOutlined,
-  UploadOutlined,
-  EyeOutlined,
-  FileImageOutlined,
 } from '@ant-design/icons';
 import { AdminLayout } from '../components/layout/AdminLayout';
 import { mockProducts } from '../data/mockData';
@@ -47,9 +44,7 @@ const Products = () => {
   const [fileList, setFileList] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   
-  // Size Chart
-  const [isSizeChartModalOpen, setIsSizeChartModalOpen] = useState(false);
-  const [sizeChartFile, setSizeChartFile] = useState([]);
+  const [sizeChartUpload, setSizeChartUpload] = useState([]);
 
   const [form] = Form.useForm();
 
@@ -168,26 +163,55 @@ const Products = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    setProducts(products.filter((p) => (p.product_id || p.id) !== id));
-    message.success('Product deleted successfully');
+  const handleDelete = async (id) => {
+    try {
+      await productsApi.delete(id);
+      message.success('Product deleted successfully');
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      message.error(error.message || 'Failed to delete product');
+    }
   };
 
   const handleSubmit = async (values) => {
     try {
       if (editingProduct) {
-          const payload = {
-            category_id: values.categoryId,
-            subcategory_id: values.subcategoryId,
-            name: values.name,
-            description: values.description,
-            price: values.price,
-            stock_quantity: values.stock_quantity,
-            discount_percentage: values.discount_percentage,
-            colors: values.colors,
-            sizes: values.sizes,
-          };
-        await productsApi.update(editingProduct.product_id || editingProduct.id, payload);
+          const needsFileUpload = sizeChartUpload.length > 0 || fileList.some(f => f.originFileObj);
+          if (needsFileUpload) {
+            const formData = new FormData();
+            formData.append('category_id', values.categoryId);
+            if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
+            formData.append('name', values.name);
+            formData.append('description', values.description);
+            formData.append('price', values.price);
+            formData.append('stock_quantity', values.stock_quantity);
+            formData.append('discount_percentage', values.discount_percentage || 0);
+            if (values.sizes) formData.append('sizes', JSON.stringify(values.sizes));
+            if (values.colors) formData.append('colors', JSON.stringify(values.colors));
+            fileList.forEach(file => {
+              if (file.originFileObj) {
+                formData.append('images', file.originFileObj);
+              }
+            });
+            if (sizeChartUpload[0]?.originFileObj) {
+              formData.append('size_chart', sizeChartUpload[0].originFileObj);
+            }
+            await productsApi.update(editingProduct.product_id || editingProduct.id, formData);
+          } else {
+            const payload = {
+              category_id: values.categoryId,
+              subcategory_id: values.subcategoryId,
+              name: values.name,
+              description: values.description,
+              price: values.price,
+              stock_quantity: values.stock_quantity,
+              discount_percentage: values.discount_percentage,
+              colors: values.colors,
+              sizes: values.sizes,
+            };
+            await productsApi.update(editingProduct.product_id || editingProduct.id, payload);
+          }
         message.success('Product updated successfully');
       } else {
           // Create with FormData
@@ -209,6 +233,9 @@ const Products = () => {
                   formData.append('images', file.originFileObj);
               }
           });
+          if (sizeChartUpload[0]?.originFileObj) {
+            formData.append('size_chart', sizeChartUpload[0].originFileObj);
+          }
           
         await productsApi.create(formData);
         message.success('Product added successfully');
@@ -220,6 +247,7 @@ const Products = () => {
       setIsModalOpen(false);
       form.resetFields();
       setFileList([]);
+      setSizeChartUpload([]);
     } catch (error) {
       console.error('Failed to save product:', error);
       message.error('Failed to save product: ' + error.message);
@@ -236,30 +264,7 @@ const Products = () => {
     setFileList(newFileList);
   };
   
-  const handleSizeChartUpload = async () => {
-      if (sizeChartFile.length === 0) return;
-      try {
-          await productsApi.uploadSizeChart(sizeChartFile[0].originFileObj);
-          message.success('Size chart updated');
-          setIsSizeChartModalOpen(false);
-          setSizeChartFile([]);
-      } catch (err) {
-          message.error('Failed to upload size chart');
-      }
-  };
-
-  const handleViewSizeChart = async () => {
-      try {
-          const sizeChartUrl = await productsApi.getSizeChart();
-          if (sizeChartUrl) {
-              window.open(sizeChartUrl, '_blank');
-          } else {
-              message.info('No size chart available');
-          }
-      } catch (err) {
-          message.error('Failed to load size chart');
-      }
-  };
+ 
 
   const uploadButton = (
     <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-600 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
@@ -314,7 +319,7 @@ const Products = () => {
       render: (_, record) => (
         <div className="flex flex-wrap gap-1">
           {Array.isArray(record.colors) && record.colors.length > 0
-            ? record.colors.map((c, idx) => {
+            ? Array.from(new Set(record.colors)).map((c, idx) => {
                 const isWhite = String(c).toLowerCase() === 'white' || String(c).toLowerCase() === '#ffffff' || String(c).toLowerCase() === 'yellow';
                 return (
                   <Tag
@@ -395,6 +400,7 @@ const Products = () => {
             onConfirm={() => handleDelete(record.product_id || record.id)}
             okText="Delete"
             cancelText="Cancel"
+            okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
           >
             <AppButton
               type="text"
@@ -419,20 +425,6 @@ const Products = () => {
             allowClear
           />
           <div className="flex gap-2">
-            <AppButton
-              icon={<EyeOutlined />}
-              onClick={handleViewSizeChart}
-              style={{ color: '#000', fontWeight: 500 }}
-            >
-              View Size Chart
-            </AppButton>
-            <AppButton
-              icon={<FileImageOutlined />}
-              onClick={() => setIsSizeChartModalOpen(true)}
-              style={{ color: '#000', fontWeight: 500 }}
-            >
-              Add/Update Size Chart
-            </AppButton>
             <AppButton
               type="primary"
               icon={<PlusOutlined />}
@@ -619,6 +611,22 @@ const Products = () => {
             </p>
           </Form.Item>
 
+          <Form.Item
+            label="Size Chart (optional)"
+          >
+            <Upload
+              listType="picture-card"
+              fileList={sizeChartUpload}
+              onChange={({ fileList }) => setSizeChartUpload(fileList)}
+              beforeUpload={() => false}
+              maxCount={1}
+              accept="image/*"
+              className="size-chart-upload"
+            >
+              {sizeChartUpload.length >= 1 ? null : uploadButton}
+            </Upload>
+          </Form.Item>
+
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
             <AppButton onClick={() => setIsModalOpen(false)}>Cancel</AppButton>
             <AppButton type="primary" htmlType="submit" style={{ color: '#000', fontWeight: 500 }}>
@@ -628,55 +636,6 @@ const Products = () => {
         </Form>
       </Modal>
 
-      {/* Size Chart Modal */}
-      <Modal
-        title="Add/Update Size Chart"
-        open={isSizeChartModalOpen}
-        onCancel={() => {
-          setIsSizeChartModalOpen(false);
-          setSizeChartFile([]);
-        }}
-        footer={null}
-        width={500}
-      >
-        <div className="space-y-4">
-          <Upload
-            listType="picture-card"
-            fileList={sizeChartFile}
-            onChange={({ fileList }) => setSizeChartFile(fileList)}
-            beforeUpload={() => false}
-            maxCount={1}
-            accept="image/*"
-            className="size-chart-upload"
-          >
-            {sizeChartFile.length >= 1 ? null : (
-              <div className="flex flex-col items-center justify-center p-4">
-                <UploadOutlined className="text-2xl text-gray-400 mb-2" />
-                <div className="text-gray-400 text-sm">Upload Size Chart</div>
-              </div>
-            )}
-          </Upload>
-          <p className="text-muted-foreground text-xs">
-            Upload a size chart image that will be used for all products.
-          </p>
-          <div className="flex justify-end gap-3">
-            <AppButton onClick={() => {
-              setIsSizeChartModalOpen(false);
-              setSizeChartFile([]);
-            }}>
-              Cancel
-            </AppButton>
-            <AppButton 
-              type="primary" 
-              onClick={handleSizeChartUpload}
-              disabled={sizeChartFile.length === 0}
-              style={{ color: '#000', fontWeight: 500 }}
-            >
-              Upload Size Chart
-            </AppButton>
-          </div>
-        </div>
-      </Modal>
     </AdminLayout>
   );
 };

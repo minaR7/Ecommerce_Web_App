@@ -112,30 +112,31 @@ export const productsApi = {
       body: JSON.stringify(data),
     });
   },
-  update: (id, data) => fetchApi(`/products/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
+  update: (id, data) => {
+    if (data instanceof FormData) {
+      const token = localStorage.getItem('authToken');
+      return fetch(`${API_BASE_URL}/products/${id}`, {
+        method: 'PUT',
+        body: data,
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        }
+      }).then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || err.message || 'Failed to update product');
+        }
+        return res.json();
+      });
+    }
+    return fetchApi(`/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
   delete: (id) => fetchApi(`/products/${id}`, {
     method: 'DELETE',
   }),
-  uploadSizeChart: (file) => {
-    const form = new FormData();
-    form.append('image', file);
-    const token = localStorage.getItem('authToken');
-    return fetch(`${API_BASE_URL}/products/size-chart`, {
-      method: 'POST',
-      body: form,
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      }
-    }).then(async (res) => {
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
-      return data;
-    });
-  },
-  getSizeChart: () => fetchApi('/products/size-chart'),
 };
 
 // Colors API
