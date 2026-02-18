@@ -6,17 +6,27 @@ exports.getSizes = async (req, res) => {
     const result = await sql.query(`
       SELECT 
         size_id,
-        name,
-        sort_order as sortOrder,
-        created_at as createdAt,
-        updated_at as updatedAt
+        name
       FROM product_sizes
-      ORDER BY sort_order ASC, name ASC
+      ORDER BY name ASC
     `);
+    
+    //     const result = await sql.query(`
+      // SELECT 
+      //   size_id,
+      //   name,
+    // sort_order as sortOrder,
+    // created_at as createdAt,
+    // updated_at as updatedAt
+      // FROM product_sizes
+      // ORDER BY sort_order ASC, name ASC
+    //`);
+  
     res.status(200).json(result.recordset);
+
   } catch (err) {
     console.error('Error fetching sizes:', err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: `Server error ${err}` });
   }
 };
 
@@ -27,14 +37,14 @@ exports.getSizeById = async (req, res) => {
     const result = await sql.query`
       SELECT 
         size_id,
-        name,
-        sort_order as sortOrder,
-        created_at as createdAt,
-        updated_at as updatedAt
+        name
       FROM product_sizes
       WHERE size_id = ${id}
     `;
-    
+        // ,
+    // sort_order as sortOrder,
+    // created_at as createdAt,
+    // updated_at as updatedAt
     if (result.recordset.length === 0) {
       return res.status(404).json({ error: 'Size not found' });
     }
@@ -49,7 +59,8 @@ exports.getSizeById = async (req, res) => {
 // Create new size
 exports.createSize = async (req, res) => {
   try {
-    const { name, sortOrder } = req.body;
+    const { name } = req.body;
+    // const { name, sortOrder } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Size name is required' });
@@ -64,19 +75,29 @@ exports.createSize = async (req, res) => {
       return res.status(409).json({ error: 'Size already exists' });
     }
 
+    // const result = await sql.query`
+    //   INSERT INTO product_sizes (name, sort_order, created_at, updated_at)
+    //   VALUES (${name}, ${sortOrder || 0}, GETDATE(), GETDATE());
+      
+    //   SELECT 
+    //     size_id,
+    //     name,
+    //     sort_order as sortOrder,
+    //     created_at as createdAt,
+    //     updated_at as updatedAt
+    //   FROM product_sizes WHERE size_id = SCOPE_IDENTITY();
+    // `;
+    
     const result = await sql.query`
-      INSERT INTO product_sizes (name, sort_order, created_at, updated_at)
-      VALUES (${name}, ${sortOrder || 0}, GETDATE(), GETDATE());
+      INSERT INTO product_sizes (name)
+      VALUES (${name});
       
       SELECT 
         size_id,
-        name,
-        sort_order as sortOrder,
-        created_at as createdAt,
-        updated_at as updatedAt
+        name
       FROM product_sizes WHERE size_id = SCOPE_IDENTITY();
     `;
-    
+
     res.status(201).json(result.recordset[0]);
   } catch (err) {
     console.error('Error creating size:', err);
@@ -88,7 +109,8 @@ exports.createSize = async (req, res) => {
 exports.updateSize = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, sortOrder } = req.body;
+    const { name } = req.body;
+    // const { name, sortOrder } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Size name is required' });
@@ -113,17 +135,28 @@ exports.updateSize = async (req, res) => {
       return res.status(409).json({ error: 'Size name already exists' });
     }
 
+    // const result = await sql.query`
+    //   UPDATE product_sizes
+    //   SET name = ${name}, sort_order = ${sortOrder || 0}, updated_at = GETDATE()
+    //   WHERE size_id = ${id};
+      
+    //   SELECT 
+    //     size_id,
+    //     name,
+    //     sort_order as sortOrder,
+    //     created_at as createdAt,
+    //     updated_at as updatedAt
+    //   FROM product_sizes WHERE size_id = ${id};
+    // `;
+
     const result = await sql.query`
       UPDATE product_sizes
-      SET name = ${name}, sort_order = ${sortOrder || 0}, updated_at = GETDATE()
+      SET name = ${name}
       WHERE size_id = ${id};
       
       SELECT 
         size_id,
-        name,
-        sort_order as sortOrder,
-        created_at as createdAt,
-        updated_at as updatedAt
+        name
       FROM product_sizes WHERE size_id = ${id};
     `;
     
