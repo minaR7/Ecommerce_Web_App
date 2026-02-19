@@ -28,7 +28,7 @@ exports.getSubcategories = async (req, res) => {
             // Append base URL to each subcategory's cover_img
             const modifiedSubcategories = result.recordset.map((subcategory) => ({
                 ...subcategory,
-                cover_img: `${baseUrl}/${subcategory.cover_img}`
+                cover_img: subcategory.cover_img ? `${baseUrl}/${subcategory.cover_img}` : null
             }));
             
             res.status(200).json(modifiedSubcategories);
@@ -39,7 +39,7 @@ exports.getSubcategories = async (req, res) => {
             const baseUrl = `${req.protocol}://${req.get('host')}`;
             const modifiedSubcategories = result.recordset.map((subcategory) => ({
                 ...subcategory,
-                cover_img: `${baseUrl}/${subcategory.cover_img}`
+                cover_img: subcategory.cover_img ? `${baseUrl}/${subcategory.cover_img}` : null
             }));
             
             res.status(200).json(modifiedSubcategories);
@@ -71,9 +71,13 @@ exports.createSubcategory = async (req, res) => {
     if (!name) return res.status(400).json({ error: 'Subcategory name is required' });
 
     try {
+        let imagePath = null;
+        if (req.file) {
+            imagePath = `assets/uploads/subcategories/${req.file.filename}`;
+        }
         await sql.query`
-            INSERT INTO subcategories (category_id, name, description)
-            VALUES (${category_id}, ${name}, ${description})
+            INSERT INTO subcategories (category_id, name, description, cover_img)
+            VALUES (${category_id}, ${name}, ${description}, ${imagePath})
         `;
         res.status(201).json({ message: 'Subcategory created' });
     } catch (err) {
@@ -85,7 +89,7 @@ exports.createSubcategory = async (req, res) => {
 // PUT update subcategory
 exports.updateSubcategory = async (req, res) => {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, description, cover_img, image } = req.body;
     if (!name) return res.status(400).json({ error: 'Subcategory name is required' });
 
     try {
@@ -96,6 +100,20 @@ exports.updateSubcategory = async (req, res) => {
         `;
         if (result.rowsAffected[0] === 0) {
             return res.status(404).json({ error: 'Subcategory not found' });
+        }
+        let imagePath = null;
+        if (req.file) {
+            imagePath = `assets/uploads/subcategories/${req.file.filename}`;
+        } else if (cover_img || image) {
+            const val = cover_img || image;
+            imagePath = typeof val === 'string' && val.includes('/assets/')
+                ? val.replace(/^https?:\/\/[^/]+\/(.*)$/, '$1')
+                : val || null;
+        }
+        if (imagePath !== null) {
+            await sql.query`
+                UPDATE subcategories SET cover_img = ${imagePath} WHERE subcategory_id = ${id}
+            `;
         }
         res.json({ message: 'Subcategory updated' });
     } catch (err) {
@@ -108,6 +126,9 @@ exports.updateSubcategory = async (req, res) => {
 exports.deleteSubcategory = async (req, res) => {
     const { id } = req.params;
     try {
+        await sql.query`
+            UPDATE products SET subcategory_id = NULL WHERE subcategory_id = ${id}
+        `;
         const result = await sql.query`
             DELETE FROM subcategories WHERE subcategory_id = ${id}
         `;

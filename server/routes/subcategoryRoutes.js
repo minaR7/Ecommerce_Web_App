@@ -5,8 +5,8 @@ const router = express.Router();
 
 router.get('/', subcategoryController.getSubcategories);
 router.get('/:id', subcategoryController.getSubcategoryById);
-router.post('/', subcategoryController.createSubcategory);
-router.put('/:id', subcategoryController.updateSubcategory);
+router.post('/', uploadSubcategoryImage, subcategoryController.createSubcategory);
+router.put('/:id', uploadSubcategoryImage, subcategoryController.updateSubcategory);
 router.delete('/:id', subcategoryController.deleteSubcategory);
 router.post('/upload', uploadSubcategoryImage, (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
