@@ -93,6 +93,8 @@ exports.getAllProducts = async (req, res) => {
         let query = `
             SELECT 
                 p.product_id,
+                p.category_id,
+                p.subcategory_id,
                 p.name,
                 p.description,
                 p.price,
@@ -136,7 +138,7 @@ exports.getAllProducts = async (req, res) => {
             query += ` WHERE p.subcategory_id = ${subcategory}`;
         }
 
-        query += ' GROUP BY p.product_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors, sa.sizes';
+        query += ' GROUP BY p.product_id, p.category_id, p.subcategory_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors, sa.sizes';
 
         const result = await sql.query(query);
          // res.json(result.recordset);
@@ -264,7 +266,14 @@ exports.getProductById = async (req, res) => {
         ...product,
         cover_img: `${baseUrl}/${product.cover_img}`,
         // slide_images: product.images.map(img => `${baseUrl}/${img}`),
-        slide_images: JSON.parse(product.images).map(img => `${baseUrl}/${img.replace(/^\/+/, '')}`),
+        slide_images: (() => {
+          try {
+            const arr = product.images ? JSON.parse(product.images) : [];
+            return Array.isArray(arr) ? arr.map(img => `${baseUrl}/${String(img).replace(/^\/+/, '')}`) : [];
+          } catch {
+            return [];
+          }
+        })(),
         avg_rating: parseFloat(product.avg_rating || 0).toFixed(1),
         discounted_price: discountedPrice,
         variants: variantsResult.recordset,
@@ -317,6 +326,7 @@ exports.createProduct = async (req, res) => {
 
     // Handle images
     const files = req.files || [];
+    console.log(files)
     const imageFiles = Array.isArray(files) ? files : (files.images || []);
     const imagePaths = imageFiles.map(f => `assets/uploads/products/${f.filename}`);
     const cover_img = imagePaths.length > 0 ? imagePaths[0] : null;
@@ -335,8 +345,9 @@ exports.createProduct = async (req, res) => {
         `;
         const productId = result.recordset[0].product_id;
 
-        if (req.file) {
-            const scPath = `assets/uploads/size-charts/${req.file.filename}`;
+        const scFiles = (req.files && req.files.size_chart) ? req.files.size_chart : [];
+        if (Array.isArray(scFiles) && scFiles[0]) {
+            const scPath = `assets/uploads/size-charts/${scFiles[0].filename}`;
             saveSizeChartForProduct(productId, scPath);
         }
 
@@ -437,8 +448,9 @@ exports.updateProduct = async (req, res) => {
         }
 
         // Save size chart if uploaded
-        if (req.file) {
-            const scPath = `assets/uploads/size-charts/${req.file.filename}`;
+        const scFilesUpd = (req.files && req.files.size_chart) ? req.files.size_chart : [];
+        if (Array.isArray(scFilesUpd) && scFilesUpd[0]) {
+            const scPath = `assets/uploads/size-charts/${scFilesUpd[0].filename}`;
             saveSizeChartForProduct(id, scPath);
         }
 
