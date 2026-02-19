@@ -1,5 +1,5 @@
 // API Service for connecting to Express.js backend
-const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://localhost:3005/api';
+const API_BASE_URL = `${(import.meta.env.VITE_BACKEND_SERVER_URL || 'http://localhost:3005')}/api`;
 
 // Generic fetch wrapper with error handling
 async function fetchApi(endpoint, options) {
@@ -53,10 +53,27 @@ export const categoriesApi = {
       return result;
     });
   },
-  update: (id, data) => fetchApi(`/categories/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
+  update: (id, data) => {
+    if (data instanceof FormData) {
+      const token = localStorage.getItem('authToken');
+      return fetch(`${API_BASE_URL}/categories/${id}`, {
+        method: 'PUT',
+        body: data,
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: 'include',
+      }).then(async (res) => {
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(result.error || result.message || 'Failed');
+        return result;
+      });
+    }
+    return fetchApi(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
   delete: (id) => fetchApi(`/categories/${id}`, {
     method: 'DELETE',
   }),
@@ -80,14 +97,48 @@ export const subcategoriesApi = {
   getAll: () => fetchApi('/subcategories'),
   getByCategory: (categoryId) => fetchApi(`/subcategories/category/${categoryId}`),
   getById: (id) => fetchApi(`/subcategories/${id}`),
-  create: (data) => fetchApi('/subcategories', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-  update: (id, data) => fetchApi(`/subcategories/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
+  create: (data) => {
+    if (data instanceof FormData) {
+      const token = localStorage.getItem('authToken');
+      return fetch(`${API_BASE_URL}/subcategories`, {
+        method: 'POST',
+        body: data,
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: 'include',
+      }).then(async (res) => {
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(result.error || result.message || 'Failed');
+        return result;
+      });
+    }
+    return fetchApi('/subcategories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  update: (id, data) => {
+    if (data instanceof FormData) {
+      const token = localStorage.getItem('authToken');
+      return fetch(`${API_BASE_URL}/subcategories/${id}`, {
+        method: 'PUT',
+        body: data,
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: 'include',
+      }).then(async (res) => {
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(result.error || result.message || 'Failed');
+        return result;
+      });
+    }
+    return fetchApi(`/subcategories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
   delete: (id) => fetchApi(`/subcategories/${id}`, {
     method: 'DELETE',
   }),
