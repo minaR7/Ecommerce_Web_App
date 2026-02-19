@@ -29,10 +29,30 @@ async function fetchApi(endpoint, options) {
 export const categoriesApi = {
   getAll: () => fetchApi('/categories'),
   getById: (id) => fetchApi(`/categories/${id}`),
-  create: (data) => fetchApi('/categories', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+  // create: (data) => fetchApi('/categories', {
+  //   method: 'POST',
+  //   body: JSON.stringify(data),
+  // }),
+  create: (data) => {
+    const formData = new FormData();
+  
+    formData.append('name', data.name);
+    formData.append('description', data.description);
+  
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+  
+    return fetch(`${API_BASE_URL}/categories`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    }).then(async (res) => {
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed');
+      return result;
+    });
+  },
   update: (id, data) => fetchApi(`/categories/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),

@@ -10,6 +10,20 @@ const ensureDir = (dir) => {
   } catch {}
 };
 
+
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, uploadPath);
+//   },
+//   filename: (req, file, cb) => {
+//     const uniqueName =
+//       Date.now() +
+//       '-' +
+//       file.originalname.replace(/\s+/g, '-').toLowerCase();
+//     cb(null, uniqueName);
+//   },
+// });
+
 const makeStorage = (subdir) =>
   multer.diskStorage({
     destination: (req, file, cb) => {
@@ -29,6 +43,15 @@ const imageFilter = (req, file, cb) => {
   if (/^image\/(png|jpe?g|webp|gif)$/i.test(file.mimetype)) cb(null, true);
   else cb(new Error('Only image files are allowed'));
 };
+
+// const fileFilter = (req, file, cb) => {
+//   const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+//   if (allowed.includes(file.mimetype)) {
+//     cb(null, true);
+//   } else {
+//     cb(new Error('Only PNG, JPG, JPEG, WEBP allowed'), false);
+//   }
+// };
 
 exports.uploadCategoryImage = multer({
   storage: makeStorage('categories'),
@@ -53,3 +76,7 @@ exports.uploadSizeChart = multer({
     fileFilter: imageFilter,
     limits: { fileSize: 10 * 1024 * 1024 },
   }).single('size_chart');
+
+
+
+  

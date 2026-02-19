@@ -50,40 +50,59 @@ const Categories = () => {
     try { await categoriesApi.delete(id); message.success('Deleted'); fetchCategories(); }
     catch { setCategories(categories.filter(c => c.category_id !== id)); }
   };
+
   const handleSubmit = async (values) => {
-    const imageUrl = fileList[0]?.url || fileList[0]?.response?.url || (fileList[0]?.originFileObj ? URL.createObjectURL(fileList[0].originFileObj) : undefined);
-    const payload = { ...values, img: imageUrl };
+    // const imageUrl = fileList[0]?.url || fileList[0]?.response?.url || (fileList[0]?.originFileObj ? URL.createObjectURL(fileList[0].originFileObj) : undefined);
+    // const payload = { ...values, img: imageUrl };
     try {
-      if (editingCategory) await categoriesApi.update(editingCategory.category_id, payload);
-      else await categoriesApi.create(payload);
-      setIsModalOpen(false); fetchCategories();
-    } catch {
-      if (editingCategory) setCategories(categories.map(c => c.category_id === editingCategory.category_id ? { ...c, ...payload } : c));
-      else setCategories([...categories, { category_id: Date.now(), ...payload, created_at: new Date().toISOString() }]);
+      const imageFile = fileList[0]?.url || fileList[0]?.response?.url || (fileList[0]?.originFileObj ? URL.createObjectURL(fileList[0].originFileObj) : undefined);
+
+      const payload = {
+        ...values,
+        image: imageFile,
+      };
+  
+      // if (editingCategory) await categoriesApi.update(editingCategory.category_id, payload);
+      // else await categoriesApi.create(payload);
+      // setIsModalOpen(false); fetchCategories();
+
+      if (editingCategory) {
+        await categoriesApi.update(editingCategory.category_id, payload);
+      } else {
+        await categoriesApi.create(payload);
+      }
+  
       setIsModalOpen(false);
+      fetchCategories();
+  
+    } catch (err) {
+      // if (editingCategory) setCategories(categories.map(c => c.category_id === editingCategory.category_id ? { ...c, ...payload } : c));
+      // else setCategories([...categories, { category_id: Date.now(), ...payload, created_at: new Date().toISOString() }]);
+      setIsModalOpen(false);
+      message.error('Failed to save category');
     }
   };
   
   const handleUploadChange = async ({ file, fileList: newFileList }) => {
     if (newFileList.length > 1) return;
     setFileList(newFileList);
-    if (file && file.status === 'done' && file.response?.url) {
-      return;
-    }
-    if (file && file.originFileObj) {
-      try {
-        const res = await categoriesApi.upload(file.originFileObj);
-        const updated = [{
-          uid: file.uid,
-          name: file.name,
-          status: 'done',
-          url: `${import.meta.env.VITE_API_URL}/${res.url}`,
-        }];
-        setFileList(updated);
-      } catch {
-        message.error('Upload failed');
-      }
-    }
+    // if (file && file.status === 'done' && file.response?.url) {
+    //   return;
+    // }
+    // if (file && file.originFileObj) {
+    //   try {
+    //     const res = await categoriesApi.upload(file.originFileObj);
+    //     const updated = [{
+    //       uid: file.uid,
+    //       name: file.name,
+    //       status: 'done',
+    //       url: `${import.meta.env.VITE_API_URL}/${res.url}`,
+    //     }];
+    //     setFileList(updated);
+    //   } catch {
+    //     message.error('Upload failed');
+    //   }
+    // }
   };
 
   const columns = [

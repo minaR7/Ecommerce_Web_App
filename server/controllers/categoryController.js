@@ -40,10 +40,22 @@ exports.createCategory = async (req, res) => {
     if (!name) return res.status(400).json({ error: 'Category name is required' });
 
     try {
+
+        let imagePath = null;
+    
+        if (req.file) {
+          imagePath = `assets/categories/${req.file.filename}`;
+        }
+    
         await sql.query`
-            INSERT INTO categories (name, description)
-            VALUES (${name}, ${description})
+          INSERT INTO categories (name, description, img)
+          VALUES (${name}, ${description}, ${imagePath})
         `;
+
+        // await sql.query`
+        //     INSERT INTO categories (name, description)
+        //     VALUES (${name}, ${description})
+        // `;
         res.status(201).json({ message: 'Category created' });
     } catch (err) {
         console.error(err);
