@@ -159,7 +159,17 @@ const Products = () => {
       setFileList([]);
     }
     
-    form.setFieldsValue(product);
+    form.setFieldsValue({
+      categoryId: product.category_id,
+      subcategoryId: product.subcategory_id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      stock_quantity: product.stock_quantity,
+      discount_percentage: product.discount_percentage,
+      colors: Array.isArray(product.colors) ? product.colors : [],
+      sizes: Array.isArray(product.sizes) ? product.sizes : [],
+    });
     setIsModalOpen(true);
   };
 
