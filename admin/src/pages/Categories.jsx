@@ -33,6 +33,7 @@ const Categories = () => {
   const handleAdd = () => { setEditingCategory(null); form.resetFields(); setFileList([]); setIsModalOpen(true); };
   const handleEdit = (record) => { 
     setEditingCategory(record); 
+    console.log(record)
     form.setFieldsValue(record); 
     if (record.img || record.cover_img) {
       setFileList([{
@@ -55,31 +56,43 @@ const Categories = () => {
     // const imageUrl = fileList[0]?.url || fileList[0]?.response?.url || (fileList[0]?.originFileObj ? URL.createObjectURL(fileList[0].originFileObj) : undefined);
     // const payload = { ...values, img: imageUrl };
     try {
-      const imageFile = fileList[0]?.url || fileList[0]?.response?.url || (fileList[0]?.originFileObj ? URL.createObjectURL(fileList[0].originFileObj) : undefined);
-
-      const payload = {
-        ...values,
-        image: imageFile,
-      };
-  
       // if (editingCategory) await categoriesApi.update(editingCategory.category_id, payload);
       // else await categoriesApi.create(payload);
       // setIsModalOpen(false); fetchCategories();
-
+      const hasNewFile = !!fileList[0]?.originFileObj;
       if (editingCategory) {
-        await categoriesApi.update(editingCategory.category_id, payload);
+        if (hasNewFile) {
+          const formData = new FormData();
+          formData.append('name', values.name);
+          formData.append('description', values.description || '');
+          formData.append('image', fileList[0].originFileObj);
+          await categoriesApi.update(editingCategory.category_id, formData);
+        } else {
+          const payload = {
+            name: values.name,
+            description: values.description || '',
+            img: fileList[0]?.url || null,
+          };
+          await categoriesApi.update(editingCategory.category_id, payload);
+        }
       } else {
-        await categoriesApi.create(payload);
+        if (!hasNewFile) {
+          message.error('Please upload a category image');
+          return;
+        }
+        const formData = new FormData();
+        formData.append('name', values.name);
+        formData.append('description', values.description || '');
+        formData.append('image', fileList[0].originFileObj);
+        await categoriesApi.create(formData);
       }
-  
       setIsModalOpen(false);
       fetchCategories();
-  
     } catch (err) {
       // if (editingCategory) setCategories(categories.map(c => c.category_id === editingCategory.category_id ? { ...c, ...payload } : c));
       // else setCategories([...categories, { category_id: Date.now(), ...payload, created_at: new Date().toISOString() }]);
       setIsModalOpen(false);
-      message.error('Failed to save category');
+      message.error(err.message || 'Failed to save category');
     }
   };
   
@@ -142,7 +155,7 @@ const Categories = () => {
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
             <Form.Item name="name" label="Name" rules={[{ required: true }]}><Input /></Form.Item>
             <Form.Item name="description" label="Description"><Input.TextArea rows={3} /></Form.Item>
-            <Form.Item label="Category Image">
+            <Form.Item label="Cover Image">
               <Upload
                 listType="picture-card"
                 fileList={fileList}
