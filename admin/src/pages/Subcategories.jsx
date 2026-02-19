@@ -35,32 +35,76 @@ const Subcategories = () => {
   }, []);
 
   const handleSubmit = async (values) => {
-    const imageUrl = fileList[0]?.url || fileList[0]?.response?.url || (fileList[0]?.originFileObj ? URL.createObjectURL(fileList[0].originFileObj) : undefined);
-    const payload = { ...values, categoryName: categories.find(c => c.category_id === values.categoryId)?.name, cover_img: imageUrl };
+    //   const imageUrl = fileList[0]?.url || fileList[0]?.response?.url || (fileList[0]?.originFileObj ? URL.createObjectURL(fileList[0].originFileObj) : undefined);
+    // const payload = { ...values, categoryName: categories.find(c => c.category_id === values.categoryId)?.name, cover_img: imageUrl };
     try {
+      const hasNewFile = !!fileList[0]?.originFileObj;
       if (editingSubcategory) {
-        await subcategoriesApi.update(editingSubcategory.subcategory_id, payload);
-        message.success('Subcategory updated');
+        if (hasNewFile) {
+          const formData = new FormData();
+          formData.append('category_id', values.categoryId);
+          formData.append('name', values.name);
+          formData.append('image', fileList[0].originFileObj);
+          await subcategoriesApi.update(editingSubcategory.subcategory_id, formData);
+          message.success('Subcategory updated');
+        } else {
+          const payload = {
+            category_id: values.categoryId,
+            name: values.name,
+            cover_img: fileList[0]?.url || null,
+          };
+          await subcategoriesApi.update(editingSubcategory.subcategory_id, payload);
+          message.success('Subcategory updated');
+        }
       } else {
-        await subcategoriesApi.create(payload);
+        if (!hasNewFile) {
+          message.error('Please upload a subcategory image');
+          return;
+        }
+        const formData = new FormData();
+        formData.append('category_id', values.categoryId);
+        formData.append('name', values.name);
+        formData.append('image', fileList[0].originFileObj);
+        await subcategoriesApi.create(formData);
         message.success('Subcategory created');
       }
       await loadData();
       setIsModalOpen(false);
-    } catch {
-      if (editingSubcategory) {
-        setSubcategories(subcategories.map(s => s.subcategory_id === editingSubcategory.subcategory_id ? { ...s, ...payload } : s));
-      } else {
-        setSubcategories([...subcategories, { subcategory_id: Date.now(), ...payload }]);
-      }
+    } catch (err) {
+      message.error(err.message || 'Failed to save subcategory');
       setIsModalOpen(false);
     }
   };
   
+  // const handleUploadChange = ({ fileList: newFileList }) => {
+  //   if (newFileList.length > 1) return;
+  //   setFileList(newFileList);
+  //   if (file && file.status === 'done' && file.response?.url) {
+  //     return;
+  //   }
+  //   if (file && file.originFileObj) {
+  //     try {
+  //       const res = await subcategoriesApi.upload(file.originFileObj);
+  //       const updated = [{
+  //         uid: file.uid,
+  //         name: file.name,
+  //         status: 'done',
+  //         url: `${import.meta.env.VITE_API_URL}/${res.url}`,
+  //       }];
+  //       setFileList(updated);
+  //     } catch {
+  //       message.error('Upload failed');
+  //     }
+  //   }
+  // };
+
   const handleAdd = () => { setEditingSubcategory(null); form.resetFields(); setFileList([]); setIsModalOpen(true); };
   const handleEditOpen = (record) => { 
     setEditingSubcategory(record); 
-    form.setFieldsValue(record); 
+    form.setFieldsValue({
+      categoryId: record.category_id,
+      name: record.name,
+    }); 
     if (record.cover_img) {
       setFileList([{
         uid: '-1',
@@ -73,26 +117,9 @@ const Subcategories = () => {
     }
     setIsModalOpen(true); 
   };
-  const handleUploadChange = async ({ file, fileList: newFileList }) => {
+  const handleUploadChange = ({ fileList: newFileList }) => {
     if (newFileList.length > 1) return;
     setFileList(newFileList);
-    if (file && file.status === 'done' && file.response?.url) {
-      return;
-    }
-    if (file && file.originFileObj) {
-      try {
-        const res = await subcategoriesApi.upload(file.originFileObj);
-        const updated = [{
-          uid: file.uid,
-          name: file.name,
-          status: 'done',
-          url: `${import.meta.env.VITE_API_URL}/${res.url}`,
-        }];
-        setFileList(updated);
-      } catch {
-        message.error('Upload failed');
-      }
-    }
   };
 
   const columns = [
