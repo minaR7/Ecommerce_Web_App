@@ -65,17 +65,29 @@ exports.uploadSubcategoryImage = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 }).single('image');
 
-exports.uploadProductImages = multer({
-  storage: makeStorage('products'),
+const productStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const subdir = file.fieldname === 'size_chart' ? 'size-charts' : 'products';
+    const dest = path.join(ROOT, subdir);
+    ensureDir(dest);
+    cb(null, dest);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const base = path.basename(file.originalname, ext).replace(/[^a-z0-9\-_\s]/gi, '').replace(/\s+/g, '-');
+    const stamp = Date.now();
+    cb(null, `${base}-${stamp}${ext}`);
+  },
+});
+
+exports.uploadProductMedia = multer({
+  storage: productStorage,
   fileFilter: imageFilter,
   limits: { fileSize: 10 * 1024 * 1024 },
-}).array('images', 10);
-
-exports.uploadSizeChart = multer({
-    storage: makeStorage('size-charts'),
-    fileFilter: imageFilter,
-    limits: { fileSize: 10 * 1024 * 1024 },
-  }).single('size_chart');
+}).fields([
+  { name: 'images', maxCount: 10 },
+  { name: 'size_chart', maxCount: 1 },
+]);
 
 
 
