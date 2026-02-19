@@ -14,8 +14,8 @@ const { Text } = Typography;
 export const AdminHeader = ({ title }) => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [user, setUser] = useState({
-    username: 'Admin User',
-    email: 'admin@store.com'
+    username: '',
+    email: ''
   });
 
   const [notifications, setNotifications] = useState([
@@ -111,12 +111,12 @@ export const AdminHeader = ({ title }) => {
   ];
   return (
     <Header
-      className="flex items-center justify-between px-6 border-b border-border"
+      className="flex items-center justify-end px-6 border-b border-border"
       style={{ background: '#0a0a0a', height: 64 }}
     >
-      <div className="flex items-center gap-6">
+      {/* <div className="flex items-center gap-6">
         <h2 className="text-xl font-semibold text-foreground m-0">{title}</h2>
-      </div>
+      </div> */}
 
       <div className="flex items-center gap-4">
         <Input

@@ -34,18 +34,20 @@ export const categoriesApi = {
   //   body: JSON.stringify(data),
   // }),
   create: (data) => {
-    const formData = new FormData();
+    console.log(data)
+    // const formData = new FormData();
   
-    formData.append('name', data.name);
-    formData.append('description', data.description);
+    // formData.append('name', data.name);
+    // formData.append('description', data.description);
   
-    if (data.image) {
-      formData.append('image', data.image);
-    }
+    // if (data.image) {
+    //   formData.append('image', data.image);
+    // }
   
     return fetch(`${API_BASE_URL}/categories`, {
       method: 'POST',
-      body: formData,
+      // body: formData,
+      body: data,
       credentials: 'include',
     }).then(async (res) => {
       const result = await res.json();

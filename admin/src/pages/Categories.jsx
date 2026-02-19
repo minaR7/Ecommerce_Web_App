@@ -35,16 +35,24 @@ const Categories = () => {
     setEditingCategory(record); 
     console.log(record)
     form.setFieldsValue(record); 
-    if (record.img || record.cover_img) {
+
+    const imageUrl =
+      record.cover_img ||
+      (record.img
+        ? `${import.meta.env.VITE_API_URL}/${record.img}`
+        : null);
+
+    if (imageUrl) {
       setFileList([{
         uid: '-1',
         name: 'image.jpg',
         status: 'done',
-        url: record.img || record.cover_img,
+        url: imageUrl,
       }]);
     } else {
       setFileList([]);
     }
+    
     setIsModalOpen(true); 
   };
   const handleDelete = async (id) => {
@@ -63,6 +71,7 @@ const Categories = () => {
       if (editingCategory) {
         if (hasNewFile) {
           const formData = new FormData();
+          console.log(values)
           formData.append('name', values.name);
           formData.append('description', values.description || '');
           formData.append('image', fileList[0].originFileObj);
@@ -81,6 +90,7 @@ const Categories = () => {
           return;
         }
         const formData = new FormData();
+        console.log(values)
         formData.append('name', values.name);
         formData.append('description', values.description || '');
         formData.append('image', fileList[0].originFileObj);
