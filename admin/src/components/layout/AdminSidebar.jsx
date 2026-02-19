@@ -11,6 +11,7 @@ import {
   TagsOutlined,
   GiftOutlined,
   GlobalOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -56,6 +57,11 @@ const menuItems = [
     label: 'Users',
   },
   {
+    key: '/customers',
+    icon: <UserOutlined />,
+    label: 'Customers',
+  },
+  {
     key: '/coupons',
     icon: <GiftOutlined />,
     label: 'Coupons',
@@ -64,6 +70,11 @@ const menuItems = [
     key: '/shipping',
     icon: <GlobalOutlined />,
     label: 'Shipping',
+  },
+  {
+    key: '/pages',
+    icon: <FileTextOutlined />,
+    label: 'Site Content',
   },
   // {
   //   key: '/settings',
@@ -83,7 +94,7 @@ export const AdminSidebar = () => {
       collapsed={collapsed}
       onCollapse={setCollapsed}
       trigger={null}
-      width={260}
+      width={208}
       collapsedWidth={80}
       className="min-h-screen border-r border-border"
       style={{

@@ -6,12 +6,6 @@ import MainContent from './components/MainContent';
 import FooterMenu from './components/Footer';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './Home';
-import Men from './pages/Men';
-import Women from './pages/Women';
-import MenSubcategory from './pages/MenSubcategory';
-import WomenSubcategory from './pages/WomenSubcategory';
-import Accessories from './pages/Accessories';
-import Kids from './pages/Kids';
 import NotFound from './pages/404';
 import MyAccount from './pages/Login';
 import ProductDetail from './pages/ProductDetail';
@@ -31,6 +25,7 @@ import DeliveryPolicy from './pages/quick-links/DeliveryTime';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import ScrollToTop from './components/ScrollToTop';
 
 const { Header, Content, Footer } = Layout;
 
@@ -44,6 +39,7 @@ const App = () => {
 
   return (
      <Layout style={{ backgroundColor: "#ffffff"}} >
+        <ScrollToTop />
         <HeaderMenu> </HeaderMenu>
         <Content style={{ padding: '0rem 0rem 1rem 0rem', minHeight: "75vh", backgroundColor: "#fff" }}> 
           {/* {marginTop: 64, #f5f5f5 } */}

@@ -131,7 +131,7 @@ exports.doCheckout = async (req, res) => {
         return res.status(400).json({ success: false, message: stockUpdateResult.message });
       }
 
-      // Mark cart items as processed
+      // Step 11: Mark cart items as processed
       const processCartItemsResult = await markCartItemsAsProcessed(userId, updatedCartItems);
       if (!processCartItemsResult.success) {
         return res.status(400).json({ success: false, message: processCartItemsResult.message });

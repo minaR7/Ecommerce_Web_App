@@ -49,13 +49,13 @@ const Users = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const data = await usersApi.getAll();
+      const data = await usersApi.getAdmins();
       setUsers(data);
     } catch (error) {
-      message.error('Failed to fetch users');
+      message.error(error.message || 'Failed to fetch users');
       // Fallback: map existing mockUsers into API-like shape
       setUsers(
-        mockUsers.map((u) => {
+        mockUsers.filter((u) => u.role === 'admin').map((u) => {
           const [firstName, ...rest] = (u.name || '').split(' ');
           return {
             user_id: Number(u.id),
@@ -66,7 +66,7 @@ const Users = () => {
             created_at: u.createdAt || '',
             is_registered: true,
             username: u.email?.split('@')[0] || u.name || '',
-            is_admin: u.role === 'admin',
+            is_admin: true,
           };
         })
       );
@@ -96,31 +96,33 @@ const Users = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    setUsers(users.filter((u) => u.user_id !== id));
-    message.success('User deleted successfully');
+  const handleDelete = async (id) => {
+    try {
+      await usersApi.delete(id);
+      message.success('User deleted successfully');
+      fetchUsers();
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      message.error(error.message || 'Failed to delete user');
+    }
   };
 
-  const handleSubmit = (values) => {
-    if (editingUser) {
-      setUsers(
-        users.map((u) =>
-          u.user_id === editingUser.user_id ? { ...u, ...values } : u
-        )
-      );
-      message.success('User updated successfully');
-    } else {
-      const newUser = {
-        ...values,
-        user_id: Date.now(),
-        created_at: new Date().toISOString(),
-        is_registered: true,
-      };
-      setUsers([newUser, ...users]);
-      message.success('User added successfully');
+  const handleSubmit = async (values) => {
+    try {
+      if (editingUser) {
+        await usersApi.update(editingUser.user_id, values);
+        message.success('User updated successfully');
+      } else {
+        await usersApi.create(values);
+        message.success('User added successfully');
+      }
+      fetchUsers();
+      setIsModalOpen(false);
+      form.resetFields();
+    } catch (error) {
+      console.error('Failed to save user:', error);
+      message.error(error.message || 'Failed to save user');
     }
-    setIsModalOpen(false);
-    form.resetFields();
   };
 
   const columns = [
@@ -262,6 +264,7 @@ const Users = () => {
           rowKey="user_id"
           className="admin-table"
           pagination={{ pageSize: 10 }}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
 
@@ -306,6 +309,26 @@ const Users = () => {
           >
             <Input placeholder="Enter address" />
           </Form.Item>
+
+          {!editingUser && (
+            <>
+              <Form.Item
+                name="username"
+                label="Username"
+                rules={[{ required: true, message: 'Please enter username' }]}
+              >
+                <Input placeholder="Enter username" />
+              </Form.Item>
+
+              <Form.Item
+                name="password"
+                label="Password"
+                rules={[{ required: true, message: 'Please enter password' }]}
+              >
+                <Input.Password placeholder="Enter password" />
+              </Form.Item>
+            </>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <Form.Item

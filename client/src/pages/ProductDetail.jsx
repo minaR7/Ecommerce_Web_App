@@ -28,6 +28,8 @@ const ProductDetail = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isImgModalOpen, setIsImgModalOpen] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+    const [sizeChartUrl, setSizeChartUrl] = useState('');
     const userExist = JSON.parse(localStorage.getItem('user'));
 
     useEffect(() => {
@@ -60,6 +62,15 @@ const ProductDetail = () => {
   
     const handleColorSelect = (color) => {
       setSelectedColor(color);
+    };
+
+    const openSizeChart = () => {
+      if (product?.size_chart) {
+        setSizeChartUrl(product.size_chart);
+      } else {
+        setSizeChartUrl('');
+      }
+      setIsSizeChartOpen(true);
     };
 
      const handleImageClick = (index) => {
@@ -310,7 +321,7 @@ const ProductDetail = () => {
                             </div>
                        </div>
                         <div className="flex">
-                            <Button type="primary" style={{ backgroundColor: "rgb(71, 89, 122)" }}  className='size-chart-btn'>Size Chart</Button>
+                            <Button type="primary" style={{ backgroundColor: "rgb(71, 89, 122)" }}  className='size-chart-btn' onClick={openSizeChart}>Size Chart</Button>
                         </div>
                     </div>
 
@@ -482,6 +493,20 @@ const ProductDetail = () => {
             ]}
             >
             <Items noDrawerBtn={true}/>
+        </Modal>
+
+        <Modal
+          title="Size Chart"
+          open={isSizeChartOpen}
+          onCancel={() => setIsSizeChartOpen(false)}
+          footer={null}
+          width={600}
+        >
+          {sizeChartUrl ? (
+            <Image src={sizeChartUrl} alt="Size Chart" width="100%" />
+          ) : (
+            <p>No size chart available.</p>
+          )}
         </Modal>
       </>
     );

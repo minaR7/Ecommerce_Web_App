@@ -1,7 +1,27 @@
 import React from "react";
-import { Row, Col } from "antd";
+import { Row, Col, Spin } from "antd";
+import { usePageContent } from "../../hooks/usePageContent";
 
 export default function OurStory() {
+  const { page, loading } = usePageContent('our-history');
+
+  if (loading) {
+    return <div className="min-h-screen flex justify-center items-center"><Spin size="large" /></div>;
+  }
+
+  if (page) {
+    return (
+      <div className="w-full min-h-screen font-['Crimson_Text'] text-[#3a3a3a]">
+         <div className="max-w-[800px] w-full mx-auto py-16 px-6">
+            <h1 className="text-[56px] md:text-[48px] font-light tracking-[3px] font-['Cormorant_Garamond'] text-center mb-10">
+              {page.title}
+            </h1>
+            <div dangerouslySetInnerHTML={{ __html: page.content }} className="story-text" />
+         </div>
+      </div>
+    );
+  }
+
   return (
     <div  className="w-full min-h-screen font-['Crimson_Text'] text-[#3a3a3a]">
       {/* HERO SECTION */}

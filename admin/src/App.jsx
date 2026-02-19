@@ -6,11 +6,14 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Orders from "./pages/Orders";
 import Users from "./pages/Users";
+import Customers from "./pages/Customers";
 // import Settings from "./pages/Settings";
 import Categories from "./pages/Categories";
 import Subcategories from "./pages/Subcategories";
 import Coupons from "./pages/Coupons";
 import Shipping from "./pages/Shipping";
+import Pages from "./pages/Pages";
+import PageEditor from "./pages/PageEditor";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
@@ -79,6 +82,14 @@ const App = () => (
             }
           />
           <Route
+            path="/customers"
+            element={
+              <Protected>
+                <Customers />
+              </Protected>
+            }
+          />
+          <Route
             path="/coupons"
             element={
               <Protected>
@@ -91,6 +102,30 @@ const App = () => (
             element={
               <Protected>
                 <Shipping />
+              </Protected>
+            }
+          />
+          <Route
+            path="/pages"
+            element={
+              <Protected>
+                <Pages />
+              </Protected>
+            }
+          />
+          <Route
+            path="/pages/create"
+            element={
+              <Protected>
+                <PageEditor />
+              </Protected>
+            }
+          />
+          <Route
+            path="/pages/edit/:slug"
+            element={
+              <Protected>
+                <PageEditor />
               </Protected>
             }
           />

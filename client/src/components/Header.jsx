@@ -155,9 +155,11 @@ const HeaderMenu = () => {
                 justifyContent: 'space-between',
             }}
         >
-            <Sidebar />
+            <div className="flex items-center">
+                <Sidebar />
+            </div>
 
-            <div className="flex justify-center">
+            <div className="absolute left-1/2 transform -translate-x-1/2 flex justify-center">
                 <Link to="/">
                     <img
                         src="/assets/logo/El-Maghrib-logo.png"
@@ -170,7 +172,7 @@ const HeaderMenu = () => {
 
             {/* <Navbar /> */}
 
-            <div className="flex items-center space-x-4 ml-auto header-icons">
+            <div className="flex items-center space-x-4 ml-auto header-icons z-10">
                 {/* User section */}
                 {user ? (
                 <Dropdown overlay={userMenu} trigger={['click']}>

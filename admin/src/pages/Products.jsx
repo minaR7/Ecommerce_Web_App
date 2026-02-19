@@ -19,11 +19,10 @@ import {
   EditOutlined,
   DeleteOutlined,
   SearchOutlined,
-  UploadOutlined,
 } from '@ant-design/icons';
 import { AdminLayout } from '../components/layout/AdminLayout';
 import { mockProducts } from '../data/mockData';
-import { categoriesApi, subcategoriesApi, productsApi, colorsApi } from '../services/api';
+import { categoriesApi, subcategoriesApi, productsApi, colorsApi, sizesApi } from '../services/api';
 import { AppButton } from '../components/AppButton';
 
 const statusColors = {
@@ -37,69 +36,73 @@ const Products = () => {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [colors, setColors] = useState([]);
+  const [sizes, setSizes] = useState([]);
   const [filteredSubcategories, setFilteredSubcategories] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [fileList, setFileList] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  
+  const [sizeChartUpload, setSizeChartUpload] = useState([]);
+
   const [form] = Form.useForm();
+
+  // Fetch data function
+  const fetchData = async () => {
+    try {
+      const [prodData, catData, subData, colData, sizeData] = await Promise.all([
+        productsApi.getAll(),
+        categoriesApi.getAll(),
+        subcategoriesApi.getAll(),
+        colorsApi.getAll(),
+        sizesApi.getAll(),
+      ]);
+      setProducts(prodData)
+      setCategories(catData);
+      setSubcategories(subData);
+      setColors(colData);
+      setSizes(sizeData);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+      // Use mock data for demo if API fails
+      setProducts(mockProducts)
+      setCategories([
+        { id: '1', name: 'Electronics', status: 'active' },
+        { id: '2', name: 'Clothing', status: 'active' },
+        { id: '3', name: 'Home & Garden', status: 'active' },
+        { id: '4', name: 'Accessories', status: 'active' },
+        { id: '5', name: 'Bags', status: 'active' },
+      ]);
+      setSubcategories([
+        { id: '1', categoryId: '1', name: 'Smartphones', status: 'active' },
+        { id: '2', categoryId: '1', name: 'Laptops', status: 'active' },
+        { id: '3', categoryId: '1', name: 'Audio', status: 'active' },
+        { id: '4', categoryId: '2', name: 'Men', status: 'active' },
+        { id: '5', categoryId: '2', name: 'Women', status: 'active' },
+        { id: '6', categoryId: '3', name: 'Furniture', status: 'active' },
+        { id: '7', categoryId: '4', name: 'Watches', status: 'active' },
+        { id: '8', categoryId: '4', name: 'Sunglasses', status: 'active' },
+        { id: '9', categoryId: '5', name: 'Backpacks', status: 'active' },
+      ]);
+      setColors([
+        { color_id: '1', name: 'Red' },
+        { color_id: '2', name: 'Blue' },
+        { color_id: '3', name: 'Green' },
+        { color_id: '4', name: 'Black' },
+        { color_id: '5', name: 'White' },
+      ]);
+      setSizes([
+          { size_id: '1', name: 'S' },
+          { size_id: '2', name: 'M' },
+          { size_id: '3', name: 'L' },
+          { size_id: '4', name: 'XL' },
+      ]);
+    }
+  };
 
   // Fetch categories, subcategories, and colors on mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prodData, catData, subData] = await Promise.all([
-          productsApi.getAll(),
-          categoriesApi.getAll(),
-          subcategoriesApi.getAll(),
-        ]);
-        setProducts(prodData)
-        setCategories(catData);
-        setSubcategories(subData);
-        setColors([
-          { color_id: '1', name: 'Red' },
-          { color_id: '2', name: 'Blue' },
-          { color_id: '3', name: 'Green' },
-          { color_id: '4', name: 'Black' },
-          { color_id: '5', name: 'White' },
-          { color_id: '6', name: 'Yellow' },
-          { color_id: '7', name: 'Purple' },
-          { color_id: '8', name: 'Orange' },
-        ]);
-      } catch (error) {
-        // Use mock data for demo
-        setProducts(mockProducts)
-        setCategories([
-          { id: '1', name: 'Electronics', status: 'active' },
-          { id: '2', name: 'Clothing', status: 'active' },
-          { id: '3', name: 'Home & Garden', status: 'active' },
-          { id: '4', name: 'Accessories', status: 'active' },
-          { id: '5', name: 'Bags', status: 'active' },
-        ]);
-        setSubcategories([
-          { id: '1', categoryId: '1', name: 'Smartphones', status: 'active' },
-          { id: '2', categoryId: '1', name: 'Laptops', status: 'active' },
-          { id: '3', categoryId: '1', name: 'Audio', status: 'active' },
-          { id: '4', categoryId: '2', name: 'Men', status: 'active' },
-          { id: '5', categoryId: '2', name: 'Women', status: 'active' },
-          { id: '6', categoryId: '3', name: 'Furniture', status: 'active' },
-          { id: '7', categoryId: '4', name: 'Watches', status: 'active' },
-          { id: '8', categoryId: '4', name: 'Sunglasses', status: 'active' },
-          { id: '9', categoryId: '5', name: 'Backpacks', status: 'active' },
-        ]);
-        setColors([
-          { color_id: '1', name: 'Red' },
-          { color_id: '2', name: 'Blue' },
-          { color_id: '3', name: 'Green' },
-          { color_id: '4', name: 'Black' },
-          { color_id: '5', name: 'White' },
-          { color_id: '6', name: 'Yellow' },
-          { color_id: '7', name: 'Purple' },
-          { color_id: '8', name: 'Orange' },
-        ]);
-      }
-    };
     fetchData();
   }, []);
 
@@ -156,57 +159,109 @@ const Products = () => {
       setFileList([]);
     }
     
-    form.setFieldsValue(product);
+    form.setFieldsValue({
+      categoryId: product.category_id,
+      subcategoryId: product.subcategory_id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      stock_quantity: product.stock_quantity,
+      discount_percentage: product.discount_percentage,
+      colors: Array.isArray(product.colors) ? product.colors : [],
+      sizes: Array.isArray(product.sizes) ? product.sizes : [],
+    });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    setProducts(products.filter((p) => (p.product_id || p.id) !== id));
-    message.success('Product deleted successfully');
+  const handleDelete = async (id) => {
+    try {
+      await productsApi.delete(id);
+      message.success('Product deleted successfully');
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      message.error(error.message || 'Failed to delete product');
+    }
   };
 
   const handleSubmit = async (values) => {
-    // Get category and subcategory names
-    const category = categories.find(c => (c.category_id || c.id) === values.categoryId);
-    const subcategory = subcategories.find(s => (s.subcategory_id || s.id) === values.subcategoryId);
-    
-    // Prepare image URLs from fileList
-    const imageUrls = fileList
-      .filter(file => file.status === 'done' || file.url)
-      .map(file => file.url || file.response?.url || URL.createObjectURL(file.originFileObj));
+    try {
+      if (editingProduct) {
+          const needsFileUpload = sizeChartUpload.length > 0 || fileList.some(f => f.originFileObj);
+          if (needsFileUpload) {
+            const formData = new FormData();
+            formData.append('category_id', values.categoryId);
+            if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
+            formData.append('name', values.name);
+            formData.append('description', values.description);
+            formData.append('price', values.price);
+            formData.append('stock_quantity', values.stock_quantity);
+            formData.append('discount_percentage', values.discount_percentage || 0);
+            if (values.sizes) formData.append('sizes', JSON.stringify(values.sizes));
+            if (values.colors) formData.append('colors', JSON.stringify(values.colors));
+            fileList.forEach(file => {
+              if (file.originFileObj) {
+                formData.append('images', file.originFileObj);
+              }
+            });
+            if (sizeChartUpload[0]?.originFileObj) {
+              formData.append('size_chart', sizeChartUpload[0].originFileObj);
+            }
+            await productsApi.update(editingProduct.product_id || editingProduct.id, formData);
+          } else {
+            const payload = {
+              category_id: values.categoryId,
+              subcategory_id: values.subcategoryId,
+              name: values.name,
+              description: values.description,
+              price: values.price,
+              stock_quantity: values.stock_quantity,
+              discount_percentage: values.discount_percentage,
+              colors: values.colors,
+              sizes: values.sizes,
+            };
+            await productsApi.update(editingProduct.product_id || editingProduct.id, payload);
+          }
+        message.success('Product updated successfully');
+      } else {
+          // Create with FormData
+          const formData = new FormData();
+          formData.append('category_id', values.categoryId);
+          if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
+          formData.append('name', values.name);
+          formData.append('description', values.description);
+          formData.append('price', values.price);
+          formData.append('stock_quantity', values.stock_quantity);
+          formData.append('discount_percentage', values.discount_percentage || 0);
 
-    const productData = {
-      ...values,
-      category: category?.name || '',
-      categoryName: category?.name || '',
-      subcategory: subcategory?.name || '',
-      subcategoryName: subcategory?.name || '',
-      cover_img: imageUrls[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&h=100&fit=crop',
-      slide_images: imageUrls,
-      discounted_price: (values.price !== undefined && values.discount_percentage !== undefined)
-        ? Number((values.price * (1 - (values.discount_percentage / 100))).toFixed(2))
-        : values.price,
-    };
+          if (values.sizes) formData.append('sizes', JSON.stringify(values.sizes));
+          if (values.colors) formData.append('colors', JSON.stringify(values.colors));
 
-    if (editingProduct) {
-      setProducts(
-        products.map((p) =>
-          (p.product_id || p.id) === (editingProduct.product_id || editingProduct.id) ? { ...p, ...productData } : p
-        )
-      );
-      message.success('Product updated successfully');
-    } else {
-      const newProduct = {
-        ...productData,
-        product_id: Date.now(),
-        created_at: new Date().toISOString(),
-      };
-      setProducts([newProduct, ...products]);
-      message.success('Product added successfully');
+          // Append images
+          fileList.forEach(file => {
+              if (file.originFileObj) {
+                  formData.append('images', file.originFileObj);
+              }
+          });
+          if (sizeChartUpload[0]?.originFileObj) {
+            formData.append('size_chart', sizeChartUpload[0].originFileObj);
+          }
+          
+        await productsApi.create(formData);
+        message.success('Product added successfully');
+      }
+      
+      // Refresh data from server
+      await fetchData();
+      
+      setIsModalOpen(false);
+      form.resetFields();
+      setFileList([]);
+      setSizeChartUpload([]);
+    } catch (error) {
+      console.error('Failed to save product:', error);
+      message.error('Failed to save product: ' + error.message);
     }
-    setIsModalOpen(false);
-    form.resetFields();
-    setFileList([]);
   };
 
   // Handle image upload
@@ -218,6 +273,8 @@ const Products = () => {
     }
     setFileList(newFileList);
   };
+  
+ 
 
   const uploadButton = (
     <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-600 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
@@ -272,7 +329,7 @@ const Products = () => {
       render: (_, record) => (
         <div className="flex flex-wrap gap-1">
           {Array.isArray(record.colors) && record.colors.length > 0
-            ? record.colors.map((c, idx) => {
+            ? Array.from(new Set(record.colors)).map((c, idx) => {
                 const isWhite = String(c).toLowerCase() === 'white' || String(c).toLowerCase() === '#ffffff' || String(c).toLowerCase() === 'yellow';
                 return (
                   <Tag
@@ -353,6 +410,7 @@ const Products = () => {
             onConfirm={() => handleDelete(record.product_id || record.id)}
             okText="Delete"
             cancelText="Cancel"
+            okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
           >
             <AppButton
               type="text"
@@ -376,14 +434,16 @@ const Products = () => {
             className="max-w-xs"
             allowClear
           />
-          <AppButton
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAdd}
-            style={{ color: '#000', fontWeight: 500 }}
-          >
-            Add Product
-          </AppButton>
+          <div className="flex gap-2">
+            <AppButton
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+              style={{ color: '#000', fontWeight: 500 }}
+            >
+              Add Product
+            </AppButton>
+          </div>
         </div>
 
         <Table
@@ -392,6 +452,7 @@ const Products = () => {
           rowKey={(record) => record.product_id || record.id}
           className="admin-table"
           pagination={{ pageSize: 10 }}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
 
@@ -483,6 +544,26 @@ const Products = () => {
             </Select>
           </Form.Item>
 
+          <Form.Item
+            name="sizes"
+            label="Sizes"
+            rules={[{ required: true, message: 'Please select at least one size' }]}
+          >
+            <Select 
+              mode="multiple"
+              placeholder="Select sizes"
+              showSearch
+              optionFilterProp="children"
+              allowClear
+            >
+              {sizes.map((size) => (
+                <Select.Option key={size.name} value={size.name}>
+                  {size.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
           <div className="grid grid-cols-3 gap-4">
             <Form.Item
               name="price"
@@ -540,6 +621,22 @@ const Products = () => {
             </p>
           </Form.Item>
 
+          <Form.Item
+            label="Size Chart (optional)"
+          >
+            <Upload
+              listType="picture-card"
+              fileList={sizeChartUpload}
+              onChange={({ fileList }) => setSizeChartUpload(fileList)}
+              beforeUpload={() => false}
+              maxCount={1}
+              accept="image/*"
+              className="size-chart-upload"
+            >
+              {sizeChartUpload.length >= 1 ? null : uploadButton}
+            </Upload>
+          </Form.Item>
+
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
             <AppButton onClick={() => setIsModalOpen(false)}>Cancel</AppButton>
             <AppButton type="primary" htmlType="submit" style={{ color: '#000', fontWeight: 500 }}>
@@ -548,6 +645,7 @@ const Products = () => {
           </div>
         </Form>
       </Modal>
+
     </AdminLayout>
   );
 };

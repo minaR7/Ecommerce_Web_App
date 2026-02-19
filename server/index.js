@@ -14,6 +14,9 @@ const orderRoutes = require('./routes/orderRoutes');
 const userRoutes = require('./routes/userRoutes');
 const couponRoute = require('./routes/coupon')
 const shippingRoutes = require('./routes/shipping')
+const pageRoutes = require('./routes/pageRoutes');
+const colorRoutes = require('./routes/colorRoutes');
+const sizeRoutes = require('./routes/sizeRoutes');
 const verifyToken = require('./middleware/auth');
 
 const app = express();
@@ -40,6 +43,7 @@ const allowedOrigins = [
   'https://78.159.113.48:80',
   'http://localhost:5173',
   'http://localhost:5174',
+  // 'http://localhost:5175',
   'http://localhost:4173',
 ];
 
@@ -77,6 +81,9 @@ app.use('/api/checkout', checkoutRoute);
 app.use('/api/orders', orderRoutes);
 app.use('/api/coupons', couponRoute)
 app.use('/api/shipping', shippingRoutes)
+app.use('/api/pages', pageRoutes);
+app.use('/api/colors', colorRoutes);
+app.use('/api/sizes', sizeRoutes);
 // router.post('/add', verifyToken, addToCart);
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
@@ -108,6 +115,9 @@ const listAllRoutes = () => {
     ...extractRoutes(orderRoutes, '/api/orders'),
     ...extractRoutes(couponRoute, '/api/coupons'),
     ...extractRoutes(shippingRoutes, '/api/shipping'),
+    ...extractRoutes(pageRoutes, '/api/pages'),
+    ...extractRoutes(colorRoutes, '/api/colors'),
+    ...extractRoutes(sizeRoutes, '/api/sizes'),
   ];
   return routes;
 };

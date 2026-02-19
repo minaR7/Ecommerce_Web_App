@@ -1,4 +1,29 @@
 const sql = require('mssql');
+const path = require('path');
+const fs = require('fs');
+
+const SIZE_CHARTS_FILE = path.join(__dirname, '../data/sizeCharts.json');
+
+const ensureDataDir = () => {
+  const dir = path.dirname(SIZE_CHARTS_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+};
+
+const loadSizeChartMap = () => {
+  try {
+    const raw = fs.readFileSync(SIZE_CHARTS_FILE, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+};
+
+const saveSizeChartForProduct = (productId, urlPath) => {
+  ensureDataDir();
+  const map = loadSizeChartMap();
+  map[String(productId)] = urlPath;
+  fs.writeFileSync(SIZE_CHARTS_FILE, JSON.stringify(map, null, 2));
+};
 
 // GET all products, or filter by subcategory
 // exports.getProducts = async (req, res) => {
@@ -68,6 +93,8 @@ exports.getAllProducts = async (req, res) => {
         let query = `
             SELECT 
                 p.product_id,
+                p.category_id,
+                p.subcategory_id,
                 p.name,
                 p.description,
                 p.price,
@@ -79,28 +106,44 @@ exports.getAllProducts = async (req, res) => {
                 ROUND(AVG(CAST(r.rating AS FLOAT)),2) AS avg_rating,
                 c.name AS category,
                 sc.name AS subcategory,
-                ca.colors
+                ca.colors,
+                sa.sizes
             FROM products p
             LEFT JOIN reviews r ON p.product_id = r.product_id
             LEFT JOIN categories c ON p.category_id = c.category_id
             LEFT JOIN subcategories sc ON p.subcategory_id = sc.subcategory_id
             LEFT JOIN (
-                SELECT v.product_id, STRING_AGG(pc.name, ',') AS colors
-                FROM product_variants v
-                JOIN product_colors pc ON v.color_id = pc.color_id
-                GROUP BY v.product_id
+                SELECT t.product_id, STRING_AGG(t.name, ',') AS colors
+                FROM (
+                    SELECT DISTINCT v.product_id, pc.name
+                    FROM product_variants v
+                    JOIN product_colors pc ON v.color_id = pc.color_id
+                    WHERE v.color_id IS NOT NULL
+                ) t
+                GROUP BY t.product_id
             ) ca ON ca.product_id = p.product_id
+            LEFT JOIN (
+                SELECT t2.product_id, STRING_AGG(t2.name, ',') AS sizes
+                FROM (
+                    SELECT DISTINCT v.product_id, ps.name
+                    FROM product_variants v
+                    JOIN product_sizes ps ON v.size_id = ps.size_id
+                    WHERE v.size_id IS NOT NULL
+                ) t2
+                GROUP BY t2.product_id
+            ) sa ON sa.product_id = p.product_id
         `;
 
         if (subcategory) {
             query += ` WHERE p.subcategory_id = ${subcategory}`;
         }
 
-        query += ' GROUP BY p.product_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors';
+        query += ' GROUP BY p.product_id, p.category_id, p.subcategory_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors, sa.sizes';
 
         const result = await sql.query(query);
          // res.json(result.recordset);
         const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const sizeChartMap = loadSizeChartMap();
         const modifiedProducts = result.recordset.map((product) => 
         {
             // Compute discounted price
@@ -119,13 +162,17 @@ exports.getAllProducts = async (req, res) => {
                 slideImages = [];
             }
             const colorsArray = product.colors ? product.colors.split(',') : [];
+            const sizesArray = product.sizes ? product.sizes.split(',') : [];
+            const scRel = sizeChartMap[String(product.product_id)];
             return (
             {
                 ...product,
                 cover_img: `${baseUrl}/${product.cover_img}`,  // Append base URL to each subcategory's cover_img
                 discounted_price: discountedPrice,
                 slide_images: slideImages,
-                colors: colorsArray
+                colors: colorsArray,
+                sizes: sizesArray,
+                size_chart: scRel ? `${baseUrl}/${scRel}` : null
             })
         });
         
@@ -211,15 +258,26 @@ exports.getProductById = async (req, res) => {
     //     console.error("Failed to parse product.images", err);
     //     }
 
+      const sizeChartMap = loadSizeChartMap();
+      const scRel = sizeChartMap[String(product.product_id)];
+
       // 4. Return product with variant details
       res.json({
         ...product,
         cover_img: `${baseUrl}/${product.cover_img}`,
         // slide_images: product.images.map(img => `${baseUrl}/${img}`),
-        slide_images: JSON.parse(product.images).map(img => `${baseUrl}/${img.replace(/^\/+/, '')}`),
+        slide_images: (() => {
+          try {
+            const arr = product.images ? JSON.parse(product.images) : [];
+            return Array.isArray(arr) ? arr.map(img => `${baseUrl}/${String(img).replace(/^\/+/, '')}`) : [];
+          } catch {
+            return [];
+          }
+        })(),
         avg_rating: parseFloat(product.avg_rating || 0).toFixed(1),
         discounted_price: discountedPrice,
         variants: variantsResult.recordset,
+        size_chart: scRel ? `${baseUrl}/${scRel}` : null,
       });
   
     } catch (err) {
@@ -252,38 +310,220 @@ exports.searchProducts = async (req, res) => {
 
 // POST new product
 exports.createProduct = async (req, res) => {
-    const { subcategory_id, name, description, price, stock_quantity } = req.body;
+    const { category_id, subcategory_id, name, description, price, stock_quantity } = req.body;
+    let { sizes, colors } = req.body;
+
     if (!name) return res.status(400).json({ error: 'Product name is required' });
 
+    // Handle array parsing (FormData sends arrays as multiple entries with same key, or JSON strings)
+    // If sent as JSON string manually:
+    try { if (typeof sizes === 'string') sizes = JSON.parse(sizes); } catch (e) { sizes = [sizes]; }
+    try { if (typeof colors === 'string') colors = JSON.parse(colors); } catch (e) { colors = [colors]; }
+    
+    // Ensure arrays
+    if (!Array.isArray(sizes)) sizes = sizes ? [sizes] : [];
+    if (!Array.isArray(colors)) colors = colors ? [colors] : [];
+
+    // Handle images
+    const files = req.files || [];
+    console.log(files)
+    const imageFiles = Array.isArray(files) ? files : (files.images || []);
+    const imagePaths = imageFiles.map(f => `assets/uploads/products/${f.filename}`);
+    const cover_img = imagePaths.length > 0 ? imagePaths[0] : null;
+    const imagesJson = JSON.stringify(imagePaths);
+
+    const transaction = new sql.Transaction();
     try {
-        await sql.query`
-            INSERT INTO products (subcategory_id, name, description, price, stock_quantity)
-            VALUES (${subcategory_id}, ${name}, ${description}, ${price}, ${stock_quantity})
+        await transaction.begin();
+        const request = new sql.Request(transaction);
+
+        // Insert Product
+        const result = await request.query`
+            INSERT INTO products (category_id, subcategory_id, name, description, price, stock_quantity, cover_img, images)
+            OUTPUT INSERTED.product_id
+            VALUES (${category_id}, ${subcategory_id || null}, ${name}, ${description}, ${price}, ${stock_quantity}, ${cover_img}, ${imagesJson})
         `;
-        res.status(201).json({ message: 'Product created' });
+        const productId = result.recordset[0].product_id;
+
+        const scFiles = (req.files && req.files.size_chart) ? req.files.size_chart : [];
+        if (Array.isArray(scFiles) && scFiles[0]) {
+            const scPath = `assets/uploads/size-charts/${scFiles[0].filename}`;
+            saveSizeChartForProduct(productId, scPath);
+        }
+
+        // Get IDs for colors and sizes
+        let colorIds = [];
+        if (colors.length > 0) {
+            const allColors = await request.query`SELECT color_id, name FROM product_colors`;
+            const colorMap = new Map(allColors.recordset.map(c => [c.name.toLowerCase(), c.color_id]));
+            colorIds = colors.map(n => colorMap.get(String(n).toLowerCase())).filter(id => id);
+        }
+
+        let sizeIds = [];
+        if (sizes.length > 0) {
+            const allSizes = await request.query`SELECT size_id, name FROM product_sizes`;
+            const sizeMap = new Map(allSizes.recordset.map(s => [s.name.toLowerCase(), s.size_id]));
+            sizeIds = sizes.map(n => sizeMap.get(String(n).toLowerCase())).filter(id => id);
+        }
+
+        // Generate Variants
+        if (colorIds.length > 0 && sizeIds.length > 0) {
+            for (const colorId of colorIds) {
+                for (const sizeId of sizeIds) {
+                    await request.query`
+                        INSERT INTO product_variants (product_id, color_id, size_id, price, image, stock_quantity)
+                        VALUES (${productId}, ${colorId}, ${sizeId}, ${price}, ${cover_img}, ${stock_quantity})
+                    `;
+                }
+            }
+        } else if (colorIds.length > 0) {
+             for (const colorId of colorIds) {
+                 await request.query`
+                    INSERT INTO product_variants (product_id, color_id, price, image, stock_quantity)
+                    VALUES (${productId}, ${colorId}, ${price}, ${cover_img}, ${stock_quantity})
+                 `;
+             }
+        } else if (sizeIds.length > 0) {
+             for (const sizeId of sizeIds) {
+                 await request.query`
+                    INSERT INTO product_variants (product_id, size_id, price, image, stock_quantity)
+                    VALUES (${productId}, ${sizeId}, ${price}, ${cover_img}, ${stock_quantity})
+                 `;
+             }
+        }
+
+        await transaction.commit();
+        res.status(201).json({ message: 'Product created', productId });
     } catch (err) {
+        if (transaction._aborted === false) await transaction.rollback();
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: 'Server error: ' + err.message });
     }
 };
 
-// PUT update product
+// PUT update product (also reconciles variants)
 exports.updateProduct = async (req, res) => {
     const { id } = req.params;
-    const { subcategory_id, name, description, price, stock_quantity } = req.body;
+    let { subcategory_id, name, description, price, stock_quantity, sizes, colors } = req.body;
     if (!name) return res.status(400).json({ error: 'Product name is required' });
 
+    // Parse arrays if needed
+    try { if (typeof sizes === 'string') sizes = JSON.parse(sizes); } catch (e) { /* keep as is */ }
+    try { if (typeof colors === 'string') colors = JSON.parse(colors); } catch (e) { /* keep as is */ }
+    if (!Array.isArray(sizes)) sizes = sizes ? [sizes] : [];
+    if (!Array.isArray(colors)) colors = colors ? [colors] : [];
+
+    const transaction = new sql.Transaction();
     try {
-        const result = await sql.query`
-            UPDATE products
-            SET subcategory_id = ${subcategory_id}, name = ${name}, description = ${description}, price = ${price}, stock_quantity = ${stock_quantity}
+        await transaction.begin();
+        const request = new sql.Request(transaction);
+
+        // Images update (optional)
+        let cover_img_update = null;
+        let images_json_update = null;
+        const files = req.files || [];
+        const imageFiles = Array.isArray(files) ? files : (files.images || []);
+        if (imageFiles.length > 0) {
+            const imagePaths = imageFiles.map(f => `assets/uploads/products/${f.filename}`);
+            cover_img_update = imagePaths[0] || null;
+            images_json_update = JSON.stringify(imagePaths);
+        }
+
+        // Update product base fields (+ images if present)
+        if (images_json_update !== null) {
+            await request.query`
+                UPDATE products
+                SET subcategory_id = ${subcategory_id}, name = ${name}, description = ${description},
+                    price = ${price}, stock_quantity = ${stock_quantity},
+                    cover_img = ${cover_img_update}, images = ${images_json_update}
+                WHERE product_id = ${id}
+            `;
+        } else {
+            await request.query`
+                UPDATE products
+                SET subcategory_id = ${subcategory_id}, name = ${name}, description = ${description},
+                    price = ${price}, stock_quantity = ${stock_quantity}
+                WHERE product_id = ${id}
+            `;
+        }
+
+        // Save size chart if uploaded
+        const scFilesUpd = (req.files && req.files.size_chart) ? req.files.size_chart : [];
+        if (Array.isArray(scFilesUpd) && scFilesUpd[0]) {
+            const scPath = `assets/uploads/size-charts/${scFilesUpd[0].filename}`;
+            saveSizeChartForProduct(id, scPath);
+        }
+
+        // Build desired variants from provided colors/sizes
+        let colorIds = [];
+        if (colors.length > 0) {
+            const allColors = await request.query`SELECT color_id, name FROM product_colors`;
+            const colorMap = new Map(allColors.recordset.map(c => [c.name.toLowerCase(), c.color_id]));
+            colorIds = colors.map(n => colorMap.get(String(n).toLowerCase())).filter(cid => cid);
+        }
+
+        let sizeIds = [];
+        if (sizes.length > 0) {
+            const allSizes = await request.query`SELECT size_id, name FROM product_sizes`;
+            const sizeMap = new Map(allSizes.recordset.map(s => [s.name.toLowerCase(), s.size_id]));
+            sizeIds = sizes.map(n => sizeMap.get(String(n).toLowerCase())).filter(sid => sid);
+        }
+
+        const desiredKeys = new Set();
+        const desiredPairs = [];
+        if (colorIds.length > 0 && sizeIds.length > 0) {
+            for (const c of colorIds) for (const s of sizeIds) {
+                const key = `${c}-${s}`;
+                desiredKeys.add(key);
+                desiredPairs.push({ color_id: c, size_id: s });
+            }
+        } else if (colorIds.length > 0) {
+            for (const c of colorIds) {
+                const key = `${c}-0`;
+                desiredKeys.add(key);
+                desiredPairs.push({ color_id: c, size_id: null });
+            }
+        } else if (sizeIds.length > 0) {
+            for (const s of sizeIds) {
+                const key = `0-${s}`;
+                desiredKeys.add(key);
+                desiredPairs.push({ color_id: null, size_id: s });
+            }
+        }
+
+        // Load existing variants
+        const existing = await request.query`
+            SELECT variant_id, color_id, size_id
+            FROM product_variants
             WHERE product_id = ${id}
         `;
-        if (result.rowsAffected[0] === 0) {
-            return res.status(404).json({ error: 'Product not found' });
+        const existingRows = existing.recordset;
+        const existingMap = new Map(existingRows.map(v => [`${v.color_id || 0}-${v.size_id || 0}`, v]));
+
+        // Insert missing variants
+        for (const pair of desiredPairs) {
+            const key = `${pair.color_id || 0}-${pair.size_id || 0}`;
+            if (!existingMap.has(key)) {
+                await request.query`
+                    INSERT INTO product_variants (product_id, color_id, size_id, price, image, stock_quantity)
+                    VALUES (${id}, ${pair.color_id}, ${pair.size_id}, ${price}, NULL, ${stock_quantity})
+                `;
+            }
         }
+
+        // Delete variants no longer desired
+        for (const [key, v] of existingMap.entries()) {
+            if (!desiredKeys.has(key)) {
+                await request.query`
+                    DELETE FROM product_variants WHERE variant_id = ${v.variant_id}
+                `;
+            }
+        }
+
+        await transaction.commit();
         res.json({ message: 'Product updated' });
     } catch (err) {
+        if (transaction._aborted === false) await transaction.rollback();
         console.error(err);
         res.status(500).json({ error: 'Server error' });
     }

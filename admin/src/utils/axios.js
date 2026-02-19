@@ -4,7 +4,7 @@ import { message } from 'antd';
 
 // Create an Axios instance
 const axiosInstance = axios.create({
-  baseURL:`${import.meta.env.VITE_BACKEND_SERVER_URL}` || 'https://elmaghrib.com/', // Update as needed
+  baseURL:`${import.meta.env.VITE_BACKEND_SERVER_URL}` || 'http://elmaghrib.com/', // Update as needed
   withCredentials: true,
 });
 

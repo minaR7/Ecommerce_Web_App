@@ -123,7 +123,8 @@ exports.registerUser = async (req, res) => {
 };
 
 exports.getUsers = async (req, res) => {
-  const { registered, admin } = req.query;
+  const { admin, isAdmin } = req.query;
+  const request = new sql.Request();
 
   let query = `
     SELECT u.user_id, u.first_name, u.last_name, u.email, u.address, u.created_at, u.is_registered,
@@ -132,26 +133,107 @@ exports.getUsers = async (req, res) => {
     LEFT JOIN credentials c ON u.user_id = c.user_id
     WHERE 1=1
   `;
-  const values = [];
 
-  if (registered === 'true') {
-    query += ' AND u.is_registered = true';
-  } else if (registered === 'false') {
-    query += ' AND u.is_registered = false';
+  if (isAdmin === 'true' || isAdmin === 'false') {
+    query += ' AND u.is_registered = @is_registered';
+    request.input('is_registered', sql.Bit, isAdmin === 'true' ? 1 : 0);
   }
 
-  if (admin === 'true') {
-    query += ' AND c.is_admin = true';
-  } else if (admin === 'false') {
-    query += ' AND (c.is_admin = false OR c.is_admin IS NULL)';
+  const adminFlag = typeof isAdmin !== 'undefined' ? isAdmin : admin;
+  if (adminFlag === 'true' || adminFlag === 'false') {
+    if (adminFlag === 'true') {
+      query += ' AND c.is_admin = @is_admin';
+      request.input('is_admin', sql.Bit, 1);
+    } else {
+      query += ' AND (c.is_admin = @is_admin OR c.is_admin IS NULL)';
+      request.input('is_admin', sql.Bit, 0);
+    }
   }
 
   try {
-    const result = await sql.query(query, values);
+    const result = await request.query(query);
     console.log('users:', result.recordset)
     res.status(200).json(result.recordset);
   } catch (error) {
     console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+exports.updateUser = async (req, res) => {
+  const { id } = req.params;
+  const { first_name, last_name, email, address, is_admin } = req.body;
+
+  const request = new sql.Request();
+  request.input('id', sql.Int, id);
+  request.input('first_name', sql.VarChar, first_name);
+  request.input('last_name', sql.VarChar, last_name);
+  request.input('email', sql.VarChar, email);
+  request.input('address', sql.VarChar, address);
+  request.input('is_admin', sql.Bit, is_admin);
+
+  try {
+    // Update users table
+    await request.query(`
+      UPDATE users
+      SET first_name = @first_name, last_name = @last_name, email = @email, address = @address
+      WHERE user_id = @id
+    `);
+
+    // Update credentials table (for is_admin)
+    // Note: This assumes a credential record exists. If not, we might need to insert one, but for now update.
+    await request.query(`
+      UPDATE credentials
+      SET is_admin = @is_admin
+      WHERE user_id = @id
+    `);
+
+    res.status(200).json({ message: 'User updated successfully' });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  const { id } = req.params;
+  const request = new sql.Request();
+  request.input('id', sql.Int, id);
+
+  try {
+    // Delete from credentials first (foreign key)
+    await request.query('DELETE FROM credentials WHERE user_id = @id');
+    // Delete from users
+    await request.query('DELETE FROM users WHERE user_id = @id');
+
+    res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+exports.getCustomers = async (req, res) => {
+  try {
+    const result = await sql.query(`
+      SELECT 
+        u.user_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.created_at AS since,
+        COUNT(o.order_id) AS orders_count,
+        COALESCE(SUM(o.total_amount), 0) AS total_spent
+      FROM users u
+      LEFT JOIN orders o ON o.user_id = u.user_id
+      LEFT JOIN credentials c ON c.user_id = u.user_id
+      WHERE (c.is_admin = 0 OR c.is_admin IS NULL) AND u.is_registered = 1
+      GROUP BY u.user_id, u.first_name, u.last_name, u.email, u.created_at
+      ORDER BY total_spent DESC
+    `);
+    res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error('Error fetching customers:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };

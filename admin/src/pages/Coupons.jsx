@@ -18,10 +18,19 @@ const Coupons = () => {
     setLoading(true);
     try {
       const data = await couponsApi.getAll();
-      setCoupons(data);
+      setCoupons(Array.isArray(data) ? data : []);
     } catch {
       setCoupons([
-        { id: '1', code: 'SUMMER20', discountType: 'percentage', discountValue: 20, usedCount: 45, validFrom: '2024-06-01', validUntil: '2024-08-31', status: 'active' }
+        {
+          id: '1',
+          code: 'SUMMER20',
+          discountType: 'percentage',
+          discountValue: 20,
+          usedCount: 45,
+          validFrom: '2024-06-01',
+          validUntil: '2024-08-31',
+          status: 'active',
+        },
       ]);
     } finally {
       setLoading(false);
@@ -37,7 +46,7 @@ const Coupons = () => {
       ...values, 
       discountType: 'percentage',
       validFrom: values.validFrom.format('YYYY-MM-DD'), 
-      validUntil: values.validUntil.format('YYYY-MM-DD') 
+      validUntil: values.validUntil.format('YYYY-MM-DD'),
     };
     try {
       if (editingCoupon) {
@@ -64,6 +73,7 @@ const Coupons = () => {
     { title: 'Discount', key: 'discount', render: (_, r) => <span className="text-green-400">{r.discountType === 'percentage' ? `${r.discountValue}%` : `$${r.discountValue}`}</span> },
     { title: 'Usage', key: 'usage', render: (_, r) => `${r.usedCount} / ${r.usageLimit || '∞'}` },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (s) => <span className={`px-2 py-1 rounded-full text-xs ${s === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>{s}</span> },
+
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
         <Button type="text" icon={<EditOutlined />} onClick={() => { setEditingCoupon(r); form.setFieldsValue({ ...r, validFrom: dayjs(r.validFrom), validUntil: dayjs(r.validUntil) }); setIsModalOpen(true); }} />
@@ -87,13 +97,14 @@ const Coupons = () => {
         </div>
         <div className="bg-card rounded-xl border border-border p-6">
           <Input placeholder="Search..." prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="max-w-sm mb-4" />
-          <Table columns={columns} dataSource={coupons.filter(c => c.code.toLowerCase().includes(searchText.toLowerCase()))} rowKey="id" loading={loading} />
+          <Table columns={columns} dataSource={coupons.filter(c => c.code.toLowerCase().includes(searchText.toLowerCase()))} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
         </div>
         <Modal title={editingCoupon ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={600}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
             <Form.Item name="code" label="Code" rules={[{ required: true }]}><Input /></Form.Item>
             <Form.Item name="validFrom" label="From" rules={[{ required: true }]}><DatePicker className="w-full" /></Form.Item>
             <Form.Item name="validUntil" label="Until" rules={[{ required: true }]}><DatePicker className="w-full" /></Form.Item>
+
             <div className="grid grid-cols-3 gap-4">
               <Form.Item name="discountValue" label="Value" rules={[{ required: true }]}><InputNumber className="w-full" /></Form.Item>
               <Form.Item name="usageLimit" label="Usage Limit" rules={[{ required: false }]}><InputNumber className="w-full" /></Form.Item>

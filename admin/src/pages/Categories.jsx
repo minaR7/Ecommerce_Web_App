@@ -33,6 +33,7 @@ const Categories = () => {
   const handleAdd = () => { setEditingCategory(null); form.resetFields(); setFileList([]); setIsModalOpen(true); };
   const handleEdit = (record) => { 
     setEditingCategory(record); 
+    console.log(record)
     form.setFieldsValue(record); 
     if (record.img || record.cover_img) {
       setFileList([{
@@ -50,40 +51,71 @@ const Categories = () => {
     try { await categoriesApi.delete(id); message.success('Deleted'); fetchCategories(); }
     catch { setCategories(categories.filter(c => c.category_id !== id)); }
   };
+
   const handleSubmit = async (values) => {
-    const imageUrl = fileList[0]?.url || fileList[0]?.response?.url || (fileList[0]?.originFileObj ? URL.createObjectURL(fileList[0].originFileObj) : undefined);
-    const payload = { ...values, img: imageUrl };
+    // const imageUrl = fileList[0]?.url || fileList[0]?.response?.url || (fileList[0]?.originFileObj ? URL.createObjectURL(fileList[0].originFileObj) : undefined);
+    // const payload = { ...values, img: imageUrl };
     try {
-      if (editingCategory) await categoriesApi.update(editingCategory.category_id, payload);
-      else await categoriesApi.create(payload);
-      setIsModalOpen(false); fetchCategories();
-    } catch {
-      if (editingCategory) setCategories(categories.map(c => c.category_id === editingCategory.category_id ? { ...c, ...payload } : c));
-      else setCategories([...categories, { category_id: Date.now(), ...payload, created_at: new Date().toISOString() }]);
+      // if (editingCategory) await categoriesApi.update(editingCategory.category_id, payload);
+      // else await categoriesApi.create(payload);
+      // setIsModalOpen(false); fetchCategories();
+      const hasNewFile = !!fileList[0]?.originFileObj;
+      if (editingCategory) {
+        if (hasNewFile) {
+          const formData = new FormData();
+          formData.append('name', values.name);
+          formData.append('description', values.description || '');
+          formData.append('image', fileList[0].originFileObj);
+          await categoriesApi.update(editingCategory.category_id, formData);
+        } else {
+          const payload = {
+            name: values.name,
+            description: values.description || '',
+            img: fileList[0]?.url || null,
+          };
+          await categoriesApi.update(editingCategory.category_id, payload);
+        }
+      } else {
+        if (!hasNewFile) {
+          message.error('Please upload a category image');
+          return;
+        }
+        const formData = new FormData();
+        formData.append('name', values.name);
+        formData.append('description', values.description || '');
+        formData.append('image', fileList[0].originFileObj);
+        await categoriesApi.create(formData);
+      }
       setIsModalOpen(false);
+      fetchCategories();
+    } catch (err) {
+      // if (editingCategory) setCategories(categories.map(c => c.category_id === editingCategory.category_id ? { ...c, ...payload } : c));
+      // else setCategories([...categories, { category_id: Date.now(), ...payload, created_at: new Date().toISOString() }]);
+      setIsModalOpen(false);
+      message.error(err.message || 'Failed to save category');
     }
   };
   
   const handleUploadChange = async ({ file, fileList: newFileList }) => {
     if (newFileList.length > 1) return;
     setFileList(newFileList);
-    if (file && file.status === 'done' && file.response?.url) {
-      return;
-    }
-    if (file && file.originFileObj) {
-      try {
-        const res = await categoriesApi.upload(file.originFileObj);
-        const updated = [{
-          uid: file.uid,
-          name: file.name,
-          status: 'done',
-          url: `${import.meta.env.VITE_API_URL}/${res.url}`,
-        }];
-        setFileList(updated);
-      } catch {
-        message.error('Upload failed');
-      }
-    }
+    // if (file && file.status === 'done' && file.response?.url) {
+    //   return;
+    // }
+    // if (file && file.originFileObj) {
+    //   try {
+    //     const res = await categoriesApi.upload(file.originFileObj);
+    //     const updated = [{
+    //       uid: file.uid,
+    //       name: file.name,
+    //       status: 'done',
+    //       url: `${import.meta.env.VITE_API_URL}/${res.url}`,
+    //     }];
+    //     setFileList(updated);
+    //   } catch {
+    //     message.error('Upload failed');
+    //   }
+    // }
   };
 
   const columns = [
@@ -95,7 +127,9 @@ const Categories = () => {
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
         <AppButton type="text" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
-        <Popconfirm title="Delete?" onConfirm={() => handleDelete(r.category_id)}><AppButton type="text" icon={<DeleteOutlined />} className="text-red-400" /></Popconfirm>
+        <Popconfirm title="Delete?" onConfirm={() => handleDelete(r.category_id)} okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}>
+          <AppButton type="text" icon={<DeleteOutlined />} className="text-red-400" />
+        </Popconfirm>
       </Space>
     )}
   ];
@@ -115,13 +149,13 @@ const Categories = () => {
         </div>
         <div className="bg-card rounded-xl border border-border p-6">
           <Input placeholder="Search..." prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="max-w-sm mb-4" />
-          <Table columns={columns} dataSource={categories.filter(c => c.name.toLowerCase().includes(searchText.toLowerCase()))} rowKey="category_id" loading={loading} />
+          <Table columns={columns} dataSource={categories.filter(c => c.name.toLowerCase().includes(searchText.toLowerCase()))} rowKey="category_id" loading={loading} scroll={{ x: 'max-content' }} />
         </div>
         <Modal title={editingCategory ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
             <Form.Item name="name" label="Name" rules={[{ required: true }]}><Input /></Form.Item>
             <Form.Item name="description" label="Description"><Input.TextArea rows={3} /></Form.Item>
-            <Form.Item label="Category Image">
+            <Form.Item label="Cover Image">
               <Upload
                 listType="picture-card"
                 fileList={fileList}

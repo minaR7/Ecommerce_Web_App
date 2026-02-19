@@ -1,9 +1,65 @@
 import React from "react";
-import { Card, Typography } from "antd";
+import { Card, Typography, Spin } from "antd";
+import { usePageContent } from "../../hooks/usePageContent";
 
 const { Title, Paragraph } = Typography;
 
+const Section = ({ number, title, content, list }) => {
+  return (
+    <div className="mb-10 pb-6 border-b border-gray-200 last:border-none last:pb-0">
+
+      <div className="flex items-start">
+        <div className="w-10 h-10 rounded-full bg-[#202836] text-white flex items-center justify-center font-bold text-lg mr-4">
+          {number}
+        </div>
+
+        <Title level={3} className="!text-2xl font-semibold text-gray-800 m-0">
+          {title}
+        </Title>
+      </div>
+
+      <div className="mt-4 ml-14 text-gray-600 text-base leading-relaxed">
+        {content && <Paragraph>{content}</Paragraph>}
+
+        {list && (
+          <ul className="list-disc pl-5">
+            {list.map((item, idx) => (
+              <li key={idx} className="mb-2">{item}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const LegalNotice = () => {
+  const { page, loading } = usePageContent('legal-notice');
+
+  if (loading) {
+    return <div className="min-h-screen flex justify-center items-center"><Spin size="large" /></div>;
+  }
+
+  if (page) {
+    return (
+      <div className="min-h-screen w-full py-10 px-4 flex justify-center">
+        <div className="w-full max-w-4xl">
+          <Card className="text-center shadow-md rounded-xl mb-8">
+            <Title level={1} className="!text-4xl md:!text-5xl font-bold text-gray-900 mb-0">
+              {page.title}
+            </Title>
+            <p className="text-gray-500 italic text-base">
+              Last Updated: {new Date(page.updated_at).toLocaleDateString()}
+            </p>
+          </Card>
+          <Card className="shadow-md rounded-xl p-6 md:p-10">
+            <div dangerouslySetInnerHTML={{ __html: page.content }} className="prose max-w-none" />
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full py-10 px-4 flex justify-center">
       <div className="w-full max-w-4xl">
@@ -81,37 +137,3 @@ const LegalNotice = () => {
 };
 
 export default LegalNotice;
-
-
-
-// ------------------------------------------------
-// Reusable Section Component (JSX version)
-// ------------------------------------------------
-const Section = ({ number, title, content, list }) => {
-  return (
-    <div className="mb-10 pb-6 border-b border-gray-200 last:border-none last:pb-0">
-
-      <div className="flex items-start">
-        <div className="w-10 h-10 rounded-full bg-[#202836] text-white flex items-center justify-center font-bold text-lg mr-4">
-          {number}
-        </div>
-
-        <Title level={3} className="!text-2xl font-semibold text-gray-800 m-0">
-          {title}
-        </Title>
-      </div>
-
-      <div className="mt-4 ml-14 text-gray-600 text-base leading-relaxed">
-        {content && <Paragraph>{content}</Paragraph>}
-
-        {list && (
-          <ul className="list-disc pl-5">
-            {list.map((item, idx) => (
-              <li key={idx} className="mb-2">{item}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-};

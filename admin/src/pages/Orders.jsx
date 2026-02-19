@@ -201,6 +201,7 @@ const Orders = () => {
           rowKey="order_id"
           className="admin-table"
           pagination={{ pageSize: 10 }}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
 
