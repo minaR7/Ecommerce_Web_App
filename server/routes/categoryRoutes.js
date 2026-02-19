@@ -8,7 +8,7 @@ router.get('/:id', categoryController.getCategoryById);
 // router.post('/', categoryController.createCategory);
 router.post('/', uploadCategoryImage, categoryController.createCategory);
 // router.post('/', uploadCategoryImage.single('image'), categoryController.createCategory);
-router.put('/:id', categoryController.updateCategory);
+router.put('/:id', uploadCategoryImage, categoryController.updateCategory);
 router.delete('/:id', categoryController.deleteCategory);
 // router.post('/upload', uploadCategoryImage, (req, res) => {
 //   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
