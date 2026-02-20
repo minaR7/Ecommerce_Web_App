@@ -443,14 +443,43 @@ exports.updateProduct = async (req, res) => {
         await transaction.begin();
         const request = new sql.Request(transaction);
 
-        // Images update (optional)
+        // Images update (support removal of existing + add new)
         let images_json_update = null;
         const files = req.files || {};
         const imageFiles = files.images || [];
         const coverFiles = files.cover_img || [];
-        if (imageFiles.length > 0) {
-            const imagePaths = imageFiles.map(f => `assets/uploads/products/${f.filename}`);
-            images_json_update = JSON.stringify(imagePaths);
+        // Load current images
+        const mediaRes = await request.query`SELECT images FROM products WHERE product_id = ${id}`;
+        let currentImages = [];
+        try { currentImages = mediaRes.recordset[0]?.images ? JSON.parse(mediaRes.recordset[0].images) : []; } catch { currentImages = []; }
+        // Parse keep list from body (if provided)
+        let keepRel = null;
+        if (req.body.images_keep) {
+            try {
+                const keepArr = typeof req.body.images_keep === 'string' ? JSON.parse(req.body.images_keep) : req.body.images_keep;
+                if (Array.isArray(keepArr)) {
+                    keepRel = keepArr.map(v => {
+                        if (typeof v !== 'string') return null;
+                        return v.replace(/^https?:\/\/[^/]+\/(.*)$/, '$1');
+                    }).filter(Boolean);
+                }
+            } catch { keepRel = null; }
+        }
+        const newImagePaths = imageFiles.map(f => `assets/uploads/products/${f.filename}`);
+        if (keepRel || newImagePaths.length > 0) {
+            const finalImages = [...(keepRel || currentImages), ...newImagePaths];
+            // Delete removed files if keepRel provided
+            if (keepRel) {
+                for (const img of currentImages) {
+                    if (!keepRel.includes(img)) {
+                        try {
+                            const abs = require('path').join(__dirname, '..', img);
+                            if (fs.existsSync(abs)) fs.unlinkSync(abs);
+                        } catch {}
+                    }
+                }
+            }
+            images_json_update = JSON.stringify(finalImages);
         }
         // Fetch current cover image
         const currentCoverRes = await request.query`SELECT cover_img FROM products WHERE product_id = ${id}`;
@@ -488,9 +517,16 @@ exports.updateProduct = async (req, res) => {
         const sizeChartMap = loadSizeChartMap();
         const existingSC = sizeChartMap[String(id)];
         if (sizeChartField === 'null') {
+            if (existingSC) {
+                const absSc = require('path').join(__dirname, '..', existingSC);
+                if (fs.existsSync(absSc)) fs.unlinkSync(absSc);
+            }
             deleteSizeChartForProduct(id);
         } else if (Array.isArray(scFilesUpd) && scFilesUpd[0]) {
-            if (existingSC) deleteFileSafe(existingSC);
+            if (existingSC) {
+                const absSc = require('path').join(__dirname, '..', existingSC);
+                if (fs.existsSync(absSc)) fs.unlinkSync(absSc);
+            }
             const scPath = `assets/uploads/size-charts/${scFilesUpd[0].filename}`;
             saveSizeChartForProduct(id, scPath);
         }
@@ -573,15 +609,48 @@ exports.updateProduct = async (req, res) => {
 // DELETE product
 exports.deleteProduct = async (req, res) => {
     const { id } = req.params;
+    const transaction = new sql.Transaction();
     try {
-        const result = await sql.query`
+        await transaction.begin();
+        const request = new sql.Request(transaction);
+        // Load product media
+        const prodRes = await request.query`
+            SELECT cover_img, images FROM products WHERE product_id = ${id}
+        `;
+        if (prodRes.recordset.length === 0) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Product not found' });
+        }
+        const cover = prodRes.recordset[0].cover_img || null;
+        let imgs = [];
+        try { imgs = prodRes.recordset[0].images ? JSON.parse(prodRes.recordset[0].images) : []; } catch { imgs = []; }
+        // Delete image files
+        if (cover) {
+            const abs = require('path').join(__dirname, '..', cover);
+            try { if (fs.existsSync(abs)) fs.unlinkSync(abs); } catch {}
+        }
+        for (const img of imgs) {
+            const abs = require('path').join(__dirname, '..', img);
+            try { if (fs.existsSync(abs)) fs.unlinkSync(abs); } catch {}
+        }
+        // Delete size chart
+        deleteSizeChartForProduct(id);
+        // Delete variants
+        await request.query`
+            DELETE FROM product_variants WHERE product_id = ${id}
+        `;
+        // Delete product
+        const result = await request.query`
             DELETE FROM products WHERE product_id = ${id}
         `;
         if (result.rowsAffected[0] === 0) {
+            await transaction.rollback();
             return res.status(404).json({ error: 'Product not found' });
         }
+        await transaction.commit();
         res.json({ message: 'Product deleted' });
     } catch (err) {
+        if (transaction._aborted === false) await transaction.rollback();
         console.error(err);
         res.status(500).json({ error: 'Server error' });
     }

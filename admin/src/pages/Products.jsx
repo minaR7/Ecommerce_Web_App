@@ -42,6 +42,7 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [fileList, setFileList] = useState([]);
+  const [coverImageUpload, setCoverImageUpload] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   
   const [sizeChartUpload, setSizeChartUpload] = useState([]);
@@ -148,15 +149,18 @@ const Products = () => {
         status: 'done',
         url,
       })));
-    } else if (product.cover_img) {
-      setFileList([{
-        uid: '-1',
-        name: 'image.jpg',
+    } else {
+      setFileList([]);
+    }
+    if (product.cover_img) {
+      setCoverImageUpload([{
+        uid: '-c1',
+        name: 'cover.jpg',
         status: 'done',
         url: product.cover_img,
       }]);
     } else {
-      setFileList([]);
+      setCoverImageUpload([]);
     }
     
     form.setFieldsValue({
@@ -187,44 +191,48 @@ const Products = () => {
   const handleSubmit = async (values) => {
     try {
       if (editingProduct) {
-          const needsFileUpload = sizeChartUpload.length > 0 || fileList.some(f => f.originFileObj);
-          if (needsFileUpload) {
-            const formData = new FormData();
-            formData.append('category_id', values.categoryId);
-            if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
-            formData.append('name', values.name);
-            formData.append('description', values.description);
-            formData.append('price', values.price);
-            formData.append('stock_quantity', values.stock_quantity);
-            formData.append('discount_percentage', values.discount_percentage || 0);
-            if (values.sizes) formData.append('sizes', JSON.stringify(values.sizes));
-            if (values.colors) formData.append('colors', JSON.stringify(values.colors));
-            fileList.forEach(file => {
-              if (file.originFileObj) {
-                formData.append('images', file.originFileObj);
-              }
-            });
-            if (sizeChartUpload[0]?.originFileObj) {
-              formData.append('size_chart', sizeChartUpload[0].originFileObj);
+          const formData = new FormData();
+          formData.append('category_id', values.categoryId);
+          if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
+          formData.append('name', values.name);
+          formData.append('description', values.description);
+          formData.append('price', values.price);
+          formData.append('stock_quantity', values.stock_quantity);
+          formData.append('discount_percentage', values.discount_percentage || 0);
+          if (values.sizes) formData.append('sizes', JSON.stringify(values.sizes));
+          if (values.colors) formData.append('colors', JSON.stringify(values.colors));
+          // Product images: only append new files (existing URLs are kept server-side)
+          fileList.forEach(file => {
+            if (file.originFileObj) {
+              formData.append('images', file.originFileObj);
             }
-            await productsApi.update(editingProduct.product_id || editingProduct.id, formData);
-          } else {
-            const payload = {
-              category_id: values.categoryId,
-              subcategory_id: values.subcategoryId,
-              name: values.name,
-              description: values.description,
-              price: values.price,
-              stock_quantity: values.stock_quantity,
-              discount_percentage: values.discount_percentage,
-              colors: values.colors,
-              sizes: values.sizes,
-            };
-            await productsApi.update(editingProduct.product_id || editingProduct.id, payload);
+          });
+          // Send remaining existing image URLs so server can delete removed ones
+          const keepUrls = fileList
+            .filter(f => f.url && !f.originFileObj)
+            .map(f => f.url);
+          formData.append('images_keep', JSON.stringify(keepUrls));
+          // Cover image replace/remove
+          if (coverImageUpload[0]?.originFileObj) {
+            formData.append('cover_img', coverImageUpload[0].originFileObj);
+          } else if (!coverImageUpload.length && editingProduct.cover_img) {
+            // user removed existing cover
+            formData.append('cover_img', 'null');
           }
-        message.success('Product updated successfully');
+          // Size chart replace/remove
+          if (sizeChartUpload[0]?.originFileObj) {
+            formData.append('size_chart', sizeChartUpload[0].originFileObj);
+          } else if (!sizeChartUpload.length && editingProduct.size_chart) {
+            formData.append('size_chart', 'null');
+          }
+          await productsApi.update(editingProduct.product_id || editingProduct.id, formData);
+          message.success('Product updated successfully');
       } else {
           // Create with FormData
+          if (fileList.length < 1 || !fileList.some(f => f.originFileObj)) {
+            message.error('Please upload at least one product image');
+            return;
+          }
           const formData = new FormData();
           formData.append('category_id', values.categoryId);
           if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
@@ -243,6 +251,10 @@ const Products = () => {
                   formData.append('images', file.originFileObj);
               }
           });
+          // Optional cover image
+          if (coverImageUpload[0]?.originFileObj) {
+            formData.append('cover_img', coverImageUpload[0].originFileObj);
+          }
           if (sizeChartUpload[0]?.originFileObj) {
             formData.append('size_chart', sizeChartUpload[0].originFileObj);
           }
@@ -258,6 +270,7 @@ const Products = () => {
       form.resetFields();
       setFileList([]);
       setSizeChartUpload([]);
+      setCoverImageUpload([]);
     } catch (error) {
       console.error('Failed to save product:', error);
       message.error('Failed to save product: ' + error.message);
@@ -617,7 +630,26 @@ const Products = () => {
               {fileList.length >= 10 ? null : uploadButton}
             </Upload>
             <p className="text-muted-foreground text-xs mt-2">
-              Upload up to 10 product images. First image will be used as the main product image.
+              Upload 1–10 product images.
+            </p>
+          </Form.Item>
+
+          <Form.Item
+            label="Cover Image (optional)"
+          >
+            <Upload
+              listType="picture-card"
+              fileList={coverImageUpload}
+              onChange={({ fileList }) => setCoverImageUpload(fileList)}
+              beforeUpload={() => false}
+              maxCount={1}
+              accept="image/*"
+              className="cover-image-upload"
+            >
+              {coverImageUpload.length >= 1 ? null : uploadButton}
+            </Upload>
+            <p className="text-muted-foreground text-xs mt-2">
+              Set a single cover image for product cards.
             </p>
           </Form.Item>
 
