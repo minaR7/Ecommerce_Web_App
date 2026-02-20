@@ -25,6 +25,28 @@ const saveSizeChartForProduct = (productId, urlPath) => {
   fs.writeFileSync(SIZE_CHARTS_FILE, JSON.stringify(map, null, 2));
 };
 
+const deleteSizeChartForProduct = (productId) => {
+  ensureDataDir();
+  const map = loadSizeChartMap();
+  const key = String(productId);
+  const existing = map[key];
+  if (existing) {
+    try {
+      const abs = path.join(__dirname, '..', existing);
+      if (fs.existsSync(abs)) fs.unlinkSync(abs);
+    } catch {}
+  }
+  delete map[key];
+  fs.writeFileSync(SIZE_CHARTS_FILE, JSON.stringify(map, null, 2));
+};
+
+const deleteFileSafe = (relPath) => {
+  try {
+    if (!relPath) return;
+    const abs = path.join(__dirname, '..', relPath);
+    if (fs.existsSync(abs)) fs.unlinkSync(abs);
+  } catch {}
+};
 // GET all products, or filter by subcategory
 // exports.getProducts = async (req, res) => {
 //     const { subcategory } = req.query;
@@ -325,11 +347,14 @@ exports.createProduct = async (req, res) => {
     if (!Array.isArray(colors)) colors = colors ? [colors] : [];
 
     // Handle images
-    const files = req.files || [];
-    console.log(files)
-    const imageFiles = Array.isArray(files) ? files : (files.images || []);
+    const files = req.files || {};
+    const imageFiles = files.images || [];
+    const coverFiles = files.cover_img || [];
     const imagePaths = imageFiles.map(f => `assets/uploads/products/${f.filename}`);
-    const cover_img = imagePaths.length > 0 ? imagePaths[0] : null;
+    const cover_img = coverFiles[0] ? `assets/uploads/products/${coverFiles[0].filename}` : null;
+    if (imagePaths.length < 1) {
+        return res.status(400).json({ error: 'At least one product image is required' });
+    }
     const imagesJson = JSON.stringify(imagePaths);
 
     const transaction = new sql.Transaction();
@@ -345,7 +370,7 @@ exports.createProduct = async (req, res) => {
         `;
         const productId = result.recordset[0].product_id;
 
-        const scFiles = (req.files && req.files.size_chart) ? req.files.size_chart : [];
+        const scFiles = (files.size_chart) ? files.size_chart : [];
         if (Array.isArray(scFiles) && scFiles[0]) {
             const scPath = `assets/uploads/size-charts/${scFiles[0].filename}`;
             saveSizeChartForProduct(productId, scPath);
@@ -404,7 +429,7 @@ exports.createProduct = async (req, res) => {
 // PUT update product (also reconciles variants)
 exports.updateProduct = async (req, res) => {
     const { id } = req.params;
-    let { subcategory_id, name, description, price, stock_quantity, sizes, colors } = req.body;
+    let { subcategory_id, name, description, price, stock_quantity, sizes, colors, cover_img: coverImgField, size_chart: sizeChartField } = req.body;
     if (!name) return res.status(400).json({ error: 'Product name is required' });
 
     // Parse arrays if needed
@@ -419,14 +444,25 @@ exports.updateProduct = async (req, res) => {
         const request = new sql.Request(transaction);
 
         // Images update (optional)
-        let cover_img_update = null;
         let images_json_update = null;
-        const files = req.files || [];
-        const imageFiles = Array.isArray(files) ? files : (files.images || []);
+        const files = req.files || {};
+        const imageFiles = files.images || [];
+        const coverFiles = files.cover_img || [];
         if (imageFiles.length > 0) {
             const imagePaths = imageFiles.map(f => `assets/uploads/products/${f.filename}`);
-            cover_img_update = imagePaths[0] || null;
             images_json_update = JSON.stringify(imagePaths);
+        }
+        // Fetch current cover image
+        const currentCoverRes = await request.query`SELECT cover_img FROM products WHERE product_id = ${id}`;
+        const currentCover = currentCoverRes.recordset[0]?.cover_img || null;
+        // Handle cover image removal/replacement
+        if (coverImgField === 'null') {
+            deleteFileSafe(currentCover);
+            await request.query`UPDATE products SET cover_img = ${null} WHERE product_id = ${id}`;
+        } else if (coverFiles.length > 0) {
+            deleteFileSafe(currentCover);
+            const newCover = `assets/uploads/products/${coverFiles[0].filename}`;
+            await request.query`UPDATE products SET cover_img = ${newCover} WHERE product_id = ${id}`;
         }
 
         // Update product base fields (+ images if present)
@@ -435,7 +471,7 @@ exports.updateProduct = async (req, res) => {
                 UPDATE products
                 SET subcategory_id = ${subcategory_id}, name = ${name}, description = ${description},
                     price = ${price}, stock_quantity = ${stock_quantity},
-                    cover_img = ${cover_img_update}, images = ${images_json_update}
+                    images = ${images_json_update}
                 WHERE product_id = ${id}
             `;
         } else {
@@ -447,9 +483,14 @@ exports.updateProduct = async (req, res) => {
             `;
         }
 
-        // Save size chart if uploaded
-        const scFilesUpd = (req.files && req.files.size_chart) ? req.files.size_chart : [];
-        if (Array.isArray(scFilesUpd) && scFilesUpd[0]) {
+        // Handle size chart remove/replace
+        const scFilesUpd = (files.size_chart) ? files.size_chart : [];
+        const sizeChartMap = loadSizeChartMap();
+        const existingSC = sizeChartMap[String(id)];
+        if (sizeChartField === 'null') {
+            deleteSizeChartForProduct(id);
+        } else if (Array.isArray(scFilesUpd) && scFilesUpd[0]) {
+            if (existingSC) deleteFileSafe(existingSC);
             const scPath = `assets/uploads/size-charts/${scFilesUpd[0].filename}`;
             saveSizeChartForProduct(id, scPath);
         }

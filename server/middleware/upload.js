@@ -86,6 +86,7 @@ exports.uploadProductMedia = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 }).fields([
   { name: 'images', maxCount: 10 },
+  { name: 'cover_img', maxCount: 1 },
   { name: 'size_chart', maxCount: 1 },
 ]);
 
