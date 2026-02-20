@@ -1,4 +1,6 @@
 const sql = require('mssql');
+const fs = require('fs');
+const path = require('path');
 
 // GET all subcategories
 // exports.getSubcategories = async (req, res) => {
@@ -61,7 +63,7 @@ exports.getSubcategoryById = async (req, res) => {
         res.json(result.recordset[0]);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error ${err}` });
     }
 };
 
@@ -82,7 +84,7 @@ exports.createSubcategory = async (req, res) => {
         res.status(201).json({ message: 'Subcategory created' });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error ${err}` });
     }
 };
 
@@ -93,51 +95,111 @@ exports.updateSubcategory = async (req, res) => {
     if (!name) return res.status(400).json({ error: 'Subcategory name is required' });
 
     try {
-        const result = await sql.query`
-            UPDATE subcategories
-            SET name = ${name}, description = ${description}
-            WHERE subcategory_id = ${id}
-        `;
-        if (result.rowsAffected[0] === 0) {
-            return res.status(404).json({ error: 'Subcategory not found' });
+        const request1 = new sql.Request();
+        request1.input('id', sql.Int, id);
+
+        const existingResult = await request1.query(`
+        SELECT cover_img FROM subcategories WHERE subcategory_id = @id
+        `);
+
+        if (!existingResult.recordset.length) {
+        return res.status(404).json({ error: 'Subcategory not found' });
         }
-        let imagePath = null;
+
+        const existingImage = existingResult.recordset[0].cover_img;
+        
+        let imagePath = existingImage; 
+
         if (req.file) {
             imagePath = `assets/uploads/subcategories/${req.file.filename}`;
+            if (existingImage) {
+                const oldPath = path.join(__dirname, '../', existingImage);
+                if (fs.existsSync(oldPath)) {
+                  fs.unlinkSync(oldPath);
+                }
+              }
         } else if (cover_img || image) {
             const val = cover_img || image;
             imagePath = typeof val === 'string' && val.includes('/assets/')
                 ? val.replace(/^https?:\/\/[^/]+\/(.*)$/, '$1')
                 : val || null;
         }
-        if (imagePath !== null) {
-            await sql.query`
-                UPDATE subcategories SET cover_img = ${imagePath} WHERE subcategory_id = ${id}
-            `;
+        else if (cover_img === null || image === null) {
+            imagePath = null;
+    
+            if (existingImage) {
+            const oldPath = path.join(__dirname, '../', existingImage);
+            if (fs.existsSync(oldPath)) {
+                fs.unlinkSync(oldPath);
+            }
+            }
+        }
+
+        const request2 = new sql.Request();
+        request2.input('id', sql.Int, id);
+        request2.input('name', sql.NVarChar, name);
+        request2.input('description', sql.NVarChar, description);
+        request2.input('img', sql.NVarChar, imagePath);
+
+         const result = await request2.query`
+            UPDATE subcategories
+            SET name = @name, description = @description, cover_img = @img
+            WHERE subcategory_id = @id
+        `;
+        if (result.rowsAffected[0] === 0) {
+            return res.status(404).json({ error: 'Subcategory not found' });
         }
         res.json({ message: 'Subcategory updated' });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error ${err}` });
     }
 };
 
 // DELETE subcategory
 exports.deleteSubcategory = async (req, res) => {
     const { id } = req.params;
+    const transaction = new sql.Transaction();
     try {
-        await sql.query`
-            UPDATE products SET subcategory_id = NULL WHERE subcategory_id = ${id}
+        await transaction.begin();
+        const request = new sql.Request(transaction);
+        request.input('id', sql.Int, id);
+
+        await request.query`
+            UPDATE products SET subcategory_id = NULL WHERE subcategory_id = @id
         `;
-        const result = await sql.query`
-            DELETE FROM subcategories WHERE subcategory_id = ${id}
+
+        const request1 = new sql.Request(transaction);
+        request1.input('id', sql.Int, id);
+        const existingResult = await request1.query(`
+        SELECT cover_img FROM subcategories WHERE subcategory_id = @id
+        `);
+
+        if (!existingResult.recordset.length) {
+        return res.status(404).json({ error: 'Subcategory not found' });
+        }
+
+        const existingImage = existingResult.recordset[0].cover_img;
+        
+        if (existingImage) {
+            const oldPath = path.join(__dirname, '../', existingImage);
+            if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+            }
+        }
+
+        const result = await request.query`
+            DELETE FROM subcategories WHERE subcategory_id = @id
         `;
         if (result.rowsAffected[0] === 0) {
+            await transaction.rollback();
             return res.status(404).json({ error: 'Subcategory not found' });
         }
+        await transaction.commit();
         res.json({ message: 'Subcategory deleted' });
     } catch (err) {
+        if (transaction._aborted === false) await transaction.rollback();
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error ${err}` });
     }
 };

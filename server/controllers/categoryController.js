@@ -15,7 +15,7 @@ exports.getCategories = async (req, res) => {
         res.status(200).json(modifiedCategories);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error ${err}` });
     }
 };
 
@@ -30,7 +30,7 @@ exports.getCategoryById = async (req, res) => {
         res.json(result.recordset[0]);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error ${err}` });
     }
 };
 
@@ -59,7 +59,7 @@ exports.createCategory = async (req, res) => {
         res.status(201).json({ message: 'Category created' });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error ${err}` });
     }
 };
 
@@ -190,7 +190,7 @@ exports.updateCategory = async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: `Server error ${err}` });
   }
 };
 
@@ -211,6 +211,26 @@ exports.deleteCategory = async (req, res) => {
         await request.query`
             DELETE FROM subcategories WHERE category_id = @id
         `;
+
+        const request1 = new sql.Request(transaction);
+        request1.input('id', sql.Int, id);
+        const existingResult = await request1.query(`
+          SELECT img FROM categories WHERE category_id = @id
+        `);
+
+        if (!existingResult.recordset.length) {
+        return res.status(404).json({ error: 'Category not found' });
+        }
+
+        const existingImage = existingResult.recordset[0].img;
+        
+        if (existingImage) {
+            const oldPath = path.join(__dirname, '../', existingImage);
+            if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+            }
+        }
+        
         const result = await request.query`
             DELETE FROM categories WHERE category_id = @id
         `;
@@ -223,6 +243,6 @@ exports.deleteCategory = async (req, res) => {
     } catch (err) {
         if (transaction._aborted === false) await transaction.rollback();
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error ${err}` });
     }
 };
