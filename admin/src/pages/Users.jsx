@@ -224,6 +224,7 @@ const Users = () => {
             description="This action cannot be undone."
             onConfirm={() => handleDelete(record.user_id)}
             okText="Delete"
+            okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
             cancelText="Cancel"
           >
             <Button
