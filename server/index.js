@@ -46,6 +46,8 @@ app.use(express.json());
 const allowedOrigins = [
   'https://elmaghrib.com',
   'http://elmaghrib.com',
+  'https://admin.elmaghrib.com',
+  'http://admin.elmaghrib.com',
   'http://78.159.113.48:80',
   'https://78.159.113.48:80',
   'http://localhost:5173',
