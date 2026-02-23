@@ -8,6 +8,7 @@ const { savePayment } = require('./paymentController');
 const {updateProductStock} = require('./inventoryController');
 const {markCartItemsAsProcessed, checkAndAdjustCartItems} = require('./addToCartController')
 const {sendInvoiceEmail}= require('./invoiceController')
+const { notifyAdmins } = require('../services/notificationService');
 
 exports.doCheckout = async (req, res) => {
   try {
@@ -146,6 +147,12 @@ exports.doCheckout = async (req, res) => {
         discount: payload.discount || 0
       };
 
+      await notifyAdmins({
+        type: 'order_created',
+        title: 'New order created',
+        message: `Order #${orderId} placed`,
+        meta: { orderId, userId, total: orderSummary.total }
+      });
       await sendInvoiceEmail(payload.user_info, orderSummary, updatedCartItems);
 
     // Return response

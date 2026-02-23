@@ -1,4 +1,5 @@
 const sql = require('mssql');
+const { notifyAdmins } = require('../services/notificationService');
 
 exports.updateProductStock = async (cartItems) => {
   try {
@@ -28,6 +29,25 @@ exports.updateProductStock = async (cartItems) => {
       `);
 
       console.log(updateQuantityQuery, "Stock updated");
+      const remainRes = await request.query(`
+        SELECT pv.stock_quantity, pv.product_id, pv.variant_id, p.name
+        FROM product_variants pv
+        JOIN products p ON p.product_id = pv.product_id
+        WHERE pv.variant_id = @variantId
+      `);
+      if (remainRes.recordset.length > 0) {
+        const r = remainRes.recordset[0];
+        if (Number(r.stock_quantity) <= 5) {
+          try {
+            await notifyAdmins({
+              type: 'stock_low',
+              title: 'Product stock low',
+              message: `${r.name} variant #${r.variant_id} low stock (${r.stock_quantity})`,
+              meta: { productId: r.product_id, variantId: r.variant_id, stock: Number(r.stock_quantity) }
+            });
+          } catch {}
+        }
+      }
     }
 
     return { success: true };
