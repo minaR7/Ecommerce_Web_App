@@ -20,18 +20,19 @@ const Coupons = () => {
       const data = await couponsApi.getAll();
       setCoupons(Array.isArray(data) ? data : []);
     } catch {
-      setCoupons([
-        {
-          id: '1',
-          code: 'SUMMER20',
-          discountType: 'percentage',
-          discountValue: 20,
-          usedCount: 45,
-          validFrom: '2024-06-01',
-          validUntil: '2024-08-31',
-          status: 'active',
-        },
-      ]);
+      setCoupons([]);
+      // setCoupons([
+      //   {
+      //     id: '1',
+      //     code: 'SUMMER20',
+      //     discountType: 'percentage',
+      //     discountValue: 20,
+      //     usedCount: 45,
+      //     validFrom: '2024-06-01',
+      //     validUntil: '2024-08-31',
+      //     status: 'active',
+      //   },
+      // ]);
     } finally {
       setLoading(false);
     }

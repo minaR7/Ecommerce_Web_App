@@ -1,5 +1,5 @@
 // API Service for connecting to Express.js backend
-const API_BASE_URL = `${(import.meta.env.VITE_BACKEND_SERVER_URL || 'http://localhost:3005')}/api`;
+const API_BASE_URL = `${(import.meta.env.VITE_BACKEND_SERVER_URL || 'http://elmaghrib.com')}/api`;
 
 // Generic fetch wrapper with error handling
 async function fetchApi(endpoint, options) {

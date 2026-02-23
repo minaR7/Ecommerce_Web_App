@@ -23,7 +23,8 @@ const Categories = () => {
       setCategories(data);
     } catch (error) {
       message.error('Failed to fetch categories');
-      setCategories(mockCategories);
+      // setCategories(mockCategories);
+      setCategories();
     } finally {
       setLoading(false);
     }
@@ -58,7 +59,7 @@ const Categories = () => {
   };
   const handleDelete = async (id) => {
     try { await categoriesApi.delete(id); message.success('Deleted'); fetchCategories(); }
-    catch { setCategories(categories.filter(c => c.category_id !== id)); }
+    catch { setCategories(categories?.filter(c => c.category_id !== id)); }
   };
 
   const handleSubmit = async (values) => {
@@ -160,7 +161,7 @@ const Categories = () => {
         </div>
         <div className="bg-card rounded-xl border border-border p-6">
           <Input placeholder="Search..." prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="max-w-sm mb-4" />
-          <Table columns={columns} dataSource={categories.filter(c => c.name.toLowerCase().includes(searchText.toLowerCase()))} rowKey="category_id" loading={loading} scroll={{ x: 'max-content' }} />
+          <Table columns={columns} dataSource={categories?.filter(c => c.name.toLowerCase().includes(searchText.toLowerCase()))} rowKey="category_id" loading={loading} scroll={{ x: 'max-content' }} />
         </div>
         <Modal title={editingCategory ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>

@@ -54,22 +54,23 @@ const Users = () => {
     } catch (error) {
       message.error(error.message || 'Failed to fetch users');
       // Fallback: map existing mockUsers into API-like shape
-      setUsers(
-        mockUsers.filter((u) => u.role === 'admin').map((u) => {
-          const [firstName, ...rest] = (u.name || '').split(' ');
-          return {
-            user_id: Number(u.id),
-            first_name: firstName || u.name || '',
-            last_name: rest.join(' '),
-            email: u.email,
-            address: '',
-            created_at: u.createdAt || '',
-            is_registered: true,
-            username: u.email?.split('@')[0] || u.name || '',
-            is_admin: true,
-          };
-        })
-      );
+      setUsers([]);
+      // setUsers(
+      //   mockUsers.filter((u) => u.role === 'admin').map((u) => {
+      //     const [firstName, ...rest] = (u.name || '').split(' ');
+      //     return {
+      //       user_id: Number(u.id),
+      //       first_name: firstName || u.name || '',
+      //       last_name: rest.join(' '),
+      //       email: u.email,
+      //       address: '',
+      //       created_at: u.createdAt || '',
+      //       is_registered: true,
+      //       username: u.email?.split('@')[0] || u.name || '',
+      //       is_admin: true,
+      //     };
+      //   })
+      // );
     } finally {
       setLoading(false);
     }

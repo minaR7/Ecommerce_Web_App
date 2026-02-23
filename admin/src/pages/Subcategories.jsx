@@ -24,8 +24,10 @@ const Subcategories = () => {
       setSubcategories(subs);
       setCategories(cats);
     } catch {
-      setCategories(mockCategories);
-      setSubcategories(mockSubcategories);
+      setCategories([]);
+      setSubcategories([]);
+      // setCategories(mockCategories);
+      // setSubcategories(mockSubcategories);
     } finally {
       setLoading(false);
     }

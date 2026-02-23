@@ -66,39 +66,44 @@ const Products = () => {
       setSizes(sizeData);
     } catch (error) {
       console.error("Failed to fetch products:", error);
+      setProducts([])
+      setCategories([]);
+      setSubcategories([]);
+      setColors([]);
+      setSizes([]);
       // Use mock data for demo if API fails
-      setProducts(mockProducts)
-      setCategories([
-        { id: '1', name: 'Electronics', status: 'active' },
-        { id: '2', name: 'Clothing', status: 'active' },
-        { id: '3', name: 'Home & Garden', status: 'active' },
-        { id: '4', name: 'Accessories', status: 'active' },
-        { id: '5', name: 'Bags', status: 'active' },
-      ]);
-      setSubcategories([
-        { id: '1', categoryId: '1', name: 'Smartphones', status: 'active' },
-        { id: '2', categoryId: '1', name: 'Laptops', status: 'active' },
-        { id: '3', categoryId: '1', name: 'Audio', status: 'active' },
-        { id: '4', categoryId: '2', name: 'Men', status: 'active' },
-        { id: '5', categoryId: '2', name: 'Women', status: 'active' },
-        { id: '6', categoryId: '3', name: 'Furniture', status: 'active' },
-        { id: '7', categoryId: '4', name: 'Watches', status: 'active' },
-        { id: '8', categoryId: '4', name: 'Sunglasses', status: 'active' },
-        { id: '9', categoryId: '5', name: 'Backpacks', status: 'active' },
-      ]);
-      setColors([
-        { color_id: '1', name: 'Red' },
-        { color_id: '2', name: 'Blue' },
-        { color_id: '3', name: 'Green' },
-        { color_id: '4', name: 'Black' },
-        { color_id: '5', name: 'White' },
-      ]);
-      setSizes([
-          { size_id: '1', name: 'S' },
-          { size_id: '2', name: 'M' },
-          { size_id: '3', name: 'L' },
-          { size_id: '4', name: 'XL' },
-      ]);
+      // setProducts(mockProducts)
+      // setCategories([
+      //   { id: '1', name: 'Electronics', status: 'active' },
+      //   { id: '2', name: 'Clothing', status: 'active' },
+      //   { id: '3', name: 'Home & Garden', status: 'active' },
+      //   { id: '4', name: 'Accessories', status: 'active' },
+      //   { id: '5', name: 'Bags', status: 'active' },
+      // ]);
+      // setSubcategories([
+      //   { id: '1', categoryId: '1', name: 'Smartphones', status: 'active' },
+      //   { id: '2', categoryId: '1', name: 'Laptops', status: 'active' },
+      //   { id: '3', categoryId: '1', name: 'Audio', status: 'active' },
+      //   { id: '4', categoryId: '2', name: 'Men', status: 'active' },
+      //   { id: '5', categoryId: '2', name: 'Women', status: 'active' },
+      //   { id: '6', categoryId: '3', name: 'Furniture', status: 'active' },
+      //   { id: '7', categoryId: '4', name: 'Watches', status: 'active' },
+      //   { id: '8', categoryId: '4', name: 'Sunglasses', status: 'active' },
+      //   { id: '9', categoryId: '5', name: 'Backpacks', status: 'active' },
+      // ]);
+      // setColors([
+      //   { color_id: '1', name: 'Red' },
+      //   { color_id: '2', name: 'Blue' },
+      //   { color_id: '3', name: 'Green' },
+      //   { color_id: '4', name: 'Black' },
+      //   { color_id: '5', name: 'White' },
+      // ]);
+      // setSizes([
+      //     { size_id: '1', name: 'S' },
+      //     { size_id: '2', name: 'M' },
+      //     { size_id: '3', name: 'L' },
+      //     { size_id: '4', name: 'XL' },
+      // ]);
     }
   };
 

@@ -24,7 +24,7 @@ const Shipping = () => {
   useEffect(() => {
     setLoading(true);
     shippingApi.getAll().then(setFees).catch(() => setFees([
-      { id: '1', country: 'United States', countryCode: 'US', fee: 9.99, estimatedDays: '5-7 days', status: 'active' }
+      // { id: '1', country: 'United States', countryCode: 'US', fee: 9.99, estimatedDays: '5-7 days', status: 'active' }
     ])).finally(() => setLoading(false));
   }, []);
 

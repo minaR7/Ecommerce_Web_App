@@ -51,19 +51,20 @@ const Orders = () => {
       setOrders(data);
     } catch (error) {
       message.error('Failed to fetch orders');
+      setOrders([]);
       // Transform existing mockOrders into API-like shape as fallback
-      setOrders(
-        mockOrders.map((m, idx) => ({
-          order_id: idx + 1000,
-          user_id: idx + 1,
-          email: m.customerEmail,
-          total_amount: m.total,
-          status: m.status,
-          payment_status: m.status === 'delivered' ? 'paid' : 'pending',
-          created_at: m.createdAt,
-          items_count: m.products?.length || 0,
-        }))
-      );
+      // setOrders(
+      //   mockOrders.map((m, idx) => ({
+      //     order_id: idx + 1000,
+      //     user_id: idx + 1,
+      //     email: m.customerEmail,
+      //     total_amount: m.total,
+      //     status: m.status,
+      //     payment_status: m.status === 'delivered' ? 'paid' : 'pending',
+      //     created_at: m.createdAt,
+      //     items_count: m.products?.length || 0,
+      //   }))
+      // );
     } finally {
       setLoading(false);
     }
