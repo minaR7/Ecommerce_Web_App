@@ -483,7 +483,7 @@ const Products = () => {
             <Form.Item
               name="categoryId"
               label="Category"
-              rules={[{ required: true, message: 'Please select a category' }]}
+              rules={[{ required: false, message: 'Please select a category' }]}
             >
               <Select 
                 placeholder="Select category first"
@@ -502,7 +502,7 @@ const Products = () => {
             <Form.Item
               name="subcategoryId"
               label="Subcategory"
-              rules={[{ required: true, message: 'Please select a subcategory' }]}
+              rules={[{ required: false, message: 'Please select a subcategory' }]}
             >
               <Select 
                 placeholder={selectedCategoryId ? "Select subcategory" : "Select category first"}
@@ -531,7 +531,7 @@ const Products = () => {
           <Form.Item
             name="description"
             label="Description"
-            rules={[{ required: true, message: 'Please enter description' }]}
+            rules={[{ required: false, message: 'Please enter description' }]}
           >
             <Input.TextArea rows={3} placeholder="Enter product description" />
           </Form.Item>
@@ -602,7 +602,7 @@ const Products = () => {
             <Form.Item
               name="discount_percentage"
               label="Discount (%)"
-              rules={[{ required: true, message: 'Please enter discount percentage' }]}
+              rules={[{ required: false, message: 'Please enter discount percentage' }]}
             >
               <InputNumber min={0} max={100} className="w-full" placeholder="0" />
             </Form.Item>
