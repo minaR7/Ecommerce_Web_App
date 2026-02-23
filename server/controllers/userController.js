@@ -32,6 +32,7 @@ const sendSignupEmail = async ({ email, first_name }) => {
     greetingTimeout: 10000,
     tls: { rejectUnauthorized: false },
   });
+  console.log(transporter)
   await transporter.sendMail({
     from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
     to: email,
