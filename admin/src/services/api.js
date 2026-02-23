@@ -250,6 +250,7 @@ export const sizesApi = {
 export const ordersApi = {
   getAll: () => fetchApi('/orders'),
   getById: (id) => fetchApi(`/orders/${id}`),
+  getStats: () => fetchApi('/orders/stats'),
   // getAll: () => fetchApi('/checkout'),
   // getById: (id) => fetchApi(`/checkout/${id}`),
   updateStatus: (id, status) => fetchApi(`/orders/${id}/status`, {

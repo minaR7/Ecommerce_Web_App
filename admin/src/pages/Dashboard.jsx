@@ -9,10 +9,29 @@ import { AdminLayout } from '../components/layout/AdminLayout';
 import { StatCard } from '../components/dashboard/StatCard';
 import { RecentOrders } from '../components/dashboard/RecentOrders';
 import { TopProducts } from '../components/dashboard/TopProducts';
-import { mockDashboardStats } from '../data/mockData';
+// import { mockDashboardStats } from '../data/mockData';
+import { useEffect, useState } from 'react';
+import { ordersApi } from '../services/api';
 
 const Dashboard = () => {
-  const stats = mockDashboardStats;
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    revenueChange: 0,
+    totalOrders: 0,
+    ordersChange: 0,
+    totalProducts: 0,
+    productsChange: 0,
+    totalUsers: 0,
+    usersChange: 0,
+  });
+  useEffect(() => {
+    let active = true;
+    ordersApi.getStats().then((data) => {
+      if (!active) return;
+      setStats(data || {});
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   return (
     <AdminLayout title="Dashboard">
@@ -21,7 +40,7 @@ const Dashboard = () => {
           <Col xs={24} sm={12} lg={6}>
             <StatCard
               title="Total Revenue"
-              value={stats.totalRevenue.toFixed(2)}
+              value={Number(stats.totalRevenue || 0)}
               change={stats.revenueChange}
               icon={<DollarOutlined className="text-2xl" />}
               prefix="$"

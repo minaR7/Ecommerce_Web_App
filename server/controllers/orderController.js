@@ -1,6 +1,88 @@
 const sql = require('mssql');
 const { notifyAdmins } = require('../services/notificationService');
 
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const curStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const request = new sql.Request();
+    request.input('curStart', sql.DateTime, curStart);
+    request.input('nextStart', sql.DateTime, nextStart);
+    request.input('prevStart', sql.DateTime, prevStart);
+    const curRevRes = await request.query(`
+      SELECT COALESCE(SUM(total_amount),0) AS sum
+      FROM orders
+      WHERE payment_status = 'paid' AND created_at >= @curStart AND created_at < @nextStart
+    `);
+    const prevRevRes = await request.query(`
+      SELECT COALESCE(SUM(total_amount),0) AS sum
+      FROM orders
+      WHERE payment_status = 'paid' AND created_at >= @prevStart AND created_at < @curStart
+    `);
+    const totalRevRes = await sql.query`SELECT COALESCE(SUM(total_amount),0) AS sum FROM orders WHERE payment_status = 'paid'`;
+    const totalOrdersRes = await sql.query`SELECT COUNT(*) AS cnt FROM orders`;
+    const curOrdersRes = await request.query`SELECT COUNT(*) AS cnt FROM orders WHERE created_at >= @curStart AND created_at < @nextStart`;
+    const prevOrdersRes = await request.query`SELECT COUNT(*) AS cnt FROM orders WHERE created_at >= @prevStart AND created_at < @curStart`;
+    const totalProductsRes = await sql.query`SELECT COUNT(*) AS cnt FROM products`;
+    const prodColRes = await sql.query`SELECT COUNT(*) AS cnt FROM sys.columns WHERE object_id = OBJECT_ID('products') AND name = 'created_at'`;
+    let prodCurCnt = 0;
+    let prodPrevCnt = 0;
+    if ((prodColRes.recordset[0]?.cnt || 0) > 0) {
+      const prodCurRes = await request.query`SELECT COUNT(*) AS cnt FROM products WHERE created_at >= @curStart AND created_at < @nextStart`;
+      const prodPrevRes = await request.query`SELECT COUNT(*) AS cnt FROM products WHERE created_at >= @prevStart AND created_at < @curStart`;
+      prodCurCnt = prodCurRes.recordset[0]?.cnt || 0;
+      prodPrevCnt = prodPrevRes.recordset[0]?.cnt || 0;
+    }
+    const totalUsersRes = await sql.query`
+      SELECT COUNT(*) AS cnt
+      FROM users u
+      LEFT JOIN credentials c ON u.user_id = c.user_id
+      WHERE (c.is_admin = 0 OR c.is_admin IS NULL) AND u.is_registered = 1
+    `;
+    const curUsersRes = await request.query`
+      SELECT COUNT(*) AS cnt
+      FROM users u
+      LEFT JOIN credentials c ON u.user_id = c.user_id
+      WHERE (c.is_admin = 0 OR c.is_admin IS NULL) AND u.is_registered = 1
+        AND u.created_at >= @curStart AND u.created_at < @nextStart
+    `;
+    const prevUsersRes = await request.query`
+      SELECT COUNT(*) AS cnt
+      FROM users u
+      LEFT JOIN credentials c ON u.user_id = c.user_id
+      WHERE (c.is_admin = 0 OR c.is_admin IS NULL) AND u.is_registered = 1
+        AND u.created_at >= @prevStart AND u.created_at < @curStart
+    `;
+    const pct = (cur, prev) => {
+      if (prev === 0) return cur > 0 ? 100 : 0;
+      return Math.round(((cur - prev) / prev) * 1000) / 10;
+    };
+    const totalRevenue = Number(totalRevRes.recordset[0]?.sum || 0);
+    const revenueChange = pct(Number(curRevRes.recordset[0]?.sum || 0), Number(prevRevRes.recordset[0]?.sum || 0));
+    const totalOrders = Number(totalOrdersRes.recordset[0]?.cnt || 0);
+    const ordersChange = pct(Number(curOrdersRes.recordset[0]?.cnt || 0), Number(prevOrdersRes.recordset[0]?.cnt || 0));
+    const totalProducts = Number(totalProductsRes.recordset[0]?.cnt || 0);
+    const productsChange = pct(prodCurCnt, prodPrevCnt);
+    const totalUsers = Number(totalUsersRes.recordset[0]?.cnt || 0);
+    const usersChange = pct(Number(curUsersRes.recordset[0]?.cnt || 0), Number(prevUsersRes.recordset[0]?.cnt || 0));
+    res.status(200).json({
+      totalRevenue,
+      revenueChange,
+      totalOrders,
+      ordersChange,
+      totalProducts,
+      productsChange,
+      totalUsers,
+      usersChange
+    });
+  } catch (err) {
+    console.error('Error fetching dashboard stats:', err);
+    res.status(500).json({ error: 'Server error fetching dashboard stats' });
+  }
+};
+
 exports.getOrders = async (req, res) => {
   try {
     const result = await sql.query(`
