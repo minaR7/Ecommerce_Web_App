@@ -231,7 +231,7 @@ exports.getProductById = async (req, res) => {
       // 1. Get product + avg rating
       const productResult = await sql.query`
         SELECT 
-        p.product_id, p.name, p.description, p.cover_img, p.price, p.images, p.discount_percentage,
+        p.product_id, p.name, p.description, p.cover_img, p.price, p.images, p.discount_percentage, p.size_chart,
         AVG(CAST(r.rating AS FLOAT)) AS avg_rating,
         c.name AS category,
         sc.name AS subcategory
@@ -240,7 +240,7 @@ exports.getProductById = async (req, res) => {
         LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN subcategories sc ON p.subcategory_id = sc.subcategory_id
         WHERE p.product_id = ${id}
-        GROUP BY p.product_id, p.name, p.description, p.cover_img, p.price, p.images, p.discount_percentage, c.name, sc.name;    
+        GROUP BY p.product_id, p.name, p.description, p.cover_img, p.price, p.images, p.discount_percentage, p.size_chart, c.name, sc.name;    
       `;
   
       if (productResult.recordset.length === 0) {
@@ -297,7 +297,7 @@ exports.getProductById = async (req, res) => {
         variants: variantsResult.recordset,
         size_chart: product.size_chart ? `${baseUrl}/${String(product.size_chart).replace(/^\/+/, '')}` : null,
       });
-  
+      console.log(product.size_chart)
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: `Server error: ${err}` });
