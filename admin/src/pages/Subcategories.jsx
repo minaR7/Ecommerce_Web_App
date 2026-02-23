@@ -5,6 +5,7 @@ import { AdminLayout } from '../components/layout/AdminLayout';
 import { subcategoriesApi, categoriesApi } from '../services/api';
 import { AppButton } from '../components/AppButton';
 import { mockSubcategories, mockCategories } from '../data/mockData';
+import { formatAdminDate } from '../utils/date';
 
 const Subcategories = () => {
   const [subcategories, setSubcategories] = useState([]);
@@ -58,13 +59,17 @@ const Subcategories = () => {
         }
       } else {
         if (!hasNewFile) {
-          message.error('Please upload a subcategory image');
-          return;
+          console.log('No subcategory image')
+          // message.error('Please upload a subcategory image');
+          // return;
         }
         const formData = new FormData();
         formData.append('category_id', values.categoryId);
         formData.append('name', values.name);
-        formData.append('image', fileList[0].originFileObj);
+        if (fileList[0]?.originFileObj) {
+           formData.append('image', fileList[0].originFileObj);
+        }
+        // formData.append('image', fileList[0].originFileObj);
         await subcategoriesApi.create(formData);
         message.success('Subcategory created');
       }
@@ -129,8 +134,8 @@ const Subcategories = () => {
       key: 'categoryName',
       render: (_, r) => categories.find(c => c.category_id === (r.categoryId || r.category_id))?.name || '-' 
     },
-    { title: 'Created At', dataIndex: 'created_at', key: 'created_at' },
-    { title: 'Updated At', dataIndex: 'updated_at', key: 'updated_at' },
+    { title: 'Created At', dataIndex: 'created_at', key: 'created_at', render: (v) => formatAdminDate(v) },
+    { title: 'Updated At', dataIndex: 'updated_at', key: 'updated_at', render: (v) => formatAdminDate(v) },
     //{ title: 'Status', dataIndex: 'status', key: 'status', render: (s) => <span className={`px-2 py-1 rounded-full text-xs ${s === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>{s}</span> },
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
@@ -181,6 +186,7 @@ const Subcategories = () => {
                 listType="picture-card"
                 fileList={fileList}
                 onChange={handleUploadChange}
+                beforeUpload={() => false}
                 maxCount={1}
                 accept="image/*"
               >

@@ -5,6 +5,7 @@ import { AdminLayout } from '../components/layout/AdminLayout';
 import { categoriesApi } from '../services/api';
 import { AppButton } from '../components/AppButton';
 import { mockCategories } from '../data/mockData';
+import { formatAdminDate } from '../utils/date';
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -131,8 +132,8 @@ const Categories = () => {
   const columns = [
     { title: 'Name', dataIndex: 'name', key: 'name' },
     { title: 'Description', dataIndex: 'description', key: 'description', ellipsis: true },
-    { title: 'Created At', dataIndex: 'created_at', key: 'created_at' },
-    { title: 'Updated At', dataIndex: 'updated_at', key: 'updated_at' },
+    { title: 'Created At', dataIndex: 'created_at', key: 'created_at', render: (v) => formatAdminDate(v) },
+    { title: 'Updated At', dataIndex: 'updated_at', key: 'updated_at', render: (v) => formatAdminDate(v) },
     // { title: 'Status', dataIndex: 'status', key: 'status', render: (s) => <span className={`px-2 py-1 rounded-full text-xs ${s === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>{s}</span> },
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
@@ -170,6 +171,7 @@ const Categories = () => {
                 listType="picture-card"
                 fileList={fileList}
                 onChange={handleUploadChange}
+                beforeUpload={() => false}
                 maxCount={1}
                 accept="image/*"
               >
