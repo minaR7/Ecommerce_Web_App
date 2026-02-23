@@ -54,23 +54,31 @@ exports.doCheckout = async (req, res) => {
       } else {
         shippingFee = 35;
       }
-      
-      // convert total amount to cents
-      // const amountInCents = Math.round(payload.totalAmount * 100);
-      const amountInCents = Math.round((updatedSubtotal + shippingFee) * 100);
-        // Call Stripe Payment Intent
-      const paymentResponse = await stripe.paymentIntents.create({
-          amount: amountInCents,
-          currency: 'eur', //usd, pkr
-          payment_method: payload.paymentMethodId,
-          // payment_method_types: ['card'], // optional if you want only card
-          // return_url: 'https://your-site.com/checkout/complete', // Add your success URL here
-          confirm: true,
-          automatic_payment_methods: {
-          enabled: true,
-          allow_redirects: 'never', // This avoids redirect-based payments
-          },
-      });
+      //      // convert total amount to cents
+      // // const amountInCents = Math.round(payload.totalAmount * 100);
+      // const amountInCents = Math.round((updatedSubtotal + shippingFee) * 100);
+      //   // Call Stripe Payment Intent
+      // const paymentResponse = await stripe.paymentIntents.create({
+      //     amount: amountInCents,
+      //     currency: 'eur', //usd, pkr
+      //     payment_method: payload.paymentMethodId,
+      //     // payment_method_types: ['card'], // optional if you want only card
+      //     // return_url: 'https://your-site.com/checkout/complete', // Add your success URL here
+      //     confirm: true,
+      //     automatic_payment_methods: {
+      //     enabled: true,
+      //     // allow_redirects: 'never', // This avoids redirect-based payments
+      //     allow_redirects: 'always',
+      //     },
+      // }); 
+      // Client should have confirmed payment already; verify intent
+      if (!payload.paymentIntentId) {
+        return res.status(400).json({ success: false, message: 'Missing paymentIntentId' });
+      }
+      const paymentResponse = await stripe.paymentIntents.retrieve(payload.paymentIntentId);
+      if (paymentResponse.status !== 'succeeded') {
+        return res.status(400).json({ success: false, message: 'Payment not confirmed' });
+      }
 
       // Save User
       const userResult = await saveUser(payload.user_info, true);
@@ -125,6 +133,10 @@ exports.doCheckout = async (req, res) => {
       if (!paymentSaveResult.success) {
       return res.status(400).json({ success: false, message: 'Failed to save payment info' });
       }
+      // Mark order as paid
+      try {
+        await sql.query`UPDATE orders SET payment_status = 'paid' WHERE order_id = ${orderId}`;
+      } catch {}
 
       // Update stock quantity
       const stockUpdateResult = await updateProductStock(updatedCartItems);

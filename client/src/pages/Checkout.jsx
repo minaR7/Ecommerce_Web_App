@@ -20,6 +20,7 @@ const Checkout = () => {
   const dispatch = useDispatch();
   const [useDifferentBilling, setUseDifferentBilling] = useState(false);
   const [cartItems, setCartItems] = useState([]);
+  const [paymentIntentId, setPaymentIntentId] = useState(null);
   const reduxCart = useSelector(state => state.cart?.items || []);
   const navigate = useNavigate();
   const [paymentMethodId, setPaymentMethodId] = useState(null);
@@ -51,14 +52,20 @@ const Checkout = () => {
   }, [reduxCart]);
   
   // Passed into StripePaymentForm
-  const handlePaymentMethodGenerated = (id) => {
-    setPaymentMethodId(id);
+  const handlePaymentConfirmed = (intentId) => {
+    setPaymentIntentId(intentId);
     notification.success({
-          message: 'Payment completed',
-          // description: 'Your order is being processed',
-        });
+      message: 'Payment confirmed',
+    });
   };
   
+  //  const handlePaymentMethodGenerated = (id) => {
+  //   setPaymentMethodId(id);
+  //    notification.success({
+  //     message: 'Payment confirmed',
+  
+          // description: 'Your order is being processed',
+  //   });
   const calculateTotalWithDiscount = () => {
     const subtotal = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0);
     const discountedTotal = discount ? subtotal - (subtotal * discount) / 100 : subtotal;
@@ -104,12 +111,16 @@ const Checkout = () => {
       console.log('Form is valid. Values:', validatedValues);
       // const totalAmount = cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35;
       const totalAmount = calculateTotalWithDiscount();
-
-      // Validate if Stripe Paymnet is completed first
-      if (!paymentMethodId) {
+  // // Validate if Stripe Paymnet is completed first
+  //     if (!paymentMethodId) {
+      // Require client-confirmed payment first
+      if (!paymentIntentId) {
         notification.error({
-          message: 'Payment not completed',
-          description: 'Please complete payment before confirming your order.',
+          //  message: 'Payment not completed',
+          // description: 'Please complete payment before confirming your order.',
+          message: 'Payment not confirmed',
+          description: 'Please confirm payment before placing your order.',
+          
         });
         return;
       }
@@ -145,18 +156,30 @@ const Checkout = () => {
       //     cartItems: cartItems,
       // };
 
-      await dispatch(
+      const resultAction = await dispatch(
         placeOrder({
           validatedValues,
-          paymentMethodId,
+            // paymentMethodId,
+          paymentIntentId,
           cartItems,
           discount, // send discounted amount
           useDifferentBilling,
         })
       );
-      setTimeout(() => {
-          navigate('/');
-        }, 200)
+        //     setTimeout(() => {
+        //   navigate('/');
+        // }, 200)
+      // const data = resultAction?.payload;
+      // if (data?.paymentIntent?.next_action?.redirect_to_url?.url) {
+      //   window.location.assign(data.paymentIntent.next_action.redirect_to_url.url);
+      //   return;
+      // }
+      // if (data?.paymentIntent?.status === 'succeeded') {
+      //   navigate('/checkout/complete');
+      //   return;
+      // }
+      // navigate('/');
+      navigate('/checkout/complete');
       
     } catch (error) {
       console.log(error)
@@ -343,7 +366,8 @@ const Checkout = () => {
         {selectedMethod === 'card' && (
           // <Form.Item label="" name="paymentOption" rules={[{ required: true }]}>
             <Elements stripe={stripePromise}>
-              <StripePaymentForm onPaymentMethodGenerated={handlePaymentMethodGenerated} />
+             {/* <StripePaymentForm onPaymentMethodGenerated={handlePaymentMethodGenerated} /> */}
+              <StripePaymentForm amount={calculateTotalWithDiscount()} onPaymentConfirmed={handlePaymentConfirmed} />
             </Elements>
           //</Form.Item>
         )}

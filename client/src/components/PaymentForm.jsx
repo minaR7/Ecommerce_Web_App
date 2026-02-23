@@ -1,9 +1,11 @@
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 // import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
-const StripePaymentForm = ({ onPaymentMethodGenerated }) => {
+// const StripePaymentForm = ({ onPaymentMethodGenerated }) => {
+const StripePaymentForm = ({ amount, onPaymentConfirmed }) => {
   const stripe = useStripe();
   const elements = useElements();
 
@@ -20,9 +22,30 @@ const StripePaymentForm = ({ onPaymentMethodGenerated }) => {
     if (error) {
       console.error(error);
     } else {
-      console.log('PaymentMethod:', paymentMethod);
-      // Pass the paymentMethod.id up to the parent
-      onPaymentMethodGenerated(paymentMethod.id);
+      //       console.log('PaymentMethod:', paymentMethod);
+      // // Pass the paymentMethod.id up to the parent
+      // onPaymentMethodGenerated(paymentMethod.id);
+      try {
+        const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/payments/intents`, { amount });
+        const clientSecret = res.data.clientSecret;
+        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: paymentMethod.id,
+          return_url: `${window.location.origin}/checkout/complete`,
+        });
+        if (confirmError) {
+          console.error(confirmError);
+          return;
+        }
+        if (paymentIntent?.next_action?.redirect_to_url?.url) {
+          window.location.assign(paymentIntent.next_action.redirect_to_url.url);
+          return;
+        }
+        if (paymentIntent?.status === 'succeeded') {
+          onPaymentConfirmed(paymentIntent.id);
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 

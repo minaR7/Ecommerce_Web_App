@@ -1,6 +1,6 @@
 const sql = require('mssql');
 // POST /api/charge
-// const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // app.post('/api/charge', async (req, res) => {
 //   try {
@@ -18,6 +18,28 @@ const sql = require('mssql');
 //     res.status(400).json({ error: error.message });
 //   }
 // });
+
+exports.createIntent = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const amountInCents = Math.round(Number(amount) * 100);
+    if (!amountInCents || amountInCents <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+    const intent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: 'eur',
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: 'always',
+      },
+    });
+    res.status(200).json({ clientSecret: intent.client_secret, paymentIntentId: intent.id });
+  } catch (error) {
+    console.error('Create intent error:', error);
+    res.status(400).json({ error: error.message });
+  }
+};
 
 exports.savePayment = async (orderId, paymentIntent) => {
   try {

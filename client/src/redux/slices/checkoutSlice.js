@@ -9,7 +9,7 @@ import { clearCart } from './cartSlice';
 // Async thunk for order checkout
 export const placeOrder = createAsyncThunk(
   'checkout/placeOrder',
-  async ({ validatedValues,  paymentMethodId, cartItems, discount, useDifferentBilling }, { dispatch, rejectWithValue }) => {
+  async ({ validatedValues,  paymentIntentId, cartItems, discount, useDifferentBilling }, { dispatch, rejectWithValue }) => {
 
     // const navigate = useNavigate();
     try {
@@ -25,13 +25,20 @@ export const placeOrder = createAsyncThunk(
       // Final total after discount
       const totalAmount = discountedSubtotal + shippingCharges;
 
-      if (!paymentMethodId) {
+      if (!paymentIntentId) {
         notification.error({
-          message: 'Payment not completed',
-          description: 'Please complete payment before confirming your order.',
+          message: 'Payment not confirmed',
+          description: 'Please confirm payment before placing your order.',
         });
         return rejectWithValue('Payment not completed');
       }
+
+      // if (!paymentMethodId) {
+        // message: 'Payment not completed',
+        // description: 'Please complete payment before confirming your order.',
+      //   });
+      //   return rejectWithValue('Payment not completed');
+      // }
 
       const payload = {
         user_info: {
@@ -59,7 +66,7 @@ export const placeOrder = createAsyncThunk(
               street: validatedValues.street,
               phone: validatedValues.phone,
             },
-        paymentMethodId,
+        paymentIntentId,
         totalAmount: totalAmount,
         cartItems,
       };
