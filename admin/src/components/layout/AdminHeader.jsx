@@ -53,7 +53,7 @@ export const AdminHeader = ({ title }) => {
       if (!active) return;
       setNotifications(list || []);
     }).catch(() => {});
-    const base = import.meta.env.VITE_BACKEND_SERVER_URL || 'http://localhost:3005';
+    const base = import.meta.env.VITE_BACKEND_SERVER_URL;
     const token = localStorage.getItem('authToken');
     const socket = io(base, {
       auth: token ? { token } : { role: 'admin' },
