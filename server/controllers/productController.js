@@ -165,7 +165,6 @@ exports.getAllProducts = async (req, res) => {
         const result = await sql.query(query);
          // res.json(result.recordset);
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const sizeChartMap = loadSizeChartMap();
         const modifiedProducts = result.recordset.map((product) => 
         {
             // Compute discounted price
@@ -185,16 +184,15 @@ exports.getAllProducts = async (req, res) => {
             }
             const colorsArray = product.colors ? product.colors.split(',') : [];
             const sizesArray = product.sizes ? product.sizes.split(',') : [];
-            const scRel = sizeChartMap[String(product.product_id)];
             return (
             {
                 ...product,
-                cover_img: `${baseUrl}/${product.cover_img}`,  // Append base URL to each subcategory's cover_img
+                cover_img: product.cover_img ? `${baseUrl}/${String(product.cover_img).replace(/^\/+/, '')}` : null,
                 discounted_price: discountedPrice,
                 slide_images: slideImages,
                 colors: colorsArray,
                 sizes: sizesArray,
-                size_chart: scRel ? `${baseUrl}/${scRel}` : null
+                size_chart: product.size_chart ? `${baseUrl}/${String(product.size_chart).replace(/^\/+/, '')}` : null
             })
         });
         
@@ -280,13 +278,11 @@ exports.getProductById = async (req, res) => {
     //     console.error("Failed to parse product.images", err);
     //     }
 
-      const sizeChartMap = loadSizeChartMap();
-      const scRel = sizeChartMap[String(product.product_id)];
 
       // 4. Return product with variant details
       res.json({
         ...product,
-        cover_img: `${baseUrl}/${product.cover_img}`,
+        cover_img: product.cover_img ? `${baseUrl}/${String(product.cover_img).replace(/^\/+/, '')}` : null,
         // slide_images: product.images.map(img => `${baseUrl}/${img}`),
         slide_images: (() => {
           try {
@@ -299,7 +295,7 @@ exports.getProductById = async (req, res) => {
         avg_rating: parseFloat(product.avg_rating || 0).toFixed(1),
         discounted_price: discountedPrice,
         variants: variantsResult.recordset,
-        size_chart: scRel ? `${baseUrl}/${scRel}` : null,
+        size_chart: product.size_chart ? `${baseUrl}/${String(product.size_chart).replace(/^\/+/, '')}` : null,
       });
   
     } catch (err) {
@@ -332,7 +328,8 @@ exports.searchProducts = async (req, res) => {
 
 // POST new product
 exports.createProduct = async (req, res) => {
-    const { category_id, subcategory_id, name, description, price, stock_quantity } = req.body;
+    const { category_id, subcategory_id, name, description, price, stock_quantity } = req.body || {};
+    console.log(req.body)
     let { sizes, colors } = req.body;
 
     if (!name) return res.status(400).json({ error: 'Product name is required' });
@@ -372,21 +369,25 @@ exports.createProduct = async (req, res) => {
 
         const scFiles = (files.size_chart) ? files.size_chart : [];
         if (Array.isArray(scFiles) && scFiles[0]) {
-            const scPath = `assets/uploads/size-charts/${scFiles[0].filename}`;
-            saveSizeChartForProduct(productId, scPath);
+            try {
+              const scPath = `assets/uploads/size-charts/${scFiles[0].filename}`;
+              await (new sql.Request(transaction)).query`
+                UPDATE products SET size_chart = ${scPath} WHERE product_id = ${productId}
+              `;
+            } catch (e) {}
         }
 
         // Get IDs for colors and sizes
         let colorIds = [];
         if (colors.length > 0) {
-            const allColors = await request.query`SELECT color_id, name FROM product_colors`;
+            const allColors = await (new sql.Request(transaction)).query`SELECT color_id, name FROM product_colors`;
             const colorMap = new Map(allColors.recordset.map(c => [c.name.toLowerCase(), c.color_id]));
             colorIds = colors.map(n => colorMap.get(String(n).toLowerCase())).filter(id => id);
         }
 
         let sizeIds = [];
         if (sizes.length > 0) {
-            const allSizes = await request.query`SELECT size_id, name FROM product_sizes`;
+            const allSizes = await (new sql.Request(transaction)).query`SELECT size_id, name FROM product_sizes`;
             const sizeMap = new Map(allSizes.recordset.map(s => [s.name.toLowerCase(), s.size_id]));
             sizeIds = sizes.map(n => sizeMap.get(String(n).toLowerCase())).filter(id => id);
         }
@@ -395,7 +396,7 @@ exports.createProduct = async (req, res) => {
         if (colorIds.length > 0 && sizeIds.length > 0) {
             for (const colorId of colorIds) {
                 for (const sizeId of sizeIds) {
-                    await request.query`
+                    await (new sql.Request(transaction)).query`
                         INSERT INTO product_variants (product_id, color_id, size_id, price, image, stock_quantity)
                         VALUES (${productId}, ${colorId}, ${sizeId}, ${price}, ${cover_img}, ${stock_quantity})
                     `;
@@ -403,14 +404,14 @@ exports.createProduct = async (req, res) => {
             }
         } else if (colorIds.length > 0) {
              for (const colorId of colorIds) {
-                 await request.query`
+                 await (new sql.Request(transaction)).query`
                     INSERT INTO product_variants (product_id, color_id, price, image, stock_quantity)
                     VALUES (${productId}, ${colorId}, ${price}, ${cover_img}, ${stock_quantity})
                  `;
              }
         } else if (sizeIds.length > 0) {
              for (const sizeId of sizeIds) {
-                 await request.query`
+                 await (new sql.Request(transaction)).query`
                     INSERT INTO product_variants (product_id, size_id, price, image, stock_quantity)
                     VALUES (${productId}, ${sizeId}, ${price}, ${cover_img}, ${stock_quantity})
                  `;
@@ -430,6 +431,7 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
     const { id } = req.params;
     let { subcategory_id, name, description, price, stock_quantity, sizes, colors, cover_img: coverImgField, size_chart: sizeChartField } = req.body;
+        console.log(req.body)
     if (!name) return res.status(400).json({ error: 'Product name is required' });
 
     // Parse arrays if needed
@@ -449,7 +451,7 @@ exports.updateProduct = async (req, res) => {
         const imageFiles = files.images || [];
         const coverFiles = files.cover_img || [];
         // Load current images
-        const mediaRes = await request.query`SELECT images FROM products WHERE product_id = ${id}`;
+        const mediaRes = await (new sql.Request(transaction)).query`SELECT images FROM products WHERE product_id = ${id}`;
         let currentImages = [];
         try { currentImages = mediaRes.recordset[0]?.images ? JSON.parse(mediaRes.recordset[0].images) : []; } catch { currentImages = []; }
         // Parse keep list from body (if provided)
@@ -482,21 +484,21 @@ exports.updateProduct = async (req, res) => {
             images_json_update = JSON.stringify(finalImages);
         }
         // Fetch current cover image
-        const currentCoverRes = await request.query`SELECT cover_img FROM products WHERE product_id = ${id}`;
+        const currentCoverRes = await (new sql.Request(transaction)).query`SELECT cover_img FROM products WHERE product_id = ${id}`;
         const currentCover = currentCoverRes.recordset[0]?.cover_img || null;
         // Handle cover image removal/replacement
         if (coverImgField === 'null') {
             deleteFileSafe(currentCover);
-            await request.query`UPDATE products SET cover_img = ${null} WHERE product_id = ${id}`;
+            await (new sql.Request(transaction)).query`UPDATE products SET cover_img = ${null} WHERE product_id = ${id}`;
         } else if (coverFiles.length > 0) {
             deleteFileSafe(currentCover);
             const newCover = `assets/uploads/products/${coverFiles[0].filename}`;
-            await request.query`UPDATE products SET cover_img = ${newCover} WHERE product_id = ${id}`;
+            await (new sql.Request(transaction)).query`UPDATE products SET cover_img = ${newCover} WHERE product_id = ${id}`;
         }
 
         // Update product base fields (+ images if present)
         if (images_json_update !== null) {
-            await request.query`
+            await (new sql.Request(transaction)).query`
                 UPDATE products
                 SET subcategory_id = ${subcategory_id}, name = ${name}, description = ${description},
                     price = ${price}, stock_quantity = ${stock_quantity},
@@ -504,7 +506,7 @@ exports.updateProduct = async (req, res) => {
                 WHERE product_id = ${id}
             `;
         } else {
-            await request.query`
+            await (new sql.Request(transaction)).query`
                 UPDATE products
                 SET subcategory_id = ${subcategory_id}, name = ${name}, description = ${description},
                     price = ${price}, stock_quantity = ${stock_quantity}
@@ -514,21 +516,31 @@ exports.updateProduct = async (req, res) => {
 
         // Handle size chart remove/replace
         const scFilesUpd = (files.size_chart) ? files.size_chart : [];
-        const sizeChartMap = loadSizeChartMap();
-        const existingSC = sizeChartMap[String(id)];
+        const existingSCRes = await (new sql.Request(transaction)).query`
+          SELECT size_chart FROM products WHERE product_id = ${id}
+        `;
+        const existingSC = existingSCRes.recordset[0]?.size_chart || null;
         if (sizeChartField === 'null') {
             if (existingSC) {
-                const absSc = require('path').join(__dirname, '..', existingSC);
-                if (fs.existsSync(absSc)) fs.unlinkSync(absSc);
+                try {
+                  const absSc = require('path').join(__dirname, '..', existingSC);
+                  if (fs.existsSync(absSc)) fs.unlinkSync(absSc);
+                } catch {}
             }
-            deleteSizeChartForProduct(id);
+            await (new sql.Request(transaction)).query`
+              UPDATE products SET size_chart = ${null} WHERE product_id = ${id}
+            `;
         } else if (Array.isArray(scFilesUpd) && scFilesUpd[0]) {
             if (existingSC) {
+              try {
                 const absSc = require('path').join(__dirname, '..', existingSC);
                 if (fs.existsSync(absSc)) fs.unlinkSync(absSc);
+              } catch {}
             }
             const scPath = `assets/uploads/size-charts/${scFilesUpd[0].filename}`;
-            saveSizeChartForProduct(id, scPath);
+            await (new sql.Request(transaction)).query`
+              UPDATE products SET size_chart = ${scPath} WHERE product_id = ${id}
+            `;
         }
 
         // Build desired variants from provided colors/sizes
@@ -581,7 +593,7 @@ exports.updateProduct = async (req, res) => {
         for (const pair of desiredPairs) {
             const key = `${pair.color_id || 0}-${pair.size_id || 0}`;
             if (!existingMap.has(key)) {
-                await request.query`
+                await (new sql.Request(transaction)).query`
                     INSERT INTO product_variants (product_id, color_id, size_id, price, image, stock_quantity)
                     VALUES (${id}, ${pair.color_id}, ${pair.size_id}, ${price}, NULL, ${stock_quantity})
                 `;
@@ -591,7 +603,7 @@ exports.updateProduct = async (req, res) => {
         // Delete variants no longer desired
         for (const [key, v] of existingMap.entries()) {
             if (!desiredKeys.has(key)) {
-                await request.query`
+                await (new sql.Request(transaction)).query`
                     DELETE FROM product_variants WHERE variant_id = ${v.variant_id}
                 `;
             }
@@ -607,6 +619,7 @@ exports.updateProduct = async (req, res) => {
 };
 
 // DELETE product
+const { notifyAdmins } = require('../services/notificationService');
 exports.deleteProduct = async (req, res) => {
     const { id } = req.params;
     const transaction = new sql.Transaction();
@@ -633,8 +646,17 @@ exports.deleteProduct = async (req, res) => {
             const abs = require('path').join(__dirname, '..', img);
             try { if (fs.existsSync(abs)) fs.unlinkSync(abs); } catch {}
         }
-        // Delete size chart
-        deleteSizeChartForProduct(id);
+        // Delete size chart file if exists
+        const scRes = await request.query`
+            SELECT size_chart FROM products WHERE product_id = ${id}
+        `;
+        const scPathDel = scRes.recordset[0]?.size_chart || null;
+        if (scPathDel) {
+            try {
+                const absSc = require('path').join(__dirname, '..', scPathDel);
+                if (fs.existsSync(absSc)) fs.unlinkSync(absSc);
+            } catch {}
+        }
         // Delete variants
         await request.query`
             DELETE FROM product_variants WHERE product_id = ${id}
@@ -648,6 +670,14 @@ exports.deleteProduct = async (req, res) => {
             return res.status(404).json({ error: 'Product not found' });
         }
         await transaction.commit();
+        try {
+          await notifyAdmins({
+            type: 'product_deleted',
+            title: 'Product deleted',
+            message: `Product #${id} deleted`,
+            meta: { productId: Number(id) }
+          });
+        } catch {}
         res.json({ message: 'Product deleted' });
     } catch (err) {
         if (transaction._aborted === false) await transaction.rollback();
