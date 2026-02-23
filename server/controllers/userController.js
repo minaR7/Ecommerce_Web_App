@@ -2,6 +2,44 @@ const sql = require('mssql');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
+const dns = require('dns').promises;
+const nodemailer = require('nodemailer');
+
+const isValidEmailSyntax = (email) => {
+  if (typeof email !== 'string') return false;
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+};
+
+const hasMxRecords = async (email) => {
+  try {
+    if (!isValidEmailSyntax(email)) return false;
+    const domain = String(email.split('@')[1] || '').trim();
+    if (!domain) return false;
+    const mx = await dns.resolveMx(domain);
+    return Array.isArray(mx) && mx.length > 0;
+  } catch {
+    return false;
+  }
+};
+
+const sendSignupEmail = async ({ email, first_name }) => {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: true,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    greetingTimeout: 10000,
+    tls: { rejectUnauthorized: false },
+  });
+  await transporter.sendMail({
+    from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `Welcome to Elmaghrib`,
+    text: `Hi ${first_name || ''},\n\nYour account has been created successfully.\n\n- The Elmaghrib Team`,
+    html: `<p>Hi ${first_name || ''},</p><p>Your account has been created successfully.</p><p>- The Elmaghrib Team</p>`,
+  });
+};
 
 exports.saveUser = async (userData, calledFromCheckout = false) => {
   try {
@@ -73,6 +111,11 @@ exports.registerUser = async (req, res) => {
   request.input('email', sql.VarChar, email);
 
   try {
+    const deliverable = await hasMxRecords(email);
+    console.log(deliverable)
+    if (!deliverable) {
+      return res.status(400).json({ error: 'Email is not deliverable' });
+    }
     // Check if user already exists
     const existingUser = await request.query(
       'SELECT * FROM users WHERE email = @email'
@@ -124,6 +167,9 @@ exports.registerUser = async (req, res) => {
         message: `${email} registered`,
         meta: { userId: user_id, email }
       });
+    } catch {}
+    try {
+      await sendSignupEmail({ email, first_name });
     } catch {}
     return res.status(201).json({ message: 'User registered successfully', user_id });
   } catch (error) {
@@ -255,6 +301,14 @@ exports.loginUser = async (req, res) => {
   request.input('identifier', sql.VarChar, identifier);
 
   try {
+    if (String(identifier).includes('@')) {
+      const deliverable = await hasMxRecords(identifier);
+      
+    console.log(deliverable)
+      if (!deliverable) {
+        return res.status(400).json({ error: 'Email is not deliverable' });
+      }
+    }
     const userResult = await request.query(`
       SELECT u.user_id, u.email, u.is_registered, c.password, c.username, c.is_admin
       FROM users u
