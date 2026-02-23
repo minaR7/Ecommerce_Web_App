@@ -32,11 +32,16 @@ const Login = () => {
       );
 
       const user = loginRes.data.data;
+      const token = loginRes.data.token;
       if (!user?.is_admin) {
         toast.error('Access denied: not an admin');
         return;
       }
       localStorage.setItem('user', JSON.stringify(user));
+      if (token) {
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('token', token);
+      }
 
       // Success toast
       toast.success(`Welcome back, ${user.username || user.email}!`);

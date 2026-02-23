@@ -1,5 +1,8 @@
 import { Layout, Input, Avatar, Dropdown, Badge, Modal, List, Typography } from 'antd';
 import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
+import { notificationsApi } from '../../services/api';
+import { formatAdminDate } from '../../utils/date';
 import {
   SearchOutlined,
   BellOutlined,
@@ -18,11 +21,7 @@ export const AdminHeader = ({ title }) => {
     email: ''
   });
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Order', description: 'Order #1234 received', time: '5 mins ago', read: false },
-    { id: 2, title: 'Stock Alert', description: 'Product XYZ is low on stock', time: '1 hour ago', read: false },
-    { id: 3, title: 'User Registered', description: 'New user joined the store', time: '2 hours ago', read: true },
-  ]);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -43,9 +42,31 @@ export const AdminHeader = ({ title }) => {
     window.location.href = '/login';
   };
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  const markAllAsRead = async () => {
+    await notificationsApi.markAllAsRead();
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
   };
+
+  useEffect(() => {
+    let active = true;
+    notificationsApi.getUnread().then(list => {
+      if (!active) return;
+      setNotifications(list || []);
+    }).catch(() => {});
+    const base = import.meta.env.VITE_BACKEND_SERVER_URL || 'http://localhost:3005';
+    const token = localStorage.getItem('authToken');
+    const socket = io(base, {
+      auth: token ? { token } : { role: 'admin' },
+      transports: ['websocket'],
+    });
+    socket.on('new-notification', (n) => {
+      setNotifications(prev => [n, ...prev]);
+    });
+    return () => {
+      active = false;
+      socket.close();
+    };
+  }, []);
 
   const notificationMenu = (
     <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg shadow-xl w-80 overflow-hidden">
@@ -64,14 +85,20 @@ export const AdminHeader = ({ title }) => {
         dataSource={notifications}
         renderItem={(item) => (
           <List.Item 
-            className={`px-4 cursor-pointer hover:bg-accent transition-colors border-b border-[#2e2e2e] last:border-0 ${!item.read ? 'bg-[#252525]' : ''}`}
+            className={`px-4 cursor-pointer hover:bg-accent transition-colors border-b border-[#2e2e2e] last:border-0 ${!item.is_read ? 'bg-[#252525]' : ''}`}
+            onClick={async () => {
+              if (!item.is_read) {
+                await notificationsApi.markAsRead(item.notification_id);
+                setNotifications(prev => prev.map(n => n.notification_id === item.notification_id ? { ...n, is_read: 1 } : n));
+              }
+            }}
           >
             <List.Item.Meta
               title={<span className="text-foreground text-sm font-medium">{item.title}</span>}
               description={
                 <div className="flex flex-col">
-                  <span className="text-muted-foreground text-xs">{item.description}</span>
-                  <span className="text-muted-foreground text-[10px] mt-1">{item.time}</span>
+                  <span className="text-muted-foreground text-xs">{item.message}</span>
+                  <span className="text-muted-foreground text-[10px] mt-1">{formatAdminDate(item.created_at)}</span>
                 </div>
               }
             />
@@ -134,7 +161,7 @@ export const AdminHeader = ({ title }) => {
           trigger={['click']} 
           placement="bottomRight"
         >
-          <Badge count={notifications.filter(n => !n.read).length} size="small">
+          <Badge count={notifications.filter(n => !n.is_read).length} size="small">
             <button className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
               <BellOutlined className="text-lg" />
             </button>
