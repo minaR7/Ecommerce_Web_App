@@ -1,4 +1,5 @@
 const sql = require('mssql');
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
@@ -64,6 +65,7 @@ exports.saveUser = async (userData, calledFromCheckout = false) => {
   }
 };
 
+const { notifyAdmins } = require('../services/notificationService');
 exports.registerUser = async (req, res) => {
   const { first_name, last_name, email, address, password, username, is_admin } = req.body;
 
@@ -115,6 +117,14 @@ exports.registerUser = async (req, res) => {
        VALUES (@user_id, @email, @username, @hashedPassword, @is_admin)`,
     );
 
+    try {
+      await notifyAdmins({
+        type: 'user_registered',
+        title: 'New user registered',
+        message: `${email} registered`,
+        meta: { userId: user_id, email }
+      });
+    } catch {}
     return res.status(201).json({ message: 'User registered successfully', user_id });
   } catch (error) {
     console.error('Error registering user:', error);
@@ -274,16 +284,17 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // You can add JWT generation here if needed
     const data = {
       user_id: user.user_id,
       username: user.username,
       email: user.email,
       is_admin: user.is_admin,
     }
+    const token = jwt.sign({ id: user.user_id, is_admin: user.is_admin }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.status(200).json({
       message: 'Login successful',
-      data
+      data,
+      token
     });
   } catch (error) {
     console.error('Login error:', error);
