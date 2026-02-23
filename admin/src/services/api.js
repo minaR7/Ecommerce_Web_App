@@ -252,7 +252,7 @@ export const ordersApi = {
   getById: (id) => fetchApi(`/orders/${id}`),
   // getAll: () => fetchApi('/checkout'),
   // getById: (id) => fetchApi(`/checkout/${id}`),
-  updateStatus: (id, status) => fetchApi(`/checkout/${id}/status`, {
+  updateStatus: (id, status) => fetchApi(`/orders/${id}/status`, {
     method: 'PUT',
     body: JSON.stringify({ status }),
   }),
@@ -326,5 +326,15 @@ export const pagesApi = {
   }),
   delete: (id) => fetchApi(`/sizes/${id}`, {
     method: 'DELETE',
+  }),
+};
+
+export const notificationsApi = {
+  getUnread: () => fetchApi('/notifications/unread'),
+  markAsRead: (id) => fetchApi(`/notifications/${id}/read`, {
+    method: 'POST',
+  }),
+  markAllAsRead: () => fetchApi('/notifications/mark-all-read', {
+    method: 'POST',
   }),
 };
