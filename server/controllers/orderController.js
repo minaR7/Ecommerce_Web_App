@@ -1,4 +1,5 @@
 const sql = require('mssql');
+const { notifyAdmins } = require('../services/notificationService');
 
 exports.getOrders = async (req, res) => {
   try {
@@ -169,5 +170,31 @@ exports.saveOrderItems = async (orderId, cartItems) => {
   } catch (err) {
     console.error('Error saving order items:', err);
     return { success: false, message: err.message };
+  }
+};
+
+exports.updateOrderStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    const request = new sql.Request();
+    request.input('id', sql.Int, Number(id));
+    request.input('status', sql.VarChar, status);
+    const result = await request.query(`
+      UPDATE orders
+      SET status = @status
+      WHERE order_id = @id
+    `);
+    try {
+      await notifyAdmins({
+        type: 'order_status_changed',
+        title: 'Order status changed',
+        message: `Order #${id} status: ${status}`,
+        meta: { orderId: Number(id), status }
+      });
+    } catch {}
+    res.status(200).json({ success: true, rowsAffected: result.rowsAffected[0] || 0 });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update order status' });
   }
 };
