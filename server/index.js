@@ -4,6 +4,11 @@ const path = require('path')
 const cors = require('cors')
 const express = require('express');
 const sql = require('mssql');
+const http = require('http');
+const { Server } = require('socket.io');
+const { registerNotificationSocket } = require('./sockets/notificationSocket');
+const notificationRoutes = require('./routes/notificationRoutes');
+const notificationService = require('./services/notificationService');
 const categoryRoutes = require('./routes/categoryRoutes');
 const subcategoryRoutes = require('./routes/subcategoryRoutes');
 const productRoutes = require('./routes/productRoutes');
@@ -20,6 +25,7 @@ const sizeRoutes = require('./routes/sizeRoutes');
 const verifyToken = require('./middleware/auth');
 
 const app = express();
+const server = http.createServer(app);
 
 // const allowedOrigins = ['http://localhost:5173', 'http://example.com', 'http://anotherdomain.com'];
 
@@ -84,6 +90,7 @@ app.use('/api/shipping', shippingRoutes)
 app.use('/api/pages', pageRoutes);
 app.use('/api/colors', colorRoutes);
 app.use('/api/sizes', sizeRoutes);
+app.use('/api/notifications', notificationRoutes);
 // router.post('/add', verifyToken, addToCart);
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
@@ -132,7 +139,26 @@ const startServer = async () => {
         await sql.connect(config);
         console.log('Connected successfully');
         console.table(listAllRoutes());
-        app.listen(3005,'0.0.0.0', () => console.log('Server running on port 3005'));
+        // app.listen(3005,'0.0.0.0', () => console.log('Server running on port 3005'));
+        const io = new Server(server, {
+          cors: {
+            origin:function (origin, callback) {
+            console.log(origin)
+            // allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.includes(origin)) {
+              return callback(null, true);
+            } else {
+              return callback(new Error('Not allowed by CORS'));
+            }
+          },  
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            credentials: true,
+          },
+        });
+        registerNotificationSocket(io);
+        notificationService.init(io);
+        server.listen(3005,'0.0.0.0', () => console.log('Server running on port 3005'));
     } catch (err) {
         console.error('Database connection failed', err);
     }
