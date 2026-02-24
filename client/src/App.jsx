@@ -1,6 +1,31 @@
 import React, { useState } from 'react';
 import { Layout, Menu, Drawer, Button, Card, Row, Col } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
+import HeaderMenu from './components/Header';
+import MainContent from './components/MainContent';
+import FooterMenu from './components/Footer';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './Home';
+import NotFound from './pages/404';
+import MyAccount from './pages/Login';
+import ProductDetail from './pages/ProductDetail';
+import Checkout from './pages/Checkout';
+import Category from './pages/Category';
+import ProductListing from './pages/ProductListing';
+import Store from './pages/Store';
+import Cart from './pages/Cart'
+import Signup from './pages/Signup';
+import OurHistory from './pages/about-us/OurHistory';
+import ConditionsOfSale from './pages/about-us/ConditionsOfSale';
+import PrivacyPolicy from './pages/about-us/PrivacyPolicy';
+import LegalNotice from './pages/about-us/LegalNotice';
+import PaymentMethods from './pages/quick-links/PaymentMethods';
+import ExchangeReturn from './pages/quick-links/ExchangeReturn';
+import DeliveryPolicy from './pages/quick-links/DeliveryTime';
+
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import ScrollToTop from './components/ScrollToTop';
 
 const { Header, Content, Footer } = Layout;
 
@@ -9,47 +34,48 @@ const App = () => {
 
   const showDrawer = () => setVisible(true);
   const closeDrawer = () => setVisible(false);
+  // const updatedCart = [{"productId":1,"variant":4,"quantity":3,"coverImg":"http://localhost:3005/assets/jabador-white-and-gold-503x800.jpg","name":"Men Casual Shirt","basePrice":29.99,"size":"L","color":"yellow"}]
+  // sessionStorage.setItem('guestCart', JSON.stringify(updatedCart));
 
   return (
-    <Layout>
-      <Header style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 1,
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          height: '70px',
-        }}>
-        <Button type="text" icon={<MenuOutlined />} onClick={showDrawer} />
-        <Drawer placement="left" onClose={closeDrawer} visible={visible}>
-          <Menu mode="inline">
-            <Menu.Item key="1">Home</Menu.Item>
-            <Menu.Item key="2">Shop</Menu.Item>
-            <Menu.Item key="3">About Us</Menu.Item>
-            <Menu.Item key="4">Contact</Menu.Item>
-          </Menu>
-        </Drawer>
-      </Header>
-
-      <Content style={{ padding: '0 50px', marginTop: 64, minHeight: "78vh" }}>
-        <Row gutter={16}>
-          <Col span={8}>
-            <Card title="Jabador" bordered={false}>Product 1</Card>
-          </Col>
-          <Col span={8}>
-            <Card title="Gandoura" bordered={false}>Product 2</Card>
-          </Col>
-          <Col span={8}>
-            <Card title="Djellaba" bordered={false}>Product 3</Card>
-          </Col>
-        </Row>
-      </Content>
-
-      <Footer style={{ textAlign: 'center', height: '4rem', background: 'aquamarine', }}>
-        © 2025 Jabador. All rights reserved.
-      </Footer>
+     <Layout style={{ backgroundColor: "#ffffff"}} >
+        <ScrollToTop />
+        <HeaderMenu> </HeaderMenu>
+        <Content style={{ padding: '0rem 0rem 1rem 0rem', minHeight: "75vh", backgroundColor: "#fff" }}> 
+          {/* {marginTop: 64, #f5f5f5 } */}
+            <Routes>
+              <Route path="/" element={<Home />} />
+              {/* <Route path="/men" element={<Men />} />
+              <Route path="/men/:subcategory" element={<MenSubcategory />} />
+              <Route path="/women" element={<Women />} />
+              <Route path="/women/:subcategory" element={<WomenSubcategory />} />
+              <Route path="/kids" element={<Kids />} />
+              <Route path="/accessories" element={<Accessories />} /> */}
+              <Route path="/store" element={<Store />} />
+              <Route path="/store/:categoryName" element={<Category />} />
+              <Route path="/store/:categoryName/:subcategoryName" element={<ProductListing />} />
+              <Route path="/my-account" element={<MyAccount />} />
+              <Route path="/register" element={<Signup/>}/>
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/cart" element={<Cart/>} />
+              <Route path="/our-history" element={<OurHistory />} />
+              <Route path="/legal-notice" element={<LegalNotice />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} /> 
+              <Route path="/conditions-of-sale" element={<ConditionsOfSale />} />
+              <Route path="/exchange-return" element={<ExchangeReturn />} />
+              <Route path="/delivery-time" element={<DeliveryPolicy />} />
+               <Route path="/blog" element={<NotFound />} />
+              <Route path="/payment-method" element={<PaymentMethods />} />
+              {/* <Route path="/blog" element={<Blog />} /> */}
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+          </Routes>
+            <ToastContainer position="top-right" autoClose={3000} />
+         </Content>
+      <FooterMenu></FooterMenu>
     </Layout>
+
   );
 };
 

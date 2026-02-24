@@ -1,0 +1,30 @@
+{
+  "name": "ecommerce_morocco",
+  "version": "1.0.0",
+  "description": "An ecommerce web application for moroccan styled clothing products",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "author": "Momina",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "mssql": "^11.0.1",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.9",
+    "pdfkit": "^0.17.2",
+    "react-quill": "^2.0.0",
+    "socket.io": "^4.8.3",
+    "jsonwebtoken": "^9.0.2",
+    "stripe": "^18.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

@@ -1,0 +1,5 @@
+VITE_STRIPE_PUBLISHABLE_KEY= 'pk_live_51OyP6VRoZLaKNG2s5fWIEp8pahjjBHB5nNRty3pLvbh1kT0vBJQQES68HMgft3yEzjJhLzg2Rljt0WPcwvG4Nghd00bPZh7zLv'
+# VITE_BACKEND_SERVER_URL='http://elmaghrib.com'
+# VITE_API_URL='http://elmaghrib.com'
+VITE_API_URL = http://localhost:3005
+VITE_BACKEND_SERVER_URL = http://localhost:3005

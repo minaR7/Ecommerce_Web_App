@@ -1,12 +1,22 @@
 @import "tailwindcss";
+
+@theme {
+  --breakpoint-xs: 380px; /* custom breakpoint */
+}
+
+@custom-variant xs (max-width: 380px);
+
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: rgba(255, 255, 255, 1);
+  /* color: rgba(255, 255, 255, 0.87); */
+  /* background-color: #242424; */
+  background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,12 +25,65 @@
 }
 
 a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  font-weight: 600;
+  color: white;
+  font-size: medium;
+  /* text-decoration: inherit; */
 }
 a:hover {
-  color: #535bf2;
+  color: lightblue;
+}
+
+.link-text a{
+  font-weight: 400;
+  color: black;
+  font-size: medium;
+}
+.link-text a:hover {
+  color: lightblue;
+}
+
+.ant-drawer-body a span{
+  font-weight: 600;
+  color: black;
+  font-size: medium;
+  /* text-decoration: inherit; */
+}
+.ant-drawer-content-wrapper{
+  width: 300px;
+}
+
+.header-icons a {
+  font-weight: 700;
+  color: black;
+}
+
+nav a {
+  font-weight: 500;
+  color: black;
+  font-size: large;
+}
+
+.navbar-cat {
+  font-weight: 500;
+  color: black;
+  font-size: large;
+}
+
+.ant-breadcrumb nav a {
+  font-weight: 300;
+  color: black;
+}
+
+.ant-breadcrumb a {
+  /* color: rgb(132, 152, 176); */
+  color: rgb(71, 89, 122);
+  /* color: rgb(17, 18, 38); */
+}
+
+.ant-breadcrumb a:hover {
+  color: rgba(0, 0, 0, 0.88);
+  background-color: transparent !important;
 }
 
 body {
@@ -29,6 +92,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #ffffff;
 }
 
 h1 {
@@ -60,10 +124,170 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
-  a:hover {
+  /* a:hover {
     color: #747bff;
   }
   button {
     background-color: #f9f9f9;
+  } */
+}
+
+
+.footer-horizontal {
+  grid-auto-flow: column;
+}
+
+.card-buttons {
+  /* display: flex;
+  justify-content: space-between;
+  opacity: 0;
+  transition: opacity 0.3s ease; */
+  display: flex;
+  justify-content: center;
+  /* position: absolute;
+  bottom: 6px; */
+  background-color: 'black';
+  color: 'white';
+  padding: '4px 8px';
+}
+
+.ant-card:hover .card-buttons {
+  display: flex;
+  opacity: 1;
+}
+
+.ant-btn {
+  color: white;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.ant-btn:hover {
+  background-color: #333; /* Darker shade for hover */
+  color: white;
+}
+
+.ant-btn-circle:hover {
+  background-color: #333; /* Darker shade for hover */
+}
+
+/* .ant-card-cover{
+  height: 200px;
+} */
+
+/* .ant-card-cover img {
+  height: 500px;
+} */
+
+.forgot-creds a{
+  font-weight: 400;
+  color: #000;
+}
+
+.home-page-card .ant-card-body {
+  padding: 0px ;
+  border-radius: 0 0 8px 8px;
+}
+
+.home-page-card .ant-card-cover {
+  padding: 0px ;
+  border-radius: 0 8px 8px 8px;
+}
+
+
+/* ----------------------- */
+.product-details {
+  display: flex;
+  justify-content: space-between;
+}
+
+.image-gallery {
+  flex: 1;
+}
+
+.product-info {
+  flex: 1;
+}
+
+/* product details color buttons */
+.circle-radio.ant-radio-button-wrapper::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* sidebar (drawer) link items */
+.sidebar-items li a{
+  font-weight: 500;
+  color: black;
+  font-size: medium;
+}
+
+.ant-image{
+  height: 100%;
+}
+
+.product-list-card-details{
+    font-size: 22px;
+}
+
+@media (min-width: 780px) and (max-width: 1020px){
+  .product-list-card-details{
+    font-size: 16px !important;
   }
+}
+@media (max-width: 576px){
+  .product-list-card-details{
+    font-size: 16px !important;
+  }
+}
+@media (max-width: 380px) {
+  .product-list-container{
+    padding: 2rem 3rem 1rem !important;
+  }
+  .product-list-card-details{
+    font-size: 16px !important;
+  }
+  .quantity-cart-div{
+    gap: 10px;
+  }
+  .quantity-input{
+    width: 2rem !important;
+  }
+  .size-chart-btn {
+    width: 100% !important;
+    margin-top: 1rem !important; /* ~mt-2 */
+  }
+
+  .add-to-cart-btn {
+    flex: 1 1 100% !important; /* Take full width */
+    padding: 2px 2px;
+  }
+}
+
+
+.story-text {
+  @apply text-[19px] md:text-[17px] leading-[1.9] text-[#4a4a4a] mb-7 text-justify;
+}
+
+.story-text:first-letter {
+  font-size: 64px;
+  font-weight: 600;
+  float: left;
+  line-height: 48px;
+  padding-right: 10px;
+  color: #202836;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.emphasis {
+  @apply italic text-[#2c5f6f] font-medium;
+}
+
+.pull-quote {
+  @apply text-[26px] md:text-[22px] italic text-center text-[#202836] 
+         my-12 py-8 px-10 border-l-4 border-r-4 
+         border-[#202836] bg-gradient-to-b from-[#f9f7f4] to-[#ede9e3]  leading-[1.6];
+}
+
+.closing-text {
+  @apply text-[20px] md:text-[18px] leading-[1.8] text-[#4a4a4a] mb-6;
 }

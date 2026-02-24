@@ -1,0 +1,71 @@
+export const antdDarkTheme = {
+  token: {
+    colorPrimary: '#ffffff',
+    colorBgContainer: '#111111',
+    colorBgElevated: '#1a1a1a',
+    colorBgLayout: '#0a0a0a',
+    colorBorder: '#2e2e2e',
+    colorBorderSecondary: '#252525',
+    colorText: '#fafafa',
+    colorTextSecondary: '#999999',
+    colorTextTertiary: '#666666',
+    colorTextQuaternary: '#444444',
+    colorSuccess: '#22c55e',
+    colorWarning: '#f59e0b',
+    colorError: '#ef4444',
+    colorInfo: '#3b82f6',
+    borderRadius: 8,
+    fontFamily: "'Inter', system-ui, sans-serif",
+    fontSize: 14,
+    controlHeight: 40,
+    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3)',
+  },
+  components: {
+    Layout: {
+      siderBg: '#0d0d0d',
+      headerBg: '#0a0a0a',
+      bodyBg: '#0a0a0a',
+    },
+    Menu: {
+      darkItemBg: 'transparent',
+      darkItemSelectedBg: '#1f1f1f',
+      darkItemHoverBg: '#1a1a1a',
+      darkItemColor: '#999999',
+      darkItemSelectedColor: '#ffffff',
+    },
+    Table: {
+      headerBg: '#111111',
+      headerColor: '#999999',
+      rowHoverBg: '#151515',
+      borderColor: '#2e2e2e',
+    },
+    Card: {
+      colorBgContainer: '#111111',
+    },
+    Modal: {
+      contentBg: '#111111',
+      headerBg: '#111111',
+    },
+    Button: {
+      primaryShadow: 'none',
+      defaultBg: '#1a1a1a',
+      defaultBorderColor: '#2e2e2e',
+      defaultColor: '#fafafa',
+    },
+    Input: {
+      colorBgContainer: '#1a1a1a',
+      colorBorder: '#2e2e2e',
+      activeBorderColor: '#ffffff',
+      hoverBorderColor: '#444444',
+    },
+    Select: {
+      colorBgContainer: '#1a1a1a',
+      colorBorder: '#2e2e2e',
+      optionSelectedBg: '#252525',
+    },
+    Tag: {
+      defaultBg: '#1a1a1a',
+      defaultColor: '#fafafa',
+    },
+  },
+};
