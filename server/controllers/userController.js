@@ -105,6 +105,35 @@ exports.saveUser = async (userData, calledFromCheckout = false) => {
 };
 
 const { notifyAdmins } = require('../services/notificationService');
+
+exports.checkEmail = async (req, res) => {
+  try {
+    const raw = (req.query.email || req.body.email || '').trim();
+    if (!raw) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    const email = raw.toLowerCase();
+    const syntaxValid = isValidEmailSyntax(email);
+    let deliverable = false;
+    if (syntaxValid) {
+      deliverable = await hasMxRecords(email);
+    }
+    const request = new sql.Request();
+    request.input('email', sql.VarChar, email);
+    const existing = await request.query('SELECT TOP 1 user_id FROM users WHERE email = @email');
+    const available = existing.recordset.length === 0;
+    return res.status(200).json({
+      ok: syntaxValid && deliverable && available,
+      syntaxValid,
+      deliverable,
+      available,
+    });
+  } catch (err) {
+    console.error('Error checking email:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 exports.registerUser = async (req, res) => {
   const { first_name, last_name, email, address, password, username, is_admin } = req.body;
 
