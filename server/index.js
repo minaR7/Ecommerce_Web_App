@@ -23,6 +23,7 @@ const pageRoutes = require('./routes/pageRoutes');
 const colorRoutes = require('./routes/colorRoutes');
 const sizeRoutes = require('./routes/sizeRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const siteSettingsRoutes = require('./routes/siteSettingsRoutes');
 const verifyToken = require('./middleware/auth');
 
 const app = express();
@@ -95,6 +96,7 @@ app.use('/api/colors', colorRoutes);
 app.use('/api/sizes', sizeRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/site-settings', siteSettingsRoutes);
 // router.post('/add', verifyToken, addToCart);
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
