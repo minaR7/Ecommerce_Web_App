@@ -1,10 +1,55 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Form, Input, Button } from 'antd';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [emailStatus, setEmailStatus] = useState({
+    checking: false,
+    message: '',
+    status: null,
+  });
+
+  const handleEmailBlur = async (e) => {
+    const value = e.target.value.trim();
+    if (!value) {
+      setEmailStatus({ checking: false, message: '', status: null });
+      return;
+    }
+    setEmailStatus({ checking: true, message: '', status: null });
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_SERVER_URL}/api/users/check-email`,
+        { params: { email: value } }
+      );
+      const { syntaxValid, deliverable, available } = res.data || {};
+      let status = 'ok';
+      let message = '';
+      if (!syntaxValid) {
+        status = 'error';
+        message = 'Invalid email format';
+      } else if (!deliverable) {
+        status = 'warning';
+        message = 'Email domain does not appear to accept mail';
+      } else if (!available) {
+        status = 'error';
+        message = 'Email is already registered';
+      } else {
+        status = 'ok';
+        message = 'Email is valid and available';
+      }
+      setEmailStatus({ checking: false, message, status });
+    } catch (err) {
+      console.error('Email check failed:', err);
+      setEmailStatus({
+        checking: false,
+        message: 'Could not verify email right now',
+        status: 'error',
+      });
+    }
+  };
 
   const onFinish = async (values) => {
     try {
@@ -18,12 +63,12 @@ const Signup = () => {
       );
 
       console.log('Signup success:', res.data);
-        toast.success(`User, ${user.username || user.email} registered!`);
-      navigate('/my-account'); // redirect to login after signup
-       // Success toast
+      toast.success('User registered successfully');
+      navigate('/my-account');
     } catch (err) {
       console.error('Signup failed:', err);
-      toast.error(`Signup failed. ${err}`);
+      const msg = err.response?.data?.error || 'Signup failed';
+      toast.error(msg);
     }
   };
 
@@ -49,8 +94,18 @@ const Signup = () => {
           <Form.Item
             name="email"
             rules={[{ required: true, message: 'Please input your email!' }]}
+            validateStatus={
+              emailStatus.status === 'ok'
+                ? 'success'
+                : emailStatus.status === 'error'
+                ? 'error'
+                : emailStatus.status === 'warning'
+                ? 'warning'
+                : undefined
+            }
+            help={emailStatus.checking ? 'Checking email...' : emailStatus.message || undefined}
           >
-            <Input type="email" placeholder="Email" />
+            <Input type="email" placeholder="Email" onBlur={handleEmailBlur} />
           </Form.Item>
 
           <Form.Item
