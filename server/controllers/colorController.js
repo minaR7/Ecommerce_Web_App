@@ -78,7 +78,7 @@ exports.createColor = async (req, res) => {
     // `;
 
      const result = await sql.query`
-      INSERT INTO product_colors (name,t)
+      INSERT INTO product_colors (name)
       VALUES (${name});
       
       SELECT 

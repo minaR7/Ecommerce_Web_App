@@ -163,11 +163,8 @@ exports.getAllProducts = async (req, res) => {
         query += ' GROUP BY p.product_id, p.category_id, p.subcategory_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors, sa.sizes';
 
         const result = await sql.query(query);
-         // res.json(result.recordset);
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const modifiedProducts = result.recordset.map((product) => 
-        {
-            // Compute discounted price
+        const modifiedProducts = result.recordset.map((product) => {
             const price = parseFloat(product.price);
             const discount = parseFloat(product.discount_percentage || 0);
             const discountedPrice = discount > 0
@@ -184,22 +181,64 @@ exports.getAllProducts = async (req, res) => {
             }
             const colorsArray = product.colors ? product.colors.split(',') : [];
             const sizesArray = product.sizes ? product.sizes.split(',') : [];
-            return (
-            {
+            return {
                 ...product,
+                description: product.description == null ? '-' : product.description,
                 cover_img: product.cover_img ? `${baseUrl}/${String(product.cover_img).replace(/^\/+/, '')}` : null,
                 discounted_price: discountedPrice,
                 slide_images: slideImages,
                 colors: colorsArray,
                 sizes: sizesArray,
                 size_chart: product.size_chart ? `${baseUrl}/${String(product.size_chart).replace(/^\/+/, '')}` : null
-            })
+            };
         });
-        
         res.status(200).json(modifiedProducts);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
+    }
+};
+
+exports.getBestSellers = async (req, res) => {
+    try {
+        const result = await sql.query(`
+            SELECT TOP 10
+                p.product_id,
+                p.name,
+                p.description,
+                p.price,
+                p.discount_percentage,
+                p.cover_img,
+                SUM(oi.quantity) AS total_sold
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.order_id
+            JOIN products p ON oi.product_id = p.product_id
+            WHERE o.payment_status = 'paid'
+            GROUP BY p.product_id, p.name, p.description, p.price, p.discount_percentage, p.cover_img
+            ORDER BY total_sold DESC
+        `);
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const mapped = result.recordset.map((p) => {
+            const price = parseFloat(p.price);
+            const discount = parseFloat(p.discount_percentage || 0);
+            const discountedPrice = discount > 0
+                ? (price - (price * discount) / 100).toFixed(2)
+                : price;
+            return {
+                product_id: p.product_id,
+                name: p.name,
+                description: p.description == null ? '-' : p.description,
+                price,
+                discount_percentage: p.discount_percentage,
+                discounted_price: discountedPrice,
+                cover_img: p.cover_img ? `${baseUrl}/${String(p.cover_img).replace(/^\/+/, '')}` : null,
+                total_sold: Number(p.total_sold || 0),
+            };
+        });
+        res.status(200).json(mapped);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error fetching best sellers' });
     }
 };
 
@@ -282,6 +321,7 @@ exports.getProductById = async (req, res) => {
       // 4. Return product with variant details
       res.json({
         ...product,
+        description: product.description == null ? '-' : product.description,
         cover_img: product.cover_img ? `${baseUrl}/${String(product.cover_img).replace(/^\/+/, '')}` : null,
         // slide_images: product.images.map(img => `${baseUrl}/${img}`),
         slide_images: (() => {
@@ -328,11 +368,29 @@ exports.searchProducts = async (req, res) => {
 
 // POST new product
 exports.createProduct = async (req, res) => {
-    const { category_id, subcategory_id, name, description, price, stock_quantity } = req.body || {};
+    let { category_id, subcategory_id, name, description, price, stock_quantity } = req.body || {};
     console.log(req.body)
     let { sizes, colors } = req.body;
 
     if (!name) return res.status(400).json({ error: 'Product name is required' });
+
+    // Coerce numeric fields so they bind as proper SQL numeric types
+    const toNum = (v) => (v === undefined || v === null || v === '') ? null : Number(v);
+    const toInt = (v) => (v === undefined || v === null || v === '') ? null : parseInt(v, 10);
+    price          = toNum(price);
+    stock_quantity = toInt(stock_quantity);
+    category_id    = toInt(category_id);
+    subcategory_id = toInt(subcategory_id);
+
+    let normalizedDescription = description;
+    if (
+        normalizedDescription === undefined ||
+        normalizedDescription === null ||
+        normalizedDescription === 'undefined' ||
+        normalizedDescription === ''
+    ) {
+        normalizedDescription = null;
+    }
 
     // Handle array parsing (FormData sends arrays as multiple entries with same key, or JSON strings)
     // If sent as JSON string manually:
@@ -363,7 +421,7 @@ exports.createProduct = async (req, res) => {
         const result = await request.query`
             INSERT INTO products (category_id, subcategory_id, name, description, price, stock_quantity, cover_img, images)
             OUTPUT INSERTED.product_id
-            VALUES (${category_id}, ${subcategory_id || null}, ${name}, ${description}, ${price}, ${stock_quantity}, ${cover_img}, ${imagesJson})
+            VALUES (${category_id}, ${subcategory_id || null}, ${name}, ${normalizedDescription}, ${price}, ${stock_quantity}, ${cover_img}, ${imagesJson})
         `;
         const productId = result.recordset[0].product_id;
 
@@ -377,11 +435,21 @@ exports.createProduct = async (req, res) => {
             } catch (e) {}
         }
 
-        // Get IDs for colors and sizes
+        // Get IDs for colors and sizes — auto-create colors that don't exist yet
         let colorIds = [];
         if (colors.length > 0) {
             const allColors = await (new sql.Request(transaction)).query`SELECT color_id, name FROM product_colors`;
             const colorMap = new Map(allColors.recordset.map(c => [c.name.toLowerCase(), c.color_id]));
+            for (const n of colors) {
+                const key = String(n).toLowerCase();
+                if (!colorMap.has(key)) {
+                    const ins = await (new sql.Request(transaction)).query`
+                        INSERT INTO product_colors (name) VALUES (${n});
+                        SELECT SCOPE_IDENTITY() AS color_id;
+                    `;
+                    colorMap.set(key, ins.recordset[0].color_id);
+                }
+            }
             colorIds = colors.map(n => colorMap.get(String(n).toLowerCase())).filter(id => id);
         }
 
@@ -430,15 +498,35 @@ exports.createProduct = async (req, res) => {
 // PUT update product (also reconciles variants)
 exports.updateProduct = async (req, res) => {
     const { id } = req.params;
-    let { subcategory_id, name, description, price, stock_quantity, sizes, colors, cover_img: coverImgField, size_chart: sizeChartField } = req.body;
-        console.log(req.body)
+    let { category_id, subcategory_id, name, description, price, stock_quantity, discount_percentage, sizes, colors, cover_img: coverImgField, size_chart: sizeChartField } = req.body;
+    console.log(req.body)
     if (!name) return res.status(400).json({ error: 'Product name is required' });
+
+    let normalizedDescription = description;
+    if (
+        normalizedDescription === undefined ||
+        normalizedDescription === null ||
+        normalizedDescription === 'undefined' ||
+        normalizedDescription === ''
+    ) {
+        normalizedDescription = null;
+    }
 
     // Parse arrays if needed
     try { if (typeof sizes === 'string') sizes = JSON.parse(sizes); } catch (e) { /* keep as is */ }
     try { if (typeof colors === 'string') colors = JSON.parse(colors); } catch (e) { /* keep as is */ }
     if (!Array.isArray(sizes)) sizes = sizes ? [sizes] : [];
     if (!Array.isArray(colors)) colors = colors ? [colors] : [];
+
+    // Coerce numeric fields so they bind as proper SQL numeric types
+    // (multipart/form-data sends everything as strings, which made SQL Server
+    //  attempt implicit string→number conversions and fail).
+    const toNum = (v) => (v === undefined || v === null || v === '') ? null : Number(v);
+    const toInt = (v) => (v === undefined || v === null || v === '') ? null : parseInt(v, 10);
+    price          = toNum(price);
+    stock_quantity = toInt(stock_quantity);
+    category_id    = toInt(category_id);
+    subcategory_id = toInt(subcategory_id);
 
     const transaction = new sql.Transaction();
     try {
@@ -497,19 +585,21 @@ exports.updateProduct = async (req, res) => {
         }
 
         // Update product base fields (+ images if present)
+        const discountVal = parseFloat(discount_percentage) || 0;
         if (images_json_update !== null) {
             await (new sql.Request(transaction)).query`
                 UPDATE products
-                SET subcategory_id = ${subcategory_id}, name = ${name}, description = ${description},
-                    price = ${price}, stock_quantity = ${stock_quantity},
-                    images = ${images_json_update}
+                SET category_id = ${category_id || null}, subcategory_id = ${subcategory_id}, name = ${name},
+                    description = ${normalizedDescription}, price = ${price}, stock_quantity = ${stock_quantity},
+                    discount_percentage = ${discountVal}, images = ${images_json_update}
                 WHERE product_id = ${id}
             `;
         } else {
             await (new sql.Request(transaction)).query`
                 UPDATE products
-                SET subcategory_id = ${subcategory_id}, name = ${name}, description = ${description},
-                    price = ${price}, stock_quantity = ${stock_quantity}
+                SET category_id = ${category_id || null}, subcategory_id = ${subcategory_id}, name = ${name},
+                    description = ${normalizedDescription}, price = ${price}, stock_quantity = ${stock_quantity},
+                    discount_percentage = ${discountVal}
                 WHERE product_id = ${id}
             `;
         }
@@ -543,11 +633,21 @@ exports.updateProduct = async (req, res) => {
             `;
         }
 
-        // Build desired variants from provided colors/sizes
+        // Build desired variants from provided colors/sizes — auto-create new colors
         let colorIds = [];
         if (colors.length > 0) {
             const allColors = await request.query`SELECT color_id, name FROM product_colors`;
             const colorMap = new Map(allColors.recordset.map(c => [c.name.toLowerCase(), c.color_id]));
+            for (const n of colors) {
+                const key = String(n).toLowerCase();
+                if (!colorMap.has(key)) {
+                    const ins = await (new sql.Request(transaction)).query`
+                        INSERT INTO product_colors (name) VALUES (${n});
+                        SELECT SCOPE_IDENTITY() AS color_id;
+                    `;
+                    colorMap.set(key, ins.recordset[0].color_id);
+                }
+            }
             colorIds = colors.map(n => colorMap.get(String(n).toLowerCase())).filter(cid => cid);
         }
 
@@ -657,6 +757,10 @@ exports.deleteProduct = async (req, res) => {
                 if (fs.existsSync(absSc)) fs.unlinkSync(absSc);
             } catch {}
         }
+        // Delete dependent records to avoid FK constraint failures
+        await request.query`DELETE FROM cart_items WHERE product_id = ${id}`;
+        await request.query`DELETE FROM wishlist_items WHERE product_id = ${id}`;
+        await request.query`DELETE FROM reviews WHERE product_id = ${id}`;
         // Delete variants
         await request.query`
             DELETE FROM product_variants WHERE product_id = ${id}
