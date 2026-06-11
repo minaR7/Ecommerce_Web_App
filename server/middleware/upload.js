@@ -90,6 +90,12 @@ exports.uploadProductMedia = multer({
   { name: 'size_chart', maxCount: 1 },
 ]);
 
+exports.uploadSiteImage = multer({
+  storage: makeStorage('site'),
+  fileFilter: imageFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
+}).single('image');
+
 
 
   
