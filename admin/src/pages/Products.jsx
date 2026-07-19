@@ -167,6 +167,16 @@ const Products = () => {
     } else {
       setCoverImageUpload([]);
     }
+    if (product.size_chart) {
+      setSizeChartUpload([{
+        uid: '-sc1',
+        name: 'size-chart.jpg',
+        status: 'done',
+        url: product.size_chart,
+      }]);
+    } else {
+      setSizeChartUpload([]);
+    }
     
     form.setFieldsValue({
       categoryId: product.category_id,
@@ -200,7 +210,7 @@ const Products = () => {
           formData.append('category_id', values.categoryId);
           if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
           formData.append('name', values.name);
-          formData.append('description', values.description);
+          formData.append('description', values.description ?? '');
           formData.append('price', values.price);
           formData.append('stock_quantity', values.stock_quantity);
           formData.append('discount_percentage', values.discount_percentage || 0);
@@ -242,7 +252,7 @@ const Products = () => {
           formData.append('category_id', values.categoryId);
           if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
           formData.append('name', values.name);
-          formData.append('description', values.description);
+          formData.append('description', values.description ?? '');
           formData.append('price', values.price);
           formData.append('stock_quantity', values.stock_quantity);
           formData.append('discount_percentage', values.discount_percentage || 0);
@@ -545,14 +555,14 @@ const Products = () => {
           <Form.Item
             name="colors"
             label="Colors"
-            rules={[{ required: true, message: 'Please select at least one color' }]}
+            rules={[{ required: true, message: 'Please add at least one color' }]}
+            extra="Select existing colors or type a new name and press Enter to add it."
           >
-            <Select 
-              mode="multiple"
-              placeholder="Select colors"
-              showSearch
-              optionFilterProp="children"
+            <Select
+              mode="tags"
+              placeholder="Select or type a color (e.g. Pink, Grey, Navy)"
               allowClear
+              tokenSeparators={[',']}
             >
               {colors.map((color) => (
                 <Select.Option key={color.name} value={color.name}>
