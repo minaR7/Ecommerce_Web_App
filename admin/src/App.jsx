@@ -14,6 +14,7 @@ import Coupons from "./pages/Coupons";
 import Shipping from "./pages/Shipping";
 import Pages from "./pages/Pages";
 import PageEditor from "./pages/PageEditor";
+import SiteContent from "./pages/SiteContent";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
@@ -126,6 +127,14 @@ const App = () => (
             element={
               <Protected>
                 <PageEditor />
+              </Protected>
+            }
+          />
+          <Route
+            path="/site-content"
+            element={
+              <Protected>
+                <SiteContent />
               </Protected>
             }
           />
