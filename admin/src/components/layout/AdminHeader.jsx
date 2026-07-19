@@ -1,7 +1,7 @@
-import { Layout, Input, Avatar, Dropdown, Badge, Modal, List, Typography } from 'antd';
+import { Layout, Input, Avatar, Dropdown, Badge, Modal, List, Typography, Button, Popconfirm, message } from 'antd';
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-import { notificationsApi } from '../../services/api';
+import { notificationsApi, couponsApi } from '../../services/api';
 import { formatAdminDate } from '../../utils/date';
 import {
   SearchOutlined,
@@ -47,34 +47,86 @@ export const AdminHeader = ({ title }) => {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
   };
 
+  const parseMeta = (item) => {
+    try {
+      return item.metadata_json ? JSON.parse(item.metadata_json) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  // After acting on a coupon-limit notification, mark it read and drop it from the list.
+  const resolveNotification = async (notificationId) => {
+    try {
+      await notificationsApi.markAsRead(notificationId);
+    } catch { /* non-fatal */ }
+    setNotifications(prev => prev.filter(n => n.notification_id !== notificationId));
+  };
+
+  const handleDeactivateCoupon = async (couponId, notificationId) => {
+    try {
+      const coupon = await couponsApi.getById(couponId);
+      await couponsApi.update(couponId, { ...coupon, status: 'inactive' });
+      message.success('Coupon deactivated');
+      await resolveNotification(notificationId);
+    } catch (err) {
+      message.error(err.message || 'Could not deactivate coupon');
+    }
+  };
+
+  const handleDeleteCoupon = async (couponId, notificationId) => {
+    try {
+      await couponsApi.delete(couponId);
+      message.success('Coupon deleted');
+      await resolveNotification(notificationId);
+    } catch (err) {
+      message.error(err.message || 'Could not delete coupon');
+    }
+  };
+
   useEffect(() => {
     let active = true;
-    notificationsApi.getUnread().then(list => {
-      if (!active) return;
-      setNotifications(list || []);
-    }).catch(() => {});
+    const loadUnread = () => {
+      notificationsApi.getUnread().then(list => {
+        if (active) setNotifications(list || []);
+      }).catch(() => {});
+    };
+    loadUnread();
+    // HTTP fallback: keep notifications fresh even if the realtime socket can't
+    // connect (e.g. WebSocket blocked by the reverse proxy).
+    const pollId = setInterval(loadUnread, 30000);
+
     const base = import.meta.env.VITE_BACKEND_SERVER_URL;
     const token = localStorage.getItem('authToken');
     const socket = io(base, {
       auth: token ? { token } : { role: 'admin' },
-      transports: ['websocket'],
+      // Allow long-polling to negotiate first, then upgrade to WebSocket when
+      // possible. WebSocket-only fails hard behind IIS/proxies that don't upgrade.
+      transports: ['polling', 'websocket'],
+      withCredentials: true,
     });
     socket.on('new-notification', (n) => {
       setNotifications(prev => [n, ...prev]);
     });
     return () => {
       active = false;
+      clearInterval(pollId);
       socket.close();
     };
   }, []);
 
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
   const notificationMenu = (
-    <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg shadow-xl w-80 overflow-hidden">
-      <div className="p-4 border-b border-[#2e2e2e] flex justify-between items-center">
-        <h3 className="text-foreground font-semibold m-0">Notifications</h3>
-        <button 
+    <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg shadow-xl w-96 overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#2e2e2e] flex justify-between items-center">
+        <h3 className="text-foreground font-semibold m-0 text-sm">
+          Notifications {unreadCount > 0 && <span className="text-muted-foreground font-normal">({unreadCount})</span>}
+        </h3>
+        <button
           onClick={markAllAsRead}
-          className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer"
+          disabled={unreadCount === 0}
+          className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer disabled:opacity-40 disabled:cursor-default disabled:no-underline"
         >
           Mark all as read
         </button>
@@ -83,9 +135,10 @@ export const AdminHeader = ({ title }) => {
         className="max-h-96 overflow-y-auto"
         itemLayout="horizontal"
         dataSource={notifications}
+        locale={{ emptyText: <div className="py-10 text-center text-muted-foreground text-sm">You&apos;re all caught up</div> }}
         renderItem={(item) => (
-          <List.Item 
-            className={`px-4 cursor-pointer hover:bg-accent transition-colors border-b border-[#2e2e2e] last:border-0 ${!item.is_read ? 'bg-[#252525]' : ''}`}
+          <List.Item
+            className={`!px-4 !py-3 cursor-pointer hover:bg-accent transition-colors border-b border-[#2e2e2e] last:border-0 ${!item.is_read ? 'bg-[#252525]' : ''}`}
             onClick={async () => {
               if (!item.is_read) {
                 await notificationsApi.markAsRead(item.notification_id);
@@ -93,15 +146,32 @@ export const AdminHeader = ({ title }) => {
               }
             }}
           >
-            <List.Item.Meta
-              title={<span className="text-foreground text-sm font-medium">{item.title}</span>}
-              description={
-                <div className="flex flex-col">
-                  <span className="text-muted-foreground text-xs">{item.message}</span>
-                  <span className="text-muted-foreground text-[10px] mt-1">{formatAdminDate(item.created_at)}</span>
-                </div>
-              }
-            />
+            <div className="flex w-full gap-2">
+              <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!item.is_read ? 'bg-primary' : 'bg-transparent'}`} />
+              <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                <span className="text-foreground text-sm font-medium">{item.title}</span>
+                <span className="text-muted-foreground text-xs break-words">{item.message}</span>
+                <span className="text-muted-foreground text-[10px] mt-0.5">{formatAdminDate(item.created_at)}</span>
+                {item.type === 'coupon_limit_reached' && parseMeta(item).couponId && (
+                  <div className="flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      size="small"
+                      onClick={() => handleDeactivateCoupon(parseMeta(item).couponId, item.notification_id)}
+                    >
+                      Deactivate
+                    </Button>
+                    <Popconfirm
+                      title="Delete this coupon?"
+                      okText="Delete"
+                      cancelText="Cancel"
+                      onConfirm={() => handleDeleteCoupon(parseMeta(item).couponId, item.notification_id)}
+                    >
+                      <Button size="small" danger>Delete</Button>
+                    </Popconfirm>
+                  </div>
+                )}
+              </div>
+            </div>
           </List.Item>
         )}
       />
