@@ -330,6 +330,59 @@ export const pagesApi = {
   }),
 };
 
+export const siteSettingsApi = {
+  getAll: () => fetchApi('/site-settings'),
+  update: (data) => fetchApi('/site-settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  uploadLogo: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    const token = localStorage.getItem('authToken');
+    return fetch(`${API_BASE_URL}/site-settings/upload/logo`, {
+      method: 'POST',
+      body: form,
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
+  },
+  uploadHero: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    const token = localStorage.getItem('authToken');
+    return fetch(`${API_BASE_URL}/site-settings/upload/hero`, {
+      method: 'POST',
+      body: form,
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
+  },
+  uploadIntroImage: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    const token = localStorage.getItem('authToken');
+    return fetch(`${API_BASE_URL}/site-settings/upload/intro-image`, {
+      method: 'POST',
+      body: form,
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
+  },
+};
+
 export const notificationsApi = {
   getUnread: () => fetchApi('/notifications/unread'),
   markAsRead: (id) => fetchApi(`/notifications/${id}/read`, {
