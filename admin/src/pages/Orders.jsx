@@ -85,14 +85,26 @@ const Orders = () => {
     setIsModalOpen(true);
   };
 
-  const handleUpdateStatus = (orderId, newStatus) => {
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    const prevOrders = orders;
+    const prevSelected = selectedOrder;
     setOrders(
       orders.map((o) => (o.order_id === orderId ? { ...o, status: newStatus } : o))
     );
     if (selectedOrder?.order_id === orderId) {
       setSelectedOrder({ ...selectedOrder, status: newStatus });
     }
-    message.success(`Order status updated to ${newStatus}`);
+    try {
+      await ordersApi.updateStatus(orderId, newStatus);
+      message.success(`Order status updated to ${newStatus}`);
+    } catch (err) {
+      console.error('Failed to update order status:', err);
+      setOrders(prevOrders);
+      if (prevSelected?.order_id === orderId) {
+        setSelectedOrder(prevSelected);
+      }
+      message.error('Failed to update order status');
+    }
   };
 
   const columns = [
