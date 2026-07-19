@@ -78,7 +78,8 @@ const Coupons = () => {
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
         <Button type="text" icon={<EditOutlined />} onClick={() => { setEditingCoupon(r); form.setFieldsValue({ ...r, validFrom: dayjs(r.validFrom), validUntil: dayjs(r.validUntil) }); setIsModalOpen(true); }} />
-        <Popconfirm title="Delete?" onConfirm={() => setCoupons(coupons.filter(c => c.id !== r.id))}><Button type="text" icon={<DeleteOutlined />} className="text-red-400" /></Popconfirm>
+        <Popconfirm title="Delete?" okText="Delete" cancelText="Cancel"  okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
+         onConfirm={() => setCoupons(coupons.filter(c => c.id !== r.id))}><Button type="text" icon={<DeleteOutlined />} className="text-muted-foreground hover:text-destructive" /></Popconfirm>
       </Space>
     )}
   ];
@@ -102,13 +103,15 @@ const Coupons = () => {
         </div>
         <Modal title={editingCoupon ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={600}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
-            <Form.Item name="code" label="Code" rules={[{ required: true }]}><Input /></Form.Item>
-            <Form.Item name="validFrom" label="From" rules={[{ required: true }]}><DatePicker className="w-full" /></Form.Item>
-            <Form.Item name="validUntil" label="Until" rules={[{ required: true }]}><DatePicker className="w-full" /></Form.Item>
+            <div className="grid grid-cols-3 gap-4">
+              <Form.Item name="code" label="Code" rules={[{ required: true }]}><Input /></Form.Item>
+              <Form.Item name="validFrom" label="Valid From" rules={[{ required: true }]}><DatePicker className="w-full" format="DD-MM-YYYY" /></Form.Item>
+              <Form.Item name="validUntil" label="Valid Until" rules={[{ required: true }]}><DatePicker className="w-full" format="DD-MM-YYYY" /></Form.Item>
+            </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <Form.Item name="discountValue" label="Value" rules={[{ required: true }]}><InputNumber className="w-full" /></Form.Item>
-              <Form.Item name="usageLimit" label="Usage Limit" rules={[{ required: false }]}><InputNumber className="w-full" /></Form.Item>
+              <Form.Item name="discountValue" label="Value" rules={[{ required: true }]}><InputNumber className="w-full" style={{ width: '100%' }} /></Form.Item>
+              <Form.Item name="usageLimit" label="Usage Limit" rules={[{ required: false }]}><InputNumber className="w-full" style={{ width: '100%' }} /></Form.Item>
               <Form.Item name="status" label="Status">
                 <Select>
                   <Select.Option value="active">Active</Select.Option>
