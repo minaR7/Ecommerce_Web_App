@@ -1,86 +1,99 @@
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, Tooltip } from 'antd';
 import {
   DashboardOutlined,
   ShoppingOutlined,
   ShoppingCartOutlined,
   UserOutlined,
-  SettingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   AppstoreOutlined,
   TagsOutlined,
   GiftOutlined,
   GlobalOutlined,
-  FileTextOutlined,
+  LayoutOutlined,
 } from '@ant-design/icons';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const { Sider } = Layout;
 
+// Wrap a label so a tooltip appears on hover (works in both expanded and
+// collapsed states). `tip` defaults to the label text.
+const withTip = (label, tip = label) => (
+  <Tooltip title={tip} placement="right" mouseEnterDelay={0.3}>
+    <span className="inline-block w-full">{label}</span>
+  </Tooltip>
+);
+
 const menuItems = [
   {
     key: '/',
     icon: <DashboardOutlined />,
-    label: 'Dashboard',
+    label: withTip('Dashboard'),
+    title: 'Dashboard',
   },
   {
     key: 'catalog',
     icon: <AppstoreOutlined />,
     label: 'Catalog',
+    title: 'Catalog',
     children: [
       {
         key: '/categories',
         icon: <AppstoreOutlined />,
-        label: 'Categories',
+        label: withTip('Categories'),
+        title: 'Categories',
       },
       {
         key: '/subcategories',
         icon: <TagsOutlined />,
-        label: 'Subcategories',
+        label: withTip('Subcategories'),
+        title: 'Subcategories',
       },
       {
         key: '/products',
         icon: <ShoppingOutlined />,
-        label: 'Products',
+        label: withTip('Products'),
+        title: 'Products',
       },
     ],
   },
   {
     key: '/orders',
     icon: <ShoppingCartOutlined />,
-    label: 'Orders',
+    label: withTip('Orders'),
+    title: 'Orders',
   },
   {
     key: '/users',
     icon: <UserOutlined />,
-    label: 'Users',
+    label: withTip('Users'),
+    title: 'Users',
   },
   {
     key: '/customers',
     icon: <UserOutlined />,
-    label: 'Customers',
+    label: withTip('Customers'),
+    title: 'Customers',
   },
   {
     key: '/coupons',
     icon: <GiftOutlined />,
-    label: 'Coupons',
+    label: withTip('Coupons'),
+    title: 'Coupons',
   },
   {
     key: '/shipping',
     icon: <GlobalOutlined />,
-    label: 'Shipping',
+    label: withTip('Shipping'),
+    title: 'Shipping',
   },
   {
-    key: '/pages',
-    icon: <FileTextOutlined />,
-    label: 'Site Content',
+    key: '/site-content',
+    icon: <LayoutOutlined />,
+    label: withTip('Site Content', 'Homepage, footer & pages'),
+    title: 'Site Content',
   },
-  // {
-  //   key: '/settings',
-  //   icon: <SettingOutlined />,
-  //   label: 'Settings',
-  // },
 ];
 
 export const AdminSidebar = () => {
