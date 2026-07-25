@@ -21,7 +21,11 @@ jobs:
   server:
     name: Deploy server (api.elmaghrib.com)
     runs-on: ubuntu-latest
+    # Secrets (FTP_SERVER, etc.) live in the "Production" environment, so the job
+    # must opt into it to read them.
+    environment: Production
     steps:
+      
       - uses: actions/checkout@v4
       - name: Deploy (FTP)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
