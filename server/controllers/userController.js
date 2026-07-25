@@ -23,8 +23,8 @@ const hasMxRecords = async (email) => {
   }
 };
 
-const sendSignupEmail = async ({ email, first_name }) => {
-  const transporter = nodemailer.createTransport({
+const makeTransporter = () =>
+  nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT,
     secure: true,
@@ -32,13 +32,29 @@ const sendSignupEmail = async ({ email, first_name }) => {
     greetingTimeout: 10000,
     tls: { rejectUnauthorized: false },
   });
-  console.log(transporter)
+
+const sendSignupEmail = async ({ email, first_name }) => {
+  const transporter = makeTransporter();
   await transporter.sendMail({
     from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
     to: email,
     subject: `Welcome to Elmaghrib`,
     text: `Hi ${first_name || ''},\n\nYour account has been created successfully.\n\n- The Elmaghrib Team`,
     html: `<p>Hi ${first_name || ''},</p><p>Your account has been created successfully.</p><p>- The Elmaghrib Team</p>`,
+  });
+};
+
+const sendPasswordResetEmail = async ({ email, resetUrl }) => {
+  const transporter = makeTransporter();
+  await transporter.sendMail({
+    from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: 'Reset your Elmaghrib password',
+    text: `We received a request to reset your password.\n\nReset it here (link valid for 30 minutes):\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.\n\n- The Elmaghrib Team`,
+    html: `<p>We received a request to reset your password.</p>
+           <p><a href="${resetUrl}">Click here to reset your password</a> (link valid for 30 minutes).</p>
+           <p>If you didn't request this, you can safely ignore this email.</p>
+           <p>- The Elmaghrib Team</p>`,
   });
 };
 
@@ -331,14 +347,10 @@ exports.loginUser = async (req, res) => {
   request.input('identifier', sql.VarChar, identifier);
 
   try {
-    if (String(identifier).includes('@')) {
-      const deliverable = await hasMxRecords(identifier);
-      
-    console.log(deliverable)
-      if (!deliverable) {
-        return res.status(400).json({ error: 'Email is not deliverable' });
-      }
-    }
+    // NOTE: No MX/deliverability check on login. The account already exists, so
+    // email deliverability is irrelevant for authentication — and an outbound DNS
+    // failure here would wrongly block valid logins with "Email is not deliverable".
+    // The MX check is kept for signup only.
     const userResult = await request.query(`
       SELECT u.user_id, u.email, u.is_registered, c.password, c.username, c.is_admin
       FROM users u
@@ -383,6 +395,84 @@ exports.loginUser = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// POST /api/users/forgot-password  { email }
+// Emails a time-limited reset link. Always responds 200 so we never reveal whether
+// an email is registered.
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  const generic = { message: 'If that email is registered, a reset link has been sent.' };
+  try {
+    if (!isValidEmailSyntax(email)) return res.status(200).json(generic);
+
+    const request = new sql.Request();
+    request.input('email', sql.VarChar, email);
+    const userRes = await request.query(`
+      SELECT TOP 1 u.user_id, u.email
+      FROM users u
+      JOIN credentials c ON u.user_id = c.user_id
+      WHERE u.email = @email
+    `);
+
+    if (userRes.recordset.length > 0) {
+      const user = userRes.recordset[0];
+      const token = jwt.sign(
+        { id: user.user_id, purpose: 'pwreset' },
+        process.env.JWT_SECRET,
+        { expiresIn: '30m' }
+      );
+      // Point the reset link at the storefront that made the request.
+      const base = req.headers.origin || process.env.CLIENT_URL || 'http://localhost:5174';
+      const resetUrl = `${base.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+      try {
+        await sendPasswordResetEmail({ email: user.email, resetUrl });
+      } catch (mailErr) {
+        console.error('Failed to send reset email:', mailErr);
+        return res.status(500).json({ error: 'Could not send reset email. Please try again later.' });
+      }
+    }
+    return res.status(200).json(generic);
+  } catch (error) {
+    console.error('forgotPassword error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// POST /api/users/reset-password  { token, password }
+exports.resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+  try {
+    if (!token) return res.status(400).json({ error: 'Reset token is required' });
+    if (!password || String(password).length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
+    }
+    if (payload.purpose !== 'pwreset' || !payload.id) {
+      return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
+    }
+
+    const hash = await bcrypt.hash(String(password), saltRounds);
+    const request = new sql.Request();
+    request.input('id', sql.Int, payload.id);
+    request.input('password', sql.VarChar, hash);
+    const result = await request.query(`
+      UPDATE credentials SET password = @password WHERE user_id = @id
+    `);
+    if ((result.rowsAffected[0] || 0) === 0) {
+      return res.status(400).json({ error: 'Account not found for this reset link.' });
+    }
+    return res.status(200).json({ message: 'Password updated successfully. You can now log in.' });
+  } catch (error) {
+    console.error('resetPassword error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
