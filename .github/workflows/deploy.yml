@@ -1,0 +1,52 @@
+name: Deploy server to Plesk
+
+# Backend-only auto-deploy. Push to prod with changes under server/ -> upload the
+# server code to api.elmaghrib.com over FTP. The two frontends (client/, admin/) are
+# built and uploaded MANUALLY and are intentionally not part of this pipeline.
+# See auto_deploy.md for setup (secrets, iisnode, one-time migration).
+on:
+  push:
+    branches: [prod]
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-server-prod
+  cancel-in-progress: false
+
+jobs:
+  # ------------------------------------------------------------- server (Node)
+  server:
+    name: Deploy server (api.elmaghrib.com)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy (FTP)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./server/
+          server-dir: ${{ secrets.SERVER_DIR }}
+          # Protect server-only + runtime files: excluded paths are neither
+          # uploaded nor deleted. node_modules is installed on the server via
+          # the Plesk Node.js "NPM install" button when package.json changes.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            .env
+            .user.ini
+            web.config
+            assets/uploads/**
+            data/**
+            logs/**
+            iisnode_logs/**
+            invoices/**
+            scripts/**
+    # iisnode reloads the app when index.js changes (this deploy re-uploads it).
+    # If a deploy ever doesn't pick up, click "Restart App" in the Plesk Node.js panel.
