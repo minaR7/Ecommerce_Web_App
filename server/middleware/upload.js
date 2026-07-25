@@ -3,11 +3,12 @@ const path = require('path');
 const fs = require('fs');
 
 const ROOT = process.env.ASSETS_UPLOAD_DIR || path.join(__dirname, '..', 'assets', 'uploads');
+exports.UPLOAD_ROOT = ROOT;
 
+// Create the target dir. Lets errors propagate (via the multer callback) so a
+// non-writable folder surfaces as a clear error instead of a silent 500.
 const ensureDir = (dir) => {
-  try {
-    fs.mkdirSync(dir, { recursive: true });
-  } catch {}
+  fs.mkdirSync(dir, { recursive: true });
 };
 
 
@@ -28,8 +29,8 @@ const makeStorage = (subdir) =>
   multer.diskStorage({
     destination: (req, file, cb) => {
       const dest = path.join(ROOT, subdir);
-      ensureDir(dest);
-      cb(null, dest);
+      try { ensureDir(dest); cb(null, dest); }
+      catch (err) { cb(err); }
     },
     filename: (req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
@@ -69,8 +70,8 @@ const productStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const subdir = file.fieldname === 'size_chart' ? 'size-charts' : 'products';
     const dest = path.join(ROOT, subdir);
-    ensureDir(dest);
-    cb(null, dest);
+    try { ensureDir(dest); cb(null, dest); }
+    catch (err) { cb(err); }
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
@@ -94,6 +95,18 @@ exports.uploadSiteImage = multer({
   storage: makeStorage('site'),
   fileFilter: imageFilter,
   limits: { fileSize: 10 * 1024 * 1024 },
+}).single('image');
+
+// Payment-method icons are typically SVGs, so allow SVG in addition to raster images.
+const iconFilter = (req, file, cb) => {
+  if (/^image\/(png|jpe?g|webp|gif|svg\+xml)$/i.test(file.mimetype)) cb(null, true);
+  else cb(new Error('Only image files (including SVG) are allowed'));
+};
+
+exports.uploadPaymentIcon = multer({
+  storage: makeStorage('site'),
+  fileFilter: iconFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
 }).single('image');
 
 
