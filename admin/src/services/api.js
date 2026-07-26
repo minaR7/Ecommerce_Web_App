@@ -163,6 +163,7 @@ export const subcategoriesApi = {
 export const productsApi = {
   getAll: () => fetchApi('/products'),
   getById: (id) => fetchApi(`/products/${id}`),
+  getBestSellers: () => fetchApi('/products/best-sellers'),
   create: (data) => {
     if (data instanceof FormData) {
       const token = localStorage.getItem('authToken');
@@ -379,6 +380,21 @@ export const siteSettingsApi = {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       return data;
+    });
+  },
+  uploadPaymentIcon: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    const token = localStorage.getItem('authToken');
+    return fetch(`${API_BASE_URL}/site-settings/upload/payment-icon`, {
+      method: 'POST',
+      body: form,
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data; // { icon_url, icon_url_resolved }
     });
   },
 };
