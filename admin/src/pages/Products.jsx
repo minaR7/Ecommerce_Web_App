@@ -13,6 +13,7 @@ import {
   Popconfirm,
   Card,
   Upload,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
@@ -315,6 +316,9 @@ const Products = () => {
     {
       title: 'Product',
       key: 'product',
+      // Width reduced ~30% (from the previous auto width) so the sizes/colors
+      // columns have more room; inner text truncates to match.
+      width: 224,
       render: (_, record) => (
         <div className="flex items-center gap-3">
           {(record.cover_img || record.image) ? (
@@ -330,11 +334,17 @@ const Products = () => {
               }}
             />
           )}
-          <div>
-            <p className="text-foreground font-medium m-0">{record.name}</p>
-            <p className="text-muted-foreground text-sm m-0 truncate max-w-xs">
-              {record.description}
-            </p>
+          <div className="min-w-0">
+            <p className="text-foreground font-medium m-0 truncate max-w-[150px]">{record.name}</p>
+            {record.description ? (
+              <Tooltip title={record.description} placement="topLeft">
+                <p className="text-muted-foreground text-sm m-0 truncate max-w-[150px] cursor-help">
+                  {record.description}
+                </p>
+              </Tooltip>
+            ) : (
+              <p className="text-muted-foreground text-sm m-0">-</p>
+            )}
           </div>
         </div>
       ),
@@ -373,6 +383,22 @@ const Products = () => {
                   </Tag>
                 );
               })
+            : <span className="text-muted-foreground">-</span>}
+        </div>
+      ),
+    },
+    {
+      title: 'Sizes',
+      key: 'sizes',
+      width: 120,
+      render: (_, record) => (
+        <div className="flex flex-wrap gap-0.5">
+          {Array.isArray(record.sizes) && record.sizes.length > 0
+            ? Array.from(new Set(record.sizes)).map((s, idx) => (
+                <Tag key={`${s}-${idx}`} className="text-xs uppercase m-0" style={{ paddingInline: 5, marginInlineEnd: 0 }}>
+                  {s}
+                </Tag>
+              ))
             : <span className="text-muted-foreground">-</span>}
         </div>
       ),
