@@ -44,14 +44,35 @@ const Login = () => {
       }
 
       // Success toast
-      toast.success(`Welcome back, ${user.username || user.email}!`);
-
-      navigate('/', { replace: true });
       toast.success('Logged in successfully!');
+      navigate('/', { replace: true });
 
     } catch (err) {
       console.error('Login failed:', err);
-      toast.error('Invalid username or password. Please try again.');
+
+      // No response at all → network / server unreachable
+      if (!err.response) {
+        toast.error('Network error: unable to reach the server. Check your connection and try again.');
+        return;
+      }
+
+      const status = err.response.status;
+      const serverMsg = err.response.data?.error || err.response.data?.message;
+
+      if (status >= 500) {
+        toast.error('Server error. Please try again in a moment.');
+        return;
+      }
+
+      // Map known backend messages to clear, user-facing text
+      const friendly = {
+        'Invalid credentials': 'Wrong credentials — check your username/email and password.',
+        'Admin access only': 'Access denied: this account is not an admin.',
+        'User is not registered': 'This account is not registered.',
+        'Email is not deliverable': 'That email address is not deliverable.',
+      };
+
+      toast.error(friendly[serverMsg] || serverMsg || 'Login failed. Please try again.');
     }
   };
 
