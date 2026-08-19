@@ -23,42 +23,47 @@ const hasMxRecords = async (email) => {
   }
 };
 
-// const makeTransporter = () =>
-// {
-//   console.log({
-//   SMTP_HOST: process.env.SMTP_HOST,
-//   SMTP_PORT: process.env.SMTP_PORT,
-//   SMTP_USER: process.env.SMTP_USER,
-//   hasPassword: !!process.env.SMTP_PASS,
-// });
-//   return nodemailer.createTransport({
-//     host: process.env.SMTP_HOST,
-//     port: process.env.SMTP_PORT,
-//     secure: true,
-//     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-//     greetingTimeout: 10000,
-//     tls: { rejectUnauthorized: false },
-//   });
-// }
-
-const makeTransporter = () => {
+const makeTransporter = () =>
+{
+  console.log({
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_USER: process.env.SMTP_USER,
+  hasPassword: !!process.env.SMTP_PASS,
+});
   return nodemailer.createTransport({
-    host: 'elmaghrib.com',
-    port: 465,
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
     secure: true,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     connectionTimeout: 15000,
     greetingTimeout: 15000,
     socketTimeout: 15000,
 
     logger: true,
     debug: true,
+    tls: { rejectUnauthorized: false },
   });
-};
+}
+
+// const makeTransporter = () => {
+//   return nodemailer.createTransport({
+//     host: 'elmaghrib.com',
+//     port: 465,
+//     secure: true,
+//     auth: {
+//       user: process.env.SMTP_USER,
+//       pass: process.env.SMTP_PASS,
+//     },
+
+//     connectionTimeout: 15000,
+//     greetingTimeout: 15000,
+//     socketTimeout: 15000,
+
+//     logger: true,
+//     debug: true,
+//   });
+// };
 
 const sendSignupEmail = async ({ email, first_name }) => {
   const transporter = makeTransporter();
