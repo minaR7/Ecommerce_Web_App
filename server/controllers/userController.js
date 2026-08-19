@@ -23,15 +23,42 @@ const hasMxRecords = async (email) => {
   }
 };
 
-const makeTransporter = () =>
-  nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+// const makeTransporter = () =>
+// {
+//   console.log({
+//   SMTP_HOST: process.env.SMTP_HOST,
+//   SMTP_PORT: process.env.SMTP_PORT,
+//   SMTP_USER: process.env.SMTP_USER,
+//   hasPassword: !!process.env.SMTP_PASS,
+// });
+//   return nodemailer.createTransport({
+//     host: process.env.SMTP_HOST,
+//     port: process.env.SMTP_PORT,
+//     secure: true,
+//     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+//     greetingTimeout: 10000,
+//     tls: { rejectUnauthorized: false },
+//   });
+// }
+
+const makeTransporter = () => {
+  return nodemailer.createTransport({
+    host: 'elmaghrib.com',
+    port: 465,
     secure: true,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    greetingTimeout: 10000,
-    tls: { rejectUnauthorized: false },
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
+
+    logger: true,
+    debug: true,
   });
+};
 
 const sendSignupEmail = async ({ email, first_name }) => {
   const transporter = makeTransporter();
@@ -44,17 +71,64 @@ const sendSignupEmail = async ({ email, first_name }) => {
   });
 };
 
+// const sendPasswordResetEmail = async ({ email, resetUrl }) => {
+//   const transporter = makeTransporter();
+//   await transporter.sendMail({
+//     from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
+//     to: email,
+//     subject: 'Reset your Elmaghrib password',
+//     text: `We received a request to reset your password.\n\nReset it here (link valid for 30 minutes):\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.\n\n- The Elmaghrib Team`,
+//     html: `<p>We received a request to reset your password.</p>
+//            <p><a href="${resetUrl}">Click here to reset your password</a> (link valid for 30 minutes).</p>
+//            <p>If you didn't request this, you can safely ignore this email.</p>
+//            <p>- The Elmaghrib Team</p>`,
+//   });
+// };
+
 const sendPasswordResetEmail = async ({ email, resetUrl }) => {
   const transporter = makeTransporter();
-  await transporter.sendMail({
+
+  await transporter.verify();
+
+  console.log('SMTP connection successful');
+
+  const info = await transporter.sendMail({
     from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
     to: email,
     subject: 'Reset your Elmaghrib password',
-    text: `We received a request to reset your password.\n\nReset it here (link valid for 30 minutes):\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.\n\n- The Elmaghrib Team`,
-    html: `<p>We received a request to reset your password.</p>
-           <p><a href="${resetUrl}">Click here to reset your password</a> (link valid for 30 minutes).</p>
-           <p>If you didn't request this, you can safely ignore this email.</p>
-           <p>- The Elmaghrib Team</p>`,
+
+    text: `We received a request to reset your password.
+
+Reset it here (link valid for 30 minutes):
+${resetUrl}
+
+If you didn't request this, you can ignore this email.
+
+- The Elmaghrib Team`,
+
+    html: `
+      <p>We received a request to reset your password.</p>
+
+      <p>
+        <a href="${resetUrl}">
+          Click here to reset your password
+        </a>
+        (link valid for 30 minutes).
+      </p>
+
+      <p>
+        If you didn't request this, you can safely ignore this email.
+      </p>
+
+      <p>- The Elmaghrib Team</p>
+    `,
+  });
+
+  console.log('Email sent:', {
+    messageId: info.messageId,
+    response: info.response,
+    accepted: info.accepted,
+    rejected: info.rejected,
   });
 };
 
@@ -136,7 +210,9 @@ exports.checkEmail = async (req, res) => {
     }
     const request = new sql.Request();
     request.input('email', sql.VarChar, email);
-    const existing = await request.query('SELECT TOP 1 user_id FROM users WHERE email = @email');
+    const existing = await request.query(`SELECT TOP 1 u.user_id, u.email FROM users u
+      JOIN credentials c ON u.user_id = c.user_id
+      WHERE u.email = @email`);
     const available = existing.recordset.length === 0;
     return res.status(200).json({
       ok: syntaxValid && deliverable && available,
@@ -163,16 +239,112 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ error: 'Email is not deliverable' });
     }
     // Check if user already exists
-    const existingUser = await request.query(
-      'SELECT * FROM users WHERE email = @email'
-    );
+    const existingUser = await request.query(`
+      SELECT TOP 1
+        user_id,
+        email,
+        first_name,
+        last_name,
+        address,
+        is_registered
+      FROM users
+      WHERE email = @email
+    `);
 
+    //USER EXISTS
     console.log(existingUser.recordset.length > 0)
     if (existingUser.recordset.length > 0) {
-      return res.status(400).json({ error: 'User already exists' });
+      const user = existingUser.recordset[0];
+      const user_id = user.user_id;
+
+      console.log('User already exists:', user_id);
+
+      // Check whether credentials already exist
+      const credentialsRequest = new sql.Request();
+
+      credentialsRequest.input(
+        'user_id',
+        sql.Int,
+        user_id
+      );
+
+      const existingCredentials =
+        await credentialsRequest.query(`
+          SELECT TOP 1 user_id
+          FROM credentials
+          WHERE user_id = @user_id
+        `);
+
+      // --------------------------------------------------
+      // 2A. User AND credentials both exist
+      // --------------------------------------------------
+
+      if (existingCredentials.recordset.length > 0) {
+        return res.status(400).json({
+          error: 'User already exists'
+        });
+      }
+
+      // --------------------------------------------------
+      // 2B. User exists BUT credentials don't exist
+      // --------------------------------------------------
+
+      console.log(
+        'User exists but credentials do not. Creating credentials...'
+      );
+
+      const hashedPassword = await bcrypt.hash(
+        password,
+        saltRounds
+      );
+
+      const credentialRequest = new sql.Request();
+
+      credentialRequest.input(
+        'user_id',
+        sql.Int,
+        user_id
+      );
+
+      credentialRequest.input(
+        'email',
+        sql.VarChar,
+        email
+      );
+
+      credentialRequest.input(
+        'username',
+        sql.VarChar,
+        username
+      );
+
+      credentialRequest.input(
+        'hashedPassword',
+        sql.VarChar,
+        hashedPassword
+      );
+
+      credentialRequest.input(
+        'is_admin',
+        sql.Bit,
+        is_admin ?? false
+      );
+
+      await credentialRequest.query(`
+        INSERT INTO credentials
+          (user_id, email, username, password, is_admin)
+        VALUES
+          (@user_id, @email, @username, @hashedPassword, @is_admin)
+      `);
+
+      return res.status(201).json({
+        message: 'Credentials created successfully',
+        user_id
+      });
+      // return res.status(400).json({ error: 'User already exists' });
     }
 
-  // Insert into users table
+  // user doesnt exist, Insert into users table
     request.input('first_name', sql.VarChar, first_name)
     request.input('last_name', sql.VarChar, last_name)
     request.input('address', sql.VarChar, address)
@@ -405,9 +577,13 @@ exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   const generic = { message: 'If that email is registered, a reset link has been sent.' };
   try {
-    if (!isValidEmailSyntax(email)) return res.status(200).json(generic);
+    
+      console.log("email", email);
+      console.log(isValidEmailSyntax(email));
+    if (isValidEmailSyntax(email) !== true) return res.status(200).json(generic);
 
     const request = new sql.Request();
+      console.log("looking for user:", email);
     request.input('email', sql.VarChar, email);
     const userRes = await request.query(`
       SELECT TOP 1 u.user_id, u.email
@@ -416,7 +592,9 @@ exports.forgotPassword = async (req, res) => {
       WHERE u.email = @email
     `);
 
+      console.log("User found:", userRes);
     if (userRes.recordset.length > 0) {
+      console.log("User found:", userRes.recordset[0]);
       const user = userRes.recordset[0];
       const token = jwt.sign(
         { id: user.user_id, purpose: 'pwreset' },
@@ -424,7 +602,7 @@ exports.forgotPassword = async (req, res) => {
         { expiresIn: '30m' }
       );
       // Point the reset link at the storefront that made the request.
-      const base = req.headers.origin || process.env.CLIENT_URL || 'http://localhost:5174';
+      const base = req.headers.origin || process.env.CLIENT_URL || 'http://elmaghrib.com';
       const resetUrl = `${base.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
       try {
         await sendPasswordResetEmail({ email: user.email, resetUrl });
@@ -432,6 +610,9 @@ exports.forgotPassword = async (req, res) => {
         console.error('Failed to send reset email:', mailErr);
         return res.status(500).json({ error: 'Could not send reset email. Please try again later.' });
       }
+    }
+    else{
+      console.log("User not found:", email);
     }
     return res.status(200).json(generic);
   } catch (error) {
