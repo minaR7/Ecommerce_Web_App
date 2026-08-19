@@ -42,7 +42,7 @@ const makeTransporter = () =>
 
     logger: true,
     debug: true,
-    tls: { rejectUnauthorized: false },
+    tls: { rejectUnauthorized: true },
   });
 }
 
