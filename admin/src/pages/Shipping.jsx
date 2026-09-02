@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Space, message, Popconfirm, InputNumber } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, GlobalOutlined } from '@ant-design/icons';
 import { AdminLayout } from '../components/layout/AdminLayout';
-import { shippingApi } from '../services/api';
+import { shippingApi, siteSettingsApi } from '../services/api';
 import { AppButton } from '../components/AppButton';
 import countries from 'world-countries';
 
@@ -21,13 +21,43 @@ const Shipping = () => {
   const [searchText, setSearchText] = useState('');
   const [form] = Form.useForm();
 
+  // Default international rate (fallback used at checkout when no country row matches)
+  const [defaultFee, setDefaultFee] = useState(35);
+  const [savedDefaultFee, setSavedDefaultFee] = useState(35);
+  const [savingDefault, setSavingDefault] = useState(false);
+
   const loadFees = () => {
     setLoading(true);
     return shippingApi.getAll().then(setFees).catch(() => setFees([])).finally(() => setLoading(false));
   };
 
+  const loadDefaultFee = () => {
+    return siteSettingsApi.getAll()
+      .then((s) => {
+        const fee = Number(s?.default_intl_shipping_fee);
+        const val = Number.isFinite(fee) ? fee : 35;
+        setDefaultFee(val);
+        setSavedDefaultFee(val);
+      })
+      .catch(() => {});
+  };
+
+  const saveDefaultFee = async () => {
+    setSavingDefault(true);
+    try {
+      await siteSettingsApi.update({ default_intl_shipping_fee: Number(defaultFee) });
+      setSavedDefaultFee(Number(defaultFee));
+      message.success('Default international rate saved');
+    } catch (err) {
+      message.error(err.message || 'Could not save default rate');
+    } finally {
+      setSavingDefault(false);
+    }
+  };
+
   useEffect(() => {
     loadFees();
+    loadDefaultFee();
   }, []);
 
   const handleSubmit = async (values) => {
@@ -84,6 +114,32 @@ const Shipping = () => {
             Add
           </AppButton>
         </div>
+        <div className="bg-card rounded-xl border border-border p-6">
+          <h2 className="text-base font-semibold text-foreground mb-1">Default International Rate</h2>
+          <p className="text-muted-foreground text-sm mb-3">
+            Applied at checkout when the destination country has no specific rate above.
+          </p>
+          <Space>
+            <InputNumber
+              min={0}
+              precision={2}
+              addonBefore="€"
+              value={defaultFee}
+              onChange={(v) => setDefaultFee(v ?? 0)}
+              style={{ width: 160 }}
+            />
+            <AppButton
+              type="primary"
+              loading={savingDefault}
+              onClick={saveDefaultFee}
+              disabled={Number(defaultFee) === Number(savedDefaultFee)}
+              style={{ color: '#000', fontWeight: 500 }}
+            >
+              Save
+            </AppButton>
+          </Space>
+        </div>
+
         <div className="bg-card rounded-xl border border-border p-6">
           <Input placeholder="Search..." prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="max-w-sm mb-4" />
           <Table columns={columns} dataSource={fees.filter(f => (f.country || '').toLowerCase().includes(searchText.toLowerCase()))} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />

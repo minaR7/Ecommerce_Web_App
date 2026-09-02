@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConfigProvider } from "antd";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { antdDarkTheme } from "./config/antdTheme";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
@@ -141,6 +143,7 @@ const App = () => (
           {/* <Route path="/settings" element={<Settings />} /> */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <ToastContainer position="top-right" autoClose={3000} />
     </ConfigProvider>
   </QueryClientProvider>
 );
