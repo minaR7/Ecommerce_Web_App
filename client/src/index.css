@@ -193,6 +193,57 @@ button:focus-visible {
   border-radius: 0 8px 8px 8px;
 }
 
+/* ── Store / category / product listing cards ──────────────────────── */
+.store-card {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  height: 100%;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.store-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-2px);
+}
+.store-card .ant-card-cover {
+  height: 260px;
+  overflow: hidden;
+  background: #f0f0ee;
+}
+.store-card .ant-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+/* Neutral placeholder so cards without an image keep the same size */
+.store-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c4c4c0;
+  font-size: 44px;
+  background: #f0f0ee;
+}
+.store-card .ant-card-meta-title {
+  font-size: 16px !important;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: normal;
+  color: rgba(0, 0, 0, 0.88);
+}
+.store-card .ant-card-meta-description {
+  font-size: 13px !important;
+  color: #6b7280;
+}
+/* Drop the empty description gap when there is no description */
+.store-card .ant-card-meta-detail > .ant-card-meta-title:only-child {
+  margin-bottom: 0;
+}
+
 
 /* ----------------------- */
 .product-details {
@@ -290,4 +341,30 @@ button:focus-visible {
 
 .closing-text {
   @apply text-[20px] md:text-[18px] leading-[1.8] text-[#4a4a4a] mb-6;
+}
+
+/* ── Homepage animations ──────────────────────────────────────────── */
+@keyframes hp-fade-up {
+  0%   { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes hp-fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes hp-zoom {
+  0%   { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.hp-fade-up    { animation: hp-fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.hp-fade-in    { animation: hp-fade-in 1s ease both; }
+.hp-hero-zoom  { animation: hp-zoom 1.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.hp-delay-1    { animation-delay: 0.12s; }
+.hp-delay-2    { animation-delay: 0.24s; }
+.hp-delay-3    { animation-delay: 0.36s; }
+.hp-delay-4    { animation-delay: 0.48s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-fade-up, .hp-fade-in, .hp-hero-zoom { animation: none; }
 }
