@@ -92,14 +92,18 @@ import { UserOutlined, ShoppingCartOutlined, DownOutlined  } from '@ant-design/i
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import CartDrawer from './CartDrawer';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 
 const { Header } = Layout;
 import { useSelector, useDispatch } from 'react-redux';
 import { openDrawer, closeDrawer } from '../redux/slices/cartSlice';
 
 
+const DEFAULT_LOGO = '/assets/logo/El-Maghrib-logo.png';
+
 const HeaderMenu = () => {
-    
+  const { settings } = useSiteSettings();
+  const logoSrc = settings.logo_url || DEFAULT_LOGO;
   const cartCount = useSelector((state) => state.cart.items.length);
   const isDrawerOpen = useSelector((state) => state.cart.isDrawerOpen);
   const dispatch = useDispatch();
@@ -146,45 +150,54 @@ const HeaderMenu = () => {
             style={{
                 position: 'sticky',
                 top: 0,
-                zIndex: 1,
+                zIndex: 10,
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                height: '70px',
+                height: 'auto',
+                minHeight: '64px',
                 backgroundColor: '#f5f5f5',
                 justifyContent: 'space-between',
+                padding: '4px 8px',
+                lineHeight: 'normal',
             }}
         >
-            <div className="flex items-center">
+            {/* Left: burger — flex-1 so the centre logo stays truly centred */}
+            <div className="flex items-center flex-1 min-w-0">
                 <Sidebar />
             </div>
 
-            <div className="absolute left-1/2 transform -translate-x-1/2 flex justify-center">
+            {/* Centre: logo, in normal flow (no absolute positioning) so it can never
+                overflow the bar or overlap the hero at any zoom level. */}
+            <div className="flex justify-center shrink-0 px-2">
                 <Link to="/">
                     <img
-                        src="/assets/logo/El-Maghrib-logo.png"
+                        src={logoSrc}
                         alt="Logo"
-                        className="object-contain"
-                        style={{ padding: "1rem", height: "90px", width: "600px" }}
+                        className="object-contain block"
+                        style={{
+                            height: "clamp(42px, 8vw, 72px)",
+                            width: "auto",
+                            maxWidth: "min(420px, 55vw)",
+                        }}
                     />
                 </Link>
             </div>
 
-            {/* <Navbar /> */}
-
-            <div className="flex items-center space-x-4 ml-auto header-icons z-10">
+            {/* Right: account + cart — flex-1 mirrors the left so the logo is centred */}
+            <div className="flex items-center justify-end flex-1 min-w-0 space-x-3 sm:space-x-4 header-icons z-10 pr-1 sm:pr-3">
                 {/* User section */}
                 {user ? (
                 <Dropdown overlay={userMenu} trigger={['click']}>
-                    <div className="cursor-pointer flex items-center gap-1">
-                    <UserOutlined className="text-xl text-black" />
-                    <span className="font-medium text-black">
+                    <div className="cursor-pointer flex items-center gap-1 min-w-0">
+                    <UserOutlined className="text-xl text-black shrink-0" />
+                    <span className="font-medium text-black hidden sm:inline-block max-w-[140px] truncate align-middle">
                       Hi,&nbsp;
                       {Array.isArray(user)
                         ? user[0]?.username || user[0]?.email || 'User'
                         : user?.username || user?.email || 'User'}
                     </span>
-                    <DownOutlined className="text-xs text-gray-600" />
+                    <DownOutlined className="text-xs text-gray-600 shrink-0" />
                     </div>
                 </Dropdown>
                 ) : (
@@ -192,11 +205,11 @@ const HeaderMenu = () => {
                     <UserOutlined className="text-xl cursor-pointer text-black" />
                 </Link>
                 )}
-                <div className="border-l h-6 border-gray-400"></div>
+                <div className="border-l h-6 border-gray-400 "></div>
 
                    <Badge count={cartCount} showZero>
                         <ShoppingCartOutlined
-                            className="text-2xl cursor-pointer text-black"
+                            className="text-2xl cursor-pointer text-black mr-1"
                             onClick={() => dispatch(openDrawer())}
                         />
                     </Badge>
