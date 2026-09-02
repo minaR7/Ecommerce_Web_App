@@ -47,53 +47,75 @@ const MyAccount = () => {
       await dispatch(fetchCart(user.user_id));
 
       // Success toast
-      toast.success(`Welcome back, ${user.username || user.email}!`);
-
-        navigate('/');
       toast.success('Logged in successfully!');
+      navigate('/');
 
     } catch (err) {
       console.error('Login failed:', err);
-      // toast.error('Log in failed!');
-      toast.error('Invalid username or password. Please try again.');
-      // Optionally show a message to user
+
+      // No response at all → network / server unreachable
+      if (!err.response) {
+        toast.error('Network error: unable to reach the server. Check your connection and try again.');
+        return;
+      }
+
+      const status = err.response.status;
+      const serverMsg = err.response.data?.error || err.response.data?.message;
+
+      if (status >= 500) {
+        toast.error('Server error. Please try again in a moment.');
+        return;
+      }
+
+      // Map known backend messages to clear, user-facing text
+      const friendly = {
+        'Invalid credentials': 'Wrong credentials — check your username/email and password.',
+        'User is not registered': 'This account is not registered.',
+        'Email is not deliverable': 'That email address is not deliverable.',
+      };
+
+      toast.error(friendly[serverMsg] || serverMsg || 'Login failed. Please try again.');
     }
   };
 
   return (
-    <div className="flex items-center justify-center mt-12">
-      <div className="p-8 rounded-lg w-full max-w-sm" style={{
-                  boxShadow: '8px 5px 6px lightgray', backgroundColor: "rgba(132, 152, 176, 0.1)"}}>
+    <div className="flex items-center justify-center px-4 mt-12">
+      <div className="p-8 rounded-2xl w-full max-w-md" style={{
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.08)', backgroundColor: "rgba(132, 152, 176, 0.08)"}}>
         <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
         <Form name="login" onFinish={onFinish} layout="vertical">
           <Form.Item
             name="username"
             rules={[{ required: true, message: 'Please input your username or email!' }]}
           >
-            <Input placeholder="Username or Email" />
+            <Input placeholder="Username or Email" size="large" />
           </Form.Item>
           <Form.Item
             name="password"
             rules={[{ required: true, message: 'Please input your password!' }]}
           >
-            <Input.Password placeholder="Password" />
+            <Input.Password placeholder="Password" size="large" />
           </Form.Item>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit" className="w-full " style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500"}}>
+          {/* Forgot password — right-aligned under the password field */}
+          <div className="flex justify-end -mt-2 mb-4">
+            <Link to="/forgot-password" className="text-sm text-blue-600! hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+
+          <Form.Item className="mb-3">
+            <Button type="primary" htmlType="submit" size="large" className="w-full" style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "500"}}>
               Login
             </Button>
           </Form.Item>
 
-          {/* <Form.Item>
-            <div className="flex justify-between text-sm forgot-creds">
-              <a href="#">Forgot password?</a>
-            </div>
-          </Form.Item> */}
-           <div className="flex justify-between text-sm link-text">
-            <Link to="/forgot-password">Forgot password?</Link>
-            <Link to="/register">Don’t have an account? Sign up</Link>
-          </div>
+          <p className="text-center text-sm text-gray-600 mb-0">
+            Don’t have an account?{' '}
+            <Link to="/register" className="text-blue-600! font-medium hover:underline">
+              Sign up
+            </Link>
+          </p>
         </Form>
       </div>
     </div>
