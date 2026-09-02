@@ -13,9 +13,11 @@ import { addToCart, openDrawer, closeDrawer, updateCartItem } from '../redux/sli
 import { addToWishlist } from '../redux/slices/wishlistSlice';
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
+import { useSiteSettings } from '../hooks/useSiteSettings';
 
 const ProductDetail = () => {
 
+    const { settings } = useSiteSettings();
     const { id } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -42,7 +44,9 @@ const ProductDetail = () => {
 
     useEffect(() => {
       if (product) {
-        setSelectedImage(product.cover_img); // Default to the first image
+        // slide_images now includes the cover image as its first entry, so default
+        // to it — this keeps the cover as a selectable thumbnail instead of losing it
+        setSelectedImage(product.slide_images?.[0] || product.cover_img);
         setSelectedSize(productSizes[0])
         setSelectedColor(productColors[0])
       }
@@ -142,7 +146,7 @@ const ProductDetail = () => {
     return (
       <>
         <div style={{ backgroundColor: 'white' }}>
-            <div style={{ width: '100%', padding: '2rem 6rem 1rem', backgroundColor: 'rgba(132, 152, 176, 0.5)', margin: '16px 0px' }}>
+            <div className="w-full py-6 px-4 md:px-24 my-4" style={{ backgroundColor: 'rgba(132, 152, 176, 0.5)' }}>
                 <Breadcrumb style={{ marginBottom: '16px', font: '32px', color: 'black' }}>
                     <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
                     <Breadcrumb.Item><Link to={`/store/${product.category}`}>{product.category}</Link> </Breadcrumb.Item>
@@ -152,12 +156,13 @@ const ProductDetail = () => {
                 {/* <h1 className="text-xxl font-semibold" style={{ margin: '16px 0', color: "rgb(71, 89, 122)" }}>{product.productName}</h1> */}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-6  mx-2 px-3" style={{minHeight: "70vh",}}>
+            <div className="flex flex-col md:flex-row gap-6  mx-2 px-3 md:min-h-[70vh]">
                 {/* h-[50vh] First Column */}
                 {/* <div className="flex flex-col */}
-                <Col className=" w-full md:w-1/2 mt-2 flex flex-col gap-4" style={{height: "70vh",}}>
-                    {/* First Child Container */}
-                    <div className="flex items-center justify-center h-[70%]">
+                <Col className=" w-full md:w-1/2 mt-2 flex flex-col gap-4 md:h-[70vh]">
+                    {/* First Child Container — responsive height: a manageable square-ish
+                        area on mobile instead of a 70vh empty box; 70% of the column on desktop */}
+                    <div className="relative flex items-center justify-center h-[70vw] max-h-[420px] md:h-[70%] md:max-h-none">
                        
                                         <button
                     className="absolute left-4 text-white text-3xl"
@@ -192,7 +197,7 @@ const ProductDetail = () => {
                     </div>
 
                     {/* Second Child Container */}
-                    <div className="flex items-center justify-center h-[26%] overflow-x-auto px-2">
+                    <div className="flex items-center justify-center overflow-x-auto px-2 mt-2 md:h-[26%]">
                         {(Array.isArray(product?.slide_images) && product.slide_images.length ? product.slide_images : [null]).map((img, index) => (
                             <div
                                 key={index}
@@ -390,7 +395,7 @@ const ProductDetail = () => {
                                 style={{ width: 60, textAlign: 'center' }}
                                 className='quantity-input'
                                 value={selectedQuantity}
-                                onChange={(value) => setSelectedQuantity(value)}
+                                onChange={(value) => setSelectedQuantity(Math.min(10, Math.max(1, value || 1)))}
                                 controls={false}
                             />
 
@@ -433,44 +438,62 @@ const ProductDetail = () => {
                     </div>
 
                     <div className="mt-5 space-y-2">
-                        {/* Row 1: Collection */}
+                        {/* Row 1: Shipping charges */}
+                        {settings.product_shipping_charges && (
+                        <div className="flex items-baseline gap-2 mt-1 align-center">
+                            <h3 className="c-1 text-lg font-semibold min-w-[100px]">Shipping:</h3>
+                            <p className="c-1 text-gray-700">{settings.product_shipping_charges}</p>
+                        </div>
+                        )}
+
+                        {/* Row 2: Collection */}
+                        {settings.product_collection && (
                         <div className="flex items-baseline gap-2 mt-1 align-center">
                             <h3 className="c-1 text-lg font-semibold min-w-[100px]">Collection:</h3>
-                            <p className="c-1 text-gray-700">Click & Collect - Select store at checkout.</p>
+                            <p className="c-1 text-gray-700">{settings.product_collection}</p>
                         </div>
+                        )}
 
-                        {/* Row 2: Postage */}
+                        {/* Row 3: Postage */}
+                        {settings.product_postage && (
                         <div className="flex items-baseline gap-2 mt-1">
                             <h3 className="c-2 text-lg font-semibold min-w-[100px]">Postage:</h3>
                             <div className="c-2">
-                            <p className="text-green-600">Free delivery in 2-3 days</p>
-                            {/* <p className="text-gray-700">Estimated between Tue, 29 Apr and Wed, 30 Apr to T45. See details</p> */}
+                            <p className="text-green-600">{settings.product_postage}</p>
                             </div>
                         </div>
+                        )}
 
-                        {/* Row 3: Returns */}
+                        {/* Row 4: Returns */}
+                        {settings.product_returns && (
                         <div className="flex items-baseline gap-2 mt-1">
                             <h3 className="c-4 text-lg font-semibold min-w-[100px]">Returns:</h3>
-                            <p className="c-4 text-gray-700">30 days return. Seller pays for return postage. See details</p>
+                            <p className="c-4 text-gray-700">
+                                {settings.product_returns}{' '}
+                                <Link to="/exchange-return" className="text-green-600! hover:text-green-700! hover:underline">
+                                    See details
+                                </Link>
+                            </p>
                         </div>
+                        )}
 
-                        {/* Row 4: Payments */}
+                        {/* Row 5: Payments — icons managed from Admin → Site Content → Payment Methods */}
+                        {Array.isArray(settings.payment_methods) && settings.payment_methods.length > 0 && (
                         <div className="flex items-center gap-2 mt-1">
                             <h3 className="text-lg font-semibold min-w-[100px]">Payments:</h3>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                            {/* <img src="/assets/icons/paypal-3-svgrepo-com.svg" alt="PayPal" className="w-10" />
-                            <img src="/assets/icons/google-pay-svgrepo-com.svg" alt="Google Pay" className="w-10" />
-                            <img src="/assets/icons/klarna-svgrepo-com.svg" alt="Klarna" className="w-10" /> */}
-                            <img src="/assets/icons/visa-svgrepo-com (1).svg" alt="VISA" className="w-10" />
-                            <img src="/assets/icons/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10" />
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                            {settings.payment_methods.map((pm, i) => (
+                                <img
+                                    key={`${pm.name || 'pm'}-${i}`}
+                                    src={pm.icon_url_resolved || pm.icon_url}
+                                    alt={pm.name || 'Payment method'}
+                                    title={pm.name || ''}
+                                    className="w-10 h-7 object-contain"
+                                />
+                            ))}
                             </div>
                         </div>
-
-                        {/* Row 5: Klarna Info */}
-                        {/* <div className="flex items-baseline gap-2">
-                            <h3 className="c-6 min-w-[100px]"></h3>
-                            <p className="c-6 text-gray-700">3 payments of £15.00 with Klarna. Learn more</p>
-                        </div> */}
+                        )}
                     </div>
                 </Col>
 
