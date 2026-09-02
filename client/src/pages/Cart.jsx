@@ -163,18 +163,19 @@ const Checkout = () => {
                       min={1}
                       max={10}
                       value={item.quantity}
-                      onChange={(value) => handleQuantityChange(item, value)}
+                      onChange={(value) => handleQuantityChange(item, Math.min(10, Math.max(1, value || 1)))}
                       controls={false}
                       style={{ width: 40, textAlign: 'center' }}
                   />
                   <Button
                       icon={<PlusOutlined />}
                       onClick={() => handleQuantityChange(item, Math.min(10, item.quantity + 1))}
-                      disabled={item.quantity >= 40}
+                      disabled={item.quantity >= 10}
                       style={{ backgroundColor: "black", color: 'white', fontWeight: '500' }}
                   />
               </div>
-              <Button icon={<DeleteOutlined />} onClick={() => handleDelete(item)} danger size="small"/> 
+              <Button icon={<DeleteOutlined />} onClick={() => handleDelete(item)} danger size="small"
+                  style={{ backgroundColor: '#ff4d4f', color: '#fff' }}/>
                                                
             </div>
           ))}

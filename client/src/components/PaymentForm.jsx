@@ -2,57 +2,76 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 // import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
 // const StripePaymentForm = ({ onPaymentMethodGenerated }) => {
 const StripePaymentForm = ({ amount, onPaymentConfirmed }) => {
   const stripe = useStripe();
   const elements = useElements();
+  const [processing, setProcessing] = useState(false);
 
   const handlePayment = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || processing) return;
+    setProcessing(true);
 
-    const cardElement = elements.getElement(CardElement);
-    const { error, paymentMethod } = await stripe.createPaymentMethod({
-      type: 'card',
-      card: cardElement,
-    });
+    try {
+      const cardElement = elements.getElement(CardElement);
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+      });
 
-    if (error) {
-      console.error(error);
-    } else {
-      //       console.log('PaymentMethod:', paymentMethod);
-      // // Pass the paymentMethod.id up to the parent
-      // onPaymentMethodGenerated(paymentMethod.id);
+      // Card details invalid / incomplete — tell the user instead of failing silently.
+      if (error) {
+        toast.error(error.message || 'Please check your card details and try again.');
+        return;
+      }
+
+      // Create the PaymentIntent on the server (fails here if Stripe keys are missing/invalid).
+      let clientSecret;
       try {
         const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/payments/intents`, { amount });
-        const clientSecret = res.data.clientSecret;
-        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: paymentMethod.id,
-          return_url: `${window.location.origin}/checkout/complete`,
-        });
-        if (confirmError) {
-          console.error(confirmError);
-          return;
-        }
-        if (paymentIntent?.next_action?.redirect_to_url?.url) {
-          window.location.assign(paymentIntent.next_action.redirect_to_url.url);
-          return;
-        }
-        if (paymentIntent?.status === 'succeeded') {
-          onPaymentConfirmed(paymentIntent.id);
-        }
-      } catch (e) {
-        console.error(e);
+        clientSecret = res.data.clientSecret;
+      } catch (intentErr) {
+        console.error(intentErr);
+        toast.error(intentErr?.response?.data?.error || 'Unable to start payment. Please try again later.');
+        return;
       }
+      if (!clientSecret) {
+        toast.error('Unable to start payment. Please try again later.');
+        return;
+      }
+
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: paymentMethod.id,
+      });
+      if (confirmError) {
+        toast.error(confirmError.message || 'Payment could not be completed.');
+        return;
+      }
+      if (paymentIntent?.next_action?.redirect_to_url?.url) {
+        window.location.assign(paymentIntent.next_action.redirect_to_url.url);
+        return;
+      }
+      if (paymentIntent?.status === 'succeeded') {
+        onPaymentConfirmed(paymentIntent.id);
+      } else {
+        toast.error(`Payment ${paymentIntent?.status || 'was not completed'}. Please try again.`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Something went wrong processing the payment. Please try again.');
+    } finally {
+      setProcessing(false);
     }
   };
 
   return (
     // <form onSubmit={handlePayment}>
       <div className='flex w-full '>
-        <CardElement className="py-4 px-3 border rounded-md w-full" 
+        <CardElement className="py-4 px-3 border rounded-md w-full"
          options={{
           hidePostalCode: true,
           style: {
@@ -71,10 +90,10 @@ const StripePaymentForm = ({ amount, onPaymentConfirmed }) => {
         <button
           type="submit"
           onClick={handlePayment}
-          disabled={!stripe}
-          className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition ml-1"
+          disabled={!stripe || processing}
+          className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition ml-1 disabled:opacity-60"
         >
-          Pay
+          {processing ? 'Processing…' : 'Pay'}
         </button>
         {/* </form> */}
       </div>

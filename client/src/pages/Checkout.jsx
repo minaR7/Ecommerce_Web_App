@@ -9,6 +9,7 @@ import axios from 'axios';
 import { useDispatch } from 'react-redux';
 import { placeOrder } from '../redux/slices/checkoutSlice';
 import countries from 'world-countries';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 
 const { Option } = Select;
 const { Panel } = Collapse;
@@ -28,7 +29,17 @@ const Checkout = () => {
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [shippingFee, setShippingFee] = useState(35);
+
+  // Default international shipping fee comes from admin Site Settings (falls back to 35).
+  const { settings } = useSiteSettings();
+  const defaultShippingFee = Number(settings.default_intl_shipping_fee) || 35;
+  const [shippingFee, setShippingFee] = useState(defaultShippingFee);
+  const [countryChosen, setCountryChosen] = useState(false);
+
+  // Keep the fee in sync with the configured default until the user picks a country.
+  useEffect(() => {
+    if (!countryChosen) setShippingFee(defaultShippingFee);
+  }, [defaultShippingFee, countryChosen]);
 
   // useEffect(() => {
   //   const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
@@ -83,8 +94,8 @@ const Checkout = () => {
     setIsApplyingCoupon(true);
     try {
       // Example: replace this with your API endpoint
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/validate-coupon`, { code: couponCode });
-
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/coupons/validate-coupon`, { code: couponCode });
+      console.log(res)
       if (res.data.valid) {
         const percentage = res.data.discountPercentage;
         setDiscount(percentage);
@@ -94,11 +105,16 @@ const Checkout = () => {
         });
       } else {
         setDiscount(0);
-        notification.error({ message: 'Invalid Coupon Code' });
+        notification.error({ message: res.data.message || 'Invalid Coupon' });
       }
     } catch (err) {
       console.error(err);
-      notification.error({ message: 'Error applying coupon' });
+      setDiscount(0);
+      if (err?.response?.status === 400 || err?.response?.status === 404) {
+        notification.error({ message: 'Invalid Coupon' });
+      } else {
+        notification.error({ message: 'Could not apply coupon. Please try again.' });
+      }
     } finally {
       setIsApplyingCoupon(false);
     }
@@ -163,6 +179,7 @@ const Checkout = () => {
           paymentIntentId,
           cartItems,
           discount, // send discounted amount
+          couponCode, // send applied coupon so backend can count its usage
           useDifferentBilling,
         })
       );
@@ -179,7 +196,30 @@ const Checkout = () => {
       //   return;
       // }
       // navigate('/');
-      navigate('/checkout/complete');
+      // Only go to the confirmation page when the order was actually placed. The page
+      // itself also refuses to render without this navigation state, so the URL can't
+      // be reached by typing it in the browser.
+      if (placeOrder.fulfilled.match(resultAction) && resultAction.payload?.orderId) {
+        // Short-lived token lets the confirmation page survive a refresh (same tab)
+        // without being reachable by typing the URL later or in a new tab.
+        try {
+          sessionStorage.setItem(
+            'orderComplete',
+            JSON.stringify({ orderId: resultAction.payload.orderId, ts: Date.now() })
+          );
+        } catch {}
+        navigate('/checkout/complete', {
+          replace: true,
+          state: { orderId: resultAction.payload.orderId, justPlaced: true },
+        });
+      } else {
+        notification.error({
+          message: 'Order could not be placed',
+          description:
+            (typeof resultAction?.payload === 'string' && resultAction.payload) ||
+            'Something went wrong placing your order. Please try again.',
+        });
+      }
       
     } catch (error) {
       console.log(error)
@@ -261,16 +301,18 @@ const Checkout = () => {
               {/* <Form.Item label="Country" name="country" rules={[{ required: true }]}><Select><Option value="usa">USA</Option></Select></Form.Item> */}
               <Form.Item label="Country" name="country" rules={[{ required: true }]}>
                 <Select showSearch placeholder="Select a country" optionFilterProp="label" onChange={async (value) => {
+                  setCountryChosen(true);
                   try {
                     const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/shipping/${value}`, { credentials: 'include' });
                     if (res.ok) {
                       const data = await res.json();
-                      setShippingFee(Number(data.fee));
+                      const fee = Number(data.fee);
+                      setShippingFee(Number.isFinite(fee) ? fee : defaultShippingFee);
                     } else {
-                      setShippingFee(35);
+                      setShippingFee(defaultShippingFee);
                     }
                   } catch {
-                    setShippingFee(35);
+                    setShippingFee(defaultShippingFee);
                   }
                 }}>
                   {countryOptions.map((country) => (
