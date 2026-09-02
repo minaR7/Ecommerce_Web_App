@@ -130,8 +130,8 @@ const Items = ({ noDrawerBtn, cartOpen, setCartOpen }) => {
                             <Button icon={<DeleteOutlined />} onClick={() => handleDelete(item)} danger size="small" 
                                 style={{  backgroundColor: "#ff4d4f", color: 'white', fontSize: '12px', fontWeight: '700' , padding: '2px 6px',}}/>
                             <Avatar src={item?.coverImg || "/fallback.jpg"} alt={item.name}  size={48} className="mx-2" />
-                            <div >{item.name || "Unnamed Product"}</div>
-                            <div className="flex items-center">
+                            <div className="flex-1 min-w-0 truncate mx-2">{item.name || "Unnamed Product"}</div>
+                            <div className="flex items-center" style={{ flexShrink: 0 }}>
                                 <Button
                                     icon={<MinusOutlined />}
                                     onClick={() => handleQuantityChange(item, Math.max(1, qty - 1))}
@@ -142,18 +142,18 @@ const Items = ({ noDrawerBtn, cartOpen, setCartOpen }) => {
                                     min={1}
                                     max={10}
                                     value={qty}
-                                    onChange={(value) => handleQuantityChange(item, value)}
+                                    onChange={(value) => handleQuantityChange(item, Math.min(10, Math.max(1, value || 1)))}
                                     controls={false}
                                     style={{ width: 40, textAlign: 'center' }}
                                 />
                                 <Button
                                     icon={<PlusOutlined />}
                                     onClick={() => handleQuantityChange(item, Math.min(10, qty + 1))}
-                                    disabled={qty >= 40}
+                                    disabled={qty >= 10}
                                     style={{ backgroundColor: "black", color: 'white', fontWeight: '500' }}
                                 />
                             </div>
-                            <div style={{ width: 50, textAlign: 'right', fontWeight: 'bold' }}>
+                            <div style={{ minWidth: 72, textAlign: 'right', fontWeight: 'bold', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                 €{totalPrice.toFixed(2)}
                             </div>
                         </div>
@@ -177,9 +177,8 @@ const Items = ({ noDrawerBtn, cartOpen, setCartOpen }) => {
                             <Button icon={<DeleteOutlined />} onClick={() => handleDelete(item)} danger size="small" 
                                 style={{ backgroundColor: "#ff4d4f", color: 'white', fontSize: '12px', fontWeight: '700' , padding: '2px 6px',}}/>
                             <Avatar src={item.coverImg || "/fallback.jpg"} size={48} className="mx-2" />
-                            <div >{item.name || "Unnamed Product"}</div>
-                                {/*style={{ flex: 1 }}} */}
-                            <div className="flex items-center">
+                            <div className="flex-1 min-w-0 truncate mx-2">{item.name || "Unnamed Product"}</div>
+                            <div className="flex items-center" style={{ flexShrink: 0 }}>
                                 <Button
                                     icon={<MinusOutlined />}
                                     onClick={() => handleQuantityChange(item, Math.max(1, qty - 1))}
@@ -190,7 +189,7 @@ const Items = ({ noDrawerBtn, cartOpen, setCartOpen }) => {
                                     min={1}
                                     max={10}
                                     value={qty}
-                                    onChange={(value) => handleQuantityChange(item, value)}
+                                    onChange={(value) => handleQuantityChange(item, Math.min(10, Math.max(1, value || 1)))}
                                     controls={false}
                                     style={{ width: 40, textAlign: 'center' }}
                                 />
@@ -201,7 +200,7 @@ const Items = ({ noDrawerBtn, cartOpen, setCartOpen }) => {
                                     style={{ backgroundColor: "black", color: 'white', fontWeight: '500' }}
                                 />
                             </div>
-                            <div style={{ width: 50, textAlign: 'right', fontWeight: 'bold' }}>
+                            <div style={{ minWidth: 72, textAlign: 'right', fontWeight: 'bold', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                 €{totalPrice.toFixed(2)}
                             </div>
                         </div>

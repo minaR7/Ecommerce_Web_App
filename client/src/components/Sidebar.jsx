@@ -18,7 +18,8 @@ const Sidebar = () => {
     const [open, setOpen] = useState(false);
 
     return (
-        <div className="flex justify-between items-center px-4 py-3">
+        // Burger pinned to the left; small padding keeps it in the top-left corner on mobile
+        <div className="flex items-center pl-3 pr-2 py-3">
             {/* md:hidden  */}
             <MenuOutlined
                 className="text-2xl cursor-pointer text-black"
