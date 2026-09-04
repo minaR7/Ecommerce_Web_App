@@ -121,10 +121,10 @@
 
 // export default CustomCarousel;
 import React, { useEffect, useRef, useState } from "react";
-import { Carousel, Card, Spin } from "antd";
-import { useNavigate } from "react-router-dom";
+import { Carousel, Spin } from "antd";
 import axios from "axios";
-const { Meta } = Card;
+import ProductCard from "./ProductCard";
+import CarouselArrow from "./CarouselArrow";
 
 // Create sliding windows
 const createSlidingWindows = (data, size) => {
@@ -136,7 +136,6 @@ const createSlidingWindows = (data, size) => {
 };
 
 const CustomCarousel = () => {
-  const navigate = useNavigate();
   const carouselRef = useRef(null);
 
   const [products, setProducts] = useState([]);
@@ -179,24 +178,13 @@ const CustomCarousel = () => {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Spin size="large" />
-      </div>
-    );
-  }
+  const hasCarousel = products.length >= windowSize;
+  const baseSlides = hasCarousel ? createSlidingWindows(products, windowSize) : [];
 
-  if (products.length < windowSize) return null;
-
-  const baseSlides = createSlidingWindows(products, windowSize);
-
-  // Infinite loop slides
-  const slides = [
-    baseSlides[baseSlides.length - 1],
-    ...baseSlides,
-    baseSlides[0]
-  ];
+  // Infinite loop slides (only when there are enough products for a carousel)
+  const slides = hasCarousel
+    ? [baseSlides[baseSlides.length - 1], ...baseSlides, baseSlides[0]]
+    : [];
 
   const handleBeforeChange = (_, next) => {
     if (next === 0) {
@@ -208,68 +196,65 @@ const CustomCarousel = () => {
   };
 
   return (
-    <>
-      {/* Header */}
-      <div className="flex flex-col items-center text-center px-4 pt-8 text-[#111226]">
-        <h1 className="text-3xl md:text-5xl font-bold mb-2">Our Products</h1>
-        {/* <p className="text-lg md:text-2xl font-bold">
-          High Quality Moroccan Fashion
-        </p> */}
+    <section className="pt-12 md:pt-16">
+      {/* Header — always shown, even while loading or when there are no products */}
+      <div className="flex flex-col items-center text-center px-4 mb-6">
+        <span className="text-[11px] tracking-[0.35em] uppercase text-amber-600 font-semibold mb-2">
+          Shop the look
+        </span>
+        <h2 className="text-3xl md:text-5xl font-bold text-[#15203a]">Our Products</h2>
+        <span className="mt-3 w-16 h-1 rounded-full bg-amber-400" />
       </div>
 
-      {/* Carousel */}
-      <Carousel
-        ref={carouselRef}
-        autoplay
-        infinite={false}
-        autoplaySpeed={4000}
-        beforeChange={handleBeforeChange}
-        initialSlide={1}
-        className="px-2 sm:px-4 md:px-16 pb-4"
-      >
-        {slides.map((group, index) => (
-          <div key={index}>
-            <div
-              className="flex justify-center gap-3 sm:gap-4 p-2 sm:p-4"
-              style={{ flexWrap: "nowrap" }}
-            >
-              {group.map((item) => (
-                <Card
-                  key={item.product_id}
-                  hoverable
-                  style={{
-                    width: `${100 / windowSize}%`,
-                    // minWidth: window.innerWidth < 480 ? "24%" : "48%",
-                    boxShadow: "2px 3px 4px lightgray"
-                  }}
-                  cover={
-                    <img
-                      src={item.cover_img}
-                      alt={item.name}
-                      onClick={() =>
-                        navigate(`/product/${item.product_id}`)
-                      }
-                      style={{
-                        height: windowSize === 2 ? "200px" : "300px",
-                        objectFit: "cover",
-                        cursor: "pointer"
-                      }}
-                    />
-                  }
-                >
-                  <Meta
-                    title={item.name}
-                    description={`${
-                      item.discounted_price || item.price
-                    }`}
-                  />
-                </Card>
-              ))}
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Spin size="large" />
+        </div>
+      ) : products.length === 0 ? (
+        <p className="text-center text-gray-400 py-10">No products available yet.</p>
+      ) : !hasCarousel ? (
+        // Some products, but too few for the sliding carousel — show them in a row.
+        <div className="flex justify-center items-stretch flex-wrap gap-3 sm:gap-5 max-w-7xl mx-auto px-2 sm:px-6 md:px-16 pb-6">
+          {products.map((item) => (
+            <div key={item.product_id} className="min-w-0 w-full" style={{ maxWidth: 320 }}>
+              <ProductCard product={item} />
             </div>
-          </div>
-        ))}
-      </Carousel>
-    </>
+          ))}
+        </div>
+      ) : (
+        <div className="relative max-w-7xl mx-auto px-2 sm:px-6 md:px-16">
+          <CarouselArrow dir="prev" onClick={() => carouselRef.current?.prev()} />
+          <CarouselArrow dir="next" onClick={() => carouselRef.current?.next()} />
+          <Carousel
+            ref={carouselRef}
+            autoplay
+            infinite={false}
+            autoplaySpeed={4000}
+            beforeChange={handleBeforeChange}
+            initialSlide={1}
+            className="pb-6"
+          >
+            {slides.map((group, index) => (
+              <div key={index}>
+                <div
+                  className="flex justify-center items-stretch gap-3 sm:gap-5 p-2 sm:p-4 w-full"
+                  style={{ flexWrap: "nowrap" }}
+                >
+                  {group.map((item) => (
+                    // flex:1 1 0 (not width %) so slides fill the row evenly in Safari/WebKit
+                    <div key={item.product_id} style={{ flex: "1 1 0", minWidth: 0 }}>
+                      <div className="mx-auto" style={{ maxWidth: 320 }}>
+                        <ProductCard product={item} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </Carousel>
+        </div>
+      )}
+    </section>
   );
 };
 

@@ -51,8 +51,8 @@ exports.getByCountry = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const { country, countryCode, fee, currency, estimatedDays, status } = req.body;
-    if (!countryCode || fee == null) {
-      return res.status(400).json({ message: 'countryCode and fee are required' });
+    if (!country || !countryCode || fee == null) {
+      return res.status(400).json({ message: 'country, countryCode and fee are required' });
     }
     const exists = await sql.query`SELECT id FROM shipping_rates WHERE LOWER(country) = LOWER(${country})`;
     if (exists.recordset.length > 0) {
@@ -63,11 +63,11 @@ exports.create = async (req, res) => {
       VALUES (${country}, ${countryCode}, ${fee}, ${currency || 'EUR'}, ${estimatedDays || null}, ${status || 'active'}, GETDATE())
     `;
     const result = await sql.query`
-      SELECT TOP 1 
+      SELECT TOP 1
         id, country, country_code AS countryCode, fee, currency, estimated_days AS estimatedDays, status
       FROM shipping_rates WHERE LOWER(country) = LOWER(${country})
     `;
-    res.status(201).json(result.recordset[0]);
+    res.status(201).json({ ...result.recordset[0], message: 'Shipping rate added' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

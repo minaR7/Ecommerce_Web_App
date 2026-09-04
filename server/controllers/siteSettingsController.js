@@ -31,6 +31,32 @@ const defaultSettings = {
   footer_facebook: '',
   footer_linkedin: '',
   footer_copyright: `© ${new Date().getFullYear()} Jabador - All rights reserved`,
+  // Product detail info block (editable from admin → Site Content → Product Details)
+  product_shipping_charges: 'Free shipping on all orders.',
+  product_collection: 'Click & Collect - Select store at checkout.',
+  product_postage: 'Free delivery in 2-3 days',
+  product_returns: '30 days return. Seller pays for return postage.',
+  // Accepted payment methods shown as icons on the product page (managed from admin).
+  // Each: { name, icon_url }. icon_url may be a bundled client asset ("/assets/...")
+  // or a server-uploaded path ("assets/uploads/site/...").
+  payment_methods: [
+    { name: 'Visa', icon_url: '/assets/icons/visa-svgrepo-com (1).svg' },
+    { name: 'Mastercard', icon_url: '/assets/icons/mastercard-svgrepo-com.svg' },
+  ],
+  // Fallback shipping fee (EUR) applied at checkout when no shipping_rates row
+  // matches the destination country. Editable from admin.
+  default_intl_shipping_fee: 35,
+};
+
+// Resolve a stored image path to something the browser can load:
+//  - absolute URLs (http...) are returned unchanged
+//  - root-relative paths ("/assets/...") are bundled client assets → unchanged
+//  - anything else is a server-relative upload → prefixed with the API host
+const resolveUrl = (baseUrl, val) => {
+  if (!val) return null;
+  if (/^https?:\/\//i.test(val)) return val;
+  if (val.startsWith('/')) return val;
+  return `${baseUrl}/${val.replace(/^\/+/, '')}`;
 };
 
 const loadSettings = () => {
@@ -47,6 +73,10 @@ const saveSettings = (data) => {
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf8');
 };
 
+// Exposed so other controllers (e.g. checkout) can read settings like the
+// default international shipping fee without going through the HTTP layer.
+exports.loadSettings = loadSettings;
+
 exports.getSettings = (req, res) => {
   const settings = loadSettings();
   const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -55,6 +85,15 @@ exports.getSettings = (req, res) => {
   if (resolved.logo_url) resolved.logo_url = `${baseUrl}/${resolved.logo_url.replace(/^\/+/, '')}`;
   if (resolved.hero_image_url) resolved.hero_image_url = `${baseUrl}/${resolved.hero_image_url.replace(/^\/+/, '')}`;
   if (resolved.intro_image_url) resolved.intro_image_url = `${baseUrl}/${resolved.intro_image_url.replace(/^\/+/, '')}`;
+  // Payment methods: keep the raw icon_url (for round-tripping saves) and add a
+  // browser-loadable icon_url_resolved alongside it.
+  resolved.payment_methods = Array.isArray(settings.payment_methods)
+    ? settings.payment_methods.map((m) => ({
+        name: m.name || '',
+        icon_url: m.icon_url || '',
+        icon_url_resolved: resolveUrl(baseUrl, m.icon_url),
+      }))
+    : [];
   res.json(resolved);
 };
 
@@ -79,10 +118,29 @@ exports.updateSettings = (req, res) => {
       'footer_facebook',
       'footer_linkedin',
       'footer_copyright',
+      'product_shipping_charges',
+      'product_collection',
+      'product_postage',
+      'product_returns',
     ];
     const updated = { ...current };
     for (const key of allowed) {
       if (req.body[key] !== undefined) updated[key] = req.body[key];
+    }
+    // Payment methods is an array of { name, icon_url }. Sanitize and persist only
+    // the raw fields (drop any resolved URL and entries without an icon).
+    if (Array.isArray(req.body.payment_methods)) {
+      updated.payment_methods = req.body.payment_methods
+        .map((m) => ({
+          name: String(m?.name || '').trim(),
+          icon_url: String(m?.icon_url || '').trim(),
+        }))
+        .filter((m) => m.icon_url);
+    }
+    // Default international shipping fee — coerce to a non-negative number.
+    if (req.body.default_intl_shipping_fee !== undefined) {
+      const fee = Number(req.body.default_intl_shipping_fee);
+      if (Number.isFinite(fee) && fee >= 0) updated.default_intl_shipping_fee = fee;
     }
     saveSettings(updated);
     res.json({ message: 'Settings saved', settings: updated });
@@ -139,6 +197,20 @@ exports.uploadIntroImage = (req, res) => {
     saveSettings(current);
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     res.json({ message: 'Intro image uploaded', intro_image_url: `${baseUrl}/${newPath}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Upload a single payment-method icon. Unlike the logo/hero uploads this does NOT
+// mutate settings — the admin puts the returned icon_url into a payment_methods
+// entry and saves the whole array via updateSettings.
+exports.uploadPaymentIcon = (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const newPath = `assets/uploads/site/${req.file.filename}`;
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.json({ icon_url: newPath, icon_url_resolved: `${baseUrl}/${newPath}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

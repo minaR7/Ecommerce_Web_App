@@ -28,8 +28,16 @@
     "tailwindcss": "^4.1.4",
     "world-countries": "^5.1.0"
   },
+  "browserslist": [
+    "safari >= 15.1",
+    "ios_saf >= 15.1",
+    "last 3 versions",
+    "> 0.3%",
+    "not dead"
+  ],
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@types/node": "^26.1.1",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",

@@ -13,6 +13,7 @@ import {
   Popconfirm,
   Card,
   Upload,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
@@ -167,6 +168,16 @@ const Products = () => {
     } else {
       setCoverImageUpload([]);
     }
+    if (product.size_chart) {
+      setSizeChartUpload([{
+        uid: '-sc1',
+        name: 'size-chart.jpg',
+        status: 'done',
+        url: product.size_chart,
+      }]);
+    } else {
+      setSizeChartUpload([]);
+    }
     
     form.setFieldsValue({
       categoryId: product.category_id,
@@ -200,7 +211,7 @@ const Products = () => {
           formData.append('category_id', values.categoryId);
           if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
           formData.append('name', values.name);
-          formData.append('description', values.description);
+          formData.append('description', values.description ?? '');
           formData.append('price', values.price);
           formData.append('stock_quantity', values.stock_quantity);
           formData.append('discount_percentage', values.discount_percentage || 0);
@@ -242,7 +253,7 @@ const Products = () => {
           formData.append('category_id', values.categoryId);
           if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
           formData.append('name', values.name);
-          formData.append('description', values.description);
+          formData.append('description', values.description ?? '');
           formData.append('price', values.price);
           formData.append('stock_quantity', values.stock_quantity);
           formData.append('discount_percentage', values.discount_percentage || 0);
@@ -305,6 +316,9 @@ const Products = () => {
     {
       title: 'Product',
       key: 'product',
+      // Width reduced ~30% (from the previous auto width) so the sizes/colors
+      // columns have more room; inner text truncates to match.
+      width: 224,
       render: (_, record) => (
         <div className="flex items-center gap-3">
           {(record.cover_img || record.image) ? (
@@ -320,11 +334,17 @@ const Products = () => {
               }}
             />
           )}
-          <div>
-            <p className="text-foreground font-medium m-0">{record.name}</p>
-            <p className="text-muted-foreground text-sm m-0 truncate max-w-xs">
-              {record.description}
-            </p>
+          <div className="min-w-0">
+            <p className="text-foreground font-medium m-0 truncate max-w-[150px]">{record.name}</p>
+            {record.description ? (
+              <Tooltip title={record.description} placement="topLeft">
+                <p className="text-muted-foreground text-sm m-0 truncate max-w-[150px] cursor-help">
+                  {record.description}
+                </p>
+              </Tooltip>
+            ) : (
+              <p className="text-muted-foreground text-sm m-0">-</p>
+            )}
           </div>
         </div>
       ),
@@ -363,6 +383,22 @@ const Products = () => {
                   </Tag>
                 );
               })
+            : <span className="text-muted-foreground">-</span>}
+        </div>
+      ),
+    },
+    {
+      title: 'Sizes',
+      key: 'sizes',
+      width: 120,
+      render: (_, record) => (
+        <div className="flex flex-wrap gap-0.5">
+          {Array.isArray(record.sizes) && record.sizes.length > 0
+            ? Array.from(new Set(record.sizes)).map((s, idx) => (
+                <Tag key={`${s}-${idx}`} className="text-xs uppercase m-0" style={{ paddingInline: 5, marginInlineEnd: 0 }}>
+                  {s}
+                </Tag>
+              ))
             : <span className="text-muted-foreground">-</span>}
         </div>
       ),
@@ -545,14 +581,14 @@ const Products = () => {
           <Form.Item
             name="colors"
             label="Colors"
-            rules={[{ required: true, message: 'Please select at least one color' }]}
+            rules={[{ required: true, message: 'Please add at least one color' }]}
+            extra="Select existing colors or type a new name and press Enter to add it."
           >
-            <Select 
-              mode="multiple"
-              placeholder="Select colors"
-              showSearch
-              optionFilterProp="children"
+            <Select
+              mode="tags"
+              placeholder="Select or type a color (e.g. Pink, Grey, Navy)"
               allowClear
+              tokenSeparators={[',']}
             >
               {colors.map((color) => (
                 <Select.Option key={color.name} value={color.name}>

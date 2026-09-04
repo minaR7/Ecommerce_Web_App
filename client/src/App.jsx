@@ -1,27 +1,31 @@
-import React, { useState } from 'react';
-import { Layout, Menu, Drawer, Button, Card, Row, Col } from 'antd';
-import { MenuOutlined } from '@ant-design/icons';
+import React, { useState, lazy, Suspense } from 'react';
+import { Layout, Spin } from 'antd';
 import HeaderMenu from './components/Header';
-import MainContent from './components/MainContent';
 import FooterMenu from './components/Footer';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './Home';
-import NotFound from './pages/404';
-import MyAccount from './pages/Login';
-import ProductDetail from './pages/ProductDetail';
-import Checkout from './pages/Checkout';
-import Category from './pages/Category';
-import ProductListing from './pages/ProductListing';
-import Store from './pages/Store';
-import Cart from './pages/Cart'
-import Signup from './pages/Signup';
-import OurHistory from './pages/about-us/OurHistory';
-import ConditionsOfSale from './pages/about-us/ConditionsOfSale';
-import PrivacyPolicy from './pages/about-us/PrivacyPolicy';
-import LegalNotice from './pages/about-us/LegalNotice';
-import PaymentMethods from './pages/quick-links/PaymentMethods';
-import ExchangeReturn from './pages/quick-links/ExchangeReturn';
-import DeliveryPolicy from './pages/quick-links/DeliveryTime';
+
+// Route pages are code-split so each loads on demand, keeping the initial
+// bundle small. Home stays eager for a fast first paint on the landing page.
+const NotFound = lazy(() => import('./pages/404'));
+const MyAccount = lazy(() => import('./pages/Login'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const Category = lazy(() => import('./pages/Category'));
+const ProductListing = lazy(() => import('./pages/ProductListing'));
+const Store = lazy(() => import('./pages/Store'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Signup = lazy(() => import('./pages/Signup'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const CheckoutComplete = lazy(() => import('./pages/CheckoutComplete'));
+const OurHistory = lazy(() => import('./pages/about-us/OurHistory'));
+const ConditionsOfSale = lazy(() => import('./pages/about-us/ConditionsOfSale'));
+const PrivacyPolicy = lazy(() => import('./pages/about-us/PrivacyPolicy'));
+const LegalNotice = lazy(() => import('./pages/about-us/LegalNotice'));
+const PaymentMethods = lazy(() => import('./pages/quick-links/PaymentMethods'));
+const ExchangeReturn = lazy(() => import('./pages/quick-links/ExchangeReturn'));
+const DeliveryPolicy = lazy(() => import('./pages/quick-links/DeliveryTime'));
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -38,11 +42,12 @@ const App = () => {
   // sessionStorage.setItem('guestCart', JSON.stringify(updatedCart));
 
   return (
-     <Layout style={{ backgroundColor: "#ffffff"}} >
+     <Layout style={{ backgroundColor: "#ffffff", overflowX: "hidden" }} >
         <ScrollToTop />
         <HeaderMenu> </HeaderMenu>
-        <Content style={{ padding: '0rem 0rem 1rem 0rem', minHeight: "75vh", backgroundColor: "#fff" }}> 
+        <Content style={{ padding: '0rem 0rem 1rem 0rem', minHeight: "75vh", backgroundColor: "#fff", overflowX: "hidden" }}>
           {/* {marginTop: 64, #f5f5f5 } */}
+            <Suspense fallback={<div style={{ minHeight: '75vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>}>
             <Routes>
               <Route path="/" element={<Home />} />
               {/* <Route path="/men" element={<Men />} />
@@ -56,8 +61,11 @@ const App = () => {
               <Route path="/store/:categoryName/:subcategoryName" element={<ProductListing />} />
               <Route path="/my-account" element={<MyAccount />} />
               <Route path="/register" element={<Signup/>}/>
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/checkout/complete" element={<CheckoutComplete />} />
               <Route path="/cart" element={<Cart/>} />
               <Route path="/our-history" element={<OurHistory />} />
               <Route path="/legal-notice" element={<LegalNotice />} />
@@ -71,6 +79,7 @@ const App = () => {
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
           </Routes>
+            </Suspense>
             <ToastContainer position="top-right" autoClose={3000} />
          </Content>
       <FooterMenu></FooterMenu>

@@ -76,8 +76,9 @@ exports.getProducts = async (req, res) => {
             LEFT JOIN reviews r ON p.product_id = r.product_id
         `;
 
+        query += ` WHERE ISNULL(p.is_deleted, 0) = 0`;
         if (subcategory) {
-            query += ` WHERE p.subcategory_id = ${subcategory}`;
+            query += ` AND p.subcategory_id = ${subcategory}`;
         }
 
         query += ' GROUP BY p.product_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.discount_percentage';  // include all your product columns here
@@ -156,8 +157,9 @@ exports.getAllProducts = async (req, res) => {
             ) sa ON sa.product_id = p.product_id
         `;
 
+        query += ` WHERE ISNULL(p.is_deleted, 0) = 0`;
         if (subcategory) {
-            query += ` WHERE p.subcategory_id = ${subcategory}`;
+            query += ` AND p.subcategory_id = ${subcategory}`;
         }
 
         query += ' GROUP BY p.product_id, p.category_id, p.subcategory_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors, sa.sizes';
@@ -199,7 +201,46 @@ exports.getAllProducts = async (req, res) => {
     }
 };
 
+/**
+ * Best-sellers / top-products ranking formula.
+ *
+ * A product's rank is driven by a recency-weighted sales score rather than raw
+ * lifetime units, so what is selling *now* surfaces ahead of old one-off spikes.
+ * Only 'paid' orders count.
+ *
+ *   sales_score = SUM(quantity * recency_weight)
+ *     recency_weight = 1.5  if the order is <= 30 days old   (hot)
+ *                      1.0  if the order is <= 90 days old   (recent)
+ *                      0.5  otherwise                         (older, decayed)
+ *
+ * Ties are broken by, in order: total revenue (quantity * price), then average
+ * rating, then raw lifetime units. Products that have never sold (zero units,
+ * revenue and score) are excluded — if nothing has sold yet the list is empty.
+ */
 exports.getBestSellers = async (req, res) => {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    const mapRow = (p) => {
+        const price = parseFloat(p.price);
+        const discount = parseFloat(p.discount_percentage || 0);
+        const discountedPrice = discount > 0
+            ? (price - (price * discount) / 100).toFixed(2)
+            : price;
+        return {
+            product_id: p.product_id,
+            name: p.name,
+            description: p.description == null ? '-' : p.description,
+            price,
+            discount_percentage: p.discount_percentage,
+            discounted_price: discountedPrice,
+            cover_img: p.cover_img ? `${baseUrl}/${String(p.cover_img).replace(/^\/+/, '')}` : null,
+            total_sold: Number(p.total_sold || 0),
+            total_revenue: Number(p.total_revenue || 0),
+            avg_rating: parseFloat(p.avg_rating || 0).toFixed(1),
+            sales_score: Number(p.sales_score || 0),
+        };
+    };
+
     try {
         const result = await sql.query(`
             SELECT TOP 10
@@ -209,33 +250,38 @@ exports.getBestSellers = async (req, res) => {
                 p.price,
                 p.discount_percentage,
                 p.cover_img,
-                SUM(oi.quantity) AS total_sold
+                SUM(oi.quantity) AS total_sold,
+                SUM(oi.quantity * oi.price) AS total_revenue,
+                SUM(
+                    oi.quantity *
+                    CASE
+                        WHEN o.created_at >= DATEADD(day, -30, GETDATE()) THEN 1.5
+                        WHEN o.created_at >= DATEADD(day, -90, GETDATE()) THEN 1.0
+                        ELSE 0.5
+                    END
+                ) AS sales_score,
+                (
+                    SELECT AVG(CAST(r.rating AS FLOAT))
+                    FROM reviews r
+                    WHERE r.product_id = p.product_id
+                ) AS avg_rating
             FROM order_items oi
             JOIN orders o ON oi.order_id = o.order_id
             JOIN products p ON oi.product_id = p.product_id
-            WHERE o.payment_status = 'paid'
+            WHERE ISNULL(p.is_deleted, 0) = 0
+              AND EXISTS (SELECT 1 FROM payments pay WHERE pay.order_id = o.order_id AND pay.payment_status = 'succeeded')
             GROUP BY p.product_id, p.name, p.description, p.price, p.discount_percentage, p.cover_img
-            ORDER BY total_sold DESC
+            ORDER BY sales_score DESC, total_revenue DESC, avg_rating DESC, total_sold DESC
         `);
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const mapped = result.recordset.map((p) => {
-            const price = parseFloat(p.price);
-            const discount = parseFloat(p.discount_percentage || 0);
-            const discountedPrice = discount > 0
-                ? (price - (price * discount) / 100).toFixed(2)
-                : price;
-            return {
-                product_id: p.product_id,
-                name: p.name,
-                description: p.description == null ? '-' : p.description,
-                price,
-                discount_percentage: p.discount_percentage,
-                discounted_price: discountedPrice,
-                cover_img: p.cover_img ? `${baseUrl}/${String(p.cover_img).replace(/^\/+/, '')}` : null,
-                total_sold: Number(p.total_sold || 0),
-            };
-        });
-        res.status(200).json(mapped);
+
+        // Only surface products that have actually sold — exclude anything with no
+        // units sold, no revenue, and a zero score. If nothing has sold yet, this
+        // returns an empty list rather than padding it with never-sold products.
+        const mapped = result.recordset
+            .map(mapRow)
+            .filter((p) => p.total_sold > 0 || p.total_revenue > 0 || p.sales_score > 0);
+
+        return res.status(200).json(mapped);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error fetching best sellers' });
@@ -278,8 +324,8 @@ exports.getProductById = async (req, res) => {
         LEFT JOIN reviews r ON p.product_id = r.product_id
         LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN subcategories sc ON p.subcategory_id = sc.subcategory_id
-        WHERE p.product_id = ${id}
-        GROUP BY p.product_id, p.name, p.description, p.cover_img, p.price, p.images, p.discount_percentage, p.size_chart, c.name, sc.name;    
+        WHERE p.product_id = ${id} AND ISNULL(p.is_deleted, 0) = 0
+        GROUP BY p.product_id, p.name, p.description, p.cover_img, p.price, p.images, p.discount_percentage, p.size_chart, c.name, sc.name;
       `;
   
       if (productResult.recordset.length === 0) {
@@ -318,20 +364,33 @@ exports.getProductById = async (req, res) => {
     //     }
 
 
+      // Build absolute URL for the cover image
+      const coverUrl = product.cover_img
+        ? `${baseUrl}/${String(product.cover_img).replace(/^\/+/, '')}`
+        : null;
+
+      // Gallery = cover image first, then the product's other images (deduped)
+      const galleryImages = (() => {
+        let arr = [];
+        try {
+          const parsed = product.images ? JSON.parse(product.images) : [];
+          if (Array.isArray(parsed)) {
+            arr = parsed.map(img => `${baseUrl}/${String(img).replace(/^\/+/, '')}`);
+          }
+        } catch {
+          arr = [];
+        }
+        // Prepend the cover image so it's always the first slide, avoiding duplicates
+        const withCover = coverUrl ? [coverUrl, ...arr] : arr;
+        return [...new Set(withCover)];
+      })();
+
       // 4. Return product with variant details
       res.json({
         ...product,
         description: product.description == null ? '-' : product.description,
-        cover_img: product.cover_img ? `${baseUrl}/${String(product.cover_img).replace(/^\/+/, '')}` : null,
-        // slide_images: product.images.map(img => `${baseUrl}/${img}`),
-        slide_images: (() => {
-          try {
-            const arr = product.images ? JSON.parse(product.images) : [];
-            return Array.isArray(arr) ? arr.map(img => `${baseUrl}/${String(img).replace(/^\/+/, '')}`) : [];
-          } catch {
-            return [];
-          }
-        })(),
+        cover_img: coverUrl,
+        slide_images: galleryImages,
         avg_rating: parseFloat(product.avg_rating || 0).toFixed(1),
         discounted_price: discountedPrice,
         variants: variantsResult.recordset,
@@ -355,9 +414,12 @@ exports.searchProducts = async (req, res) => {
             FROM products p
             JOIN subcategories s ON p.subcategory_id = s.subcategory_id
             JOIN categories c ON s.category_id = c.category_id
-            WHERE p.name LIKE '%' + ${q} + '%'
-            OR s.name LIKE '%' + ${q} + '%'
-            OR c.name LIKE '%' + ${q} + '%'
+            WHERE ISNULL(p.is_deleted, 0) = 0
+            AND (
+                p.name LIKE '%' + ${q} + '%'
+                OR s.name LIKE '%' + ${q} + '%'
+                OR c.name LIKE '%' + ${q} + '%'
+            )
         `;
         res.json(result.recordset);
     } catch (err) {
@@ -720,54 +782,31 @@ exports.updateProduct = async (req, res) => {
 
 // DELETE product
 const { notifyAdmins } = require('../services/notificationService');
+// Soft-delete: products can be referenced by order_items (FK), so they cannot be
+// hard-deleted without destroying order history. Instead we flag the product as
+// deleted and remove it from active carts/wishlists; all listing queries filter it
+// out (is_deleted = 0). Reviews, variants, order_items and image files are kept.
 exports.deleteProduct = async (req, res) => {
     const { id } = req.params;
     const transaction = new sql.Transaction();
     try {
         await transaction.begin();
-        const request = new sql.Request(transaction);
-        // Load product media
-        const prodRes = await request.query`
-            SELECT cover_img, images FROM products WHERE product_id = ${id}
+        // NOTE: mssql tagged-template queries add params (param0, param1, ...) to the
+        // Request they run on. Reusing one Request across template queries re-declares
+        // the same param name and throws EDUPEPARAM, so use a fresh Request per query.
+        const prodRes = await (new sql.Request(transaction)).query`
+            SELECT product_id FROM products WHERE product_id = ${id}
         `;
         if (prodRes.recordset.length === 0) {
             await transaction.rollback();
             return res.status(404).json({ error: 'Product not found' });
         }
-        const cover = prodRes.recordset[0].cover_img || null;
-        let imgs = [];
-        try { imgs = prodRes.recordset[0].images ? JSON.parse(prodRes.recordset[0].images) : []; } catch { imgs = []; }
-        // Delete image files
-        if (cover) {
-            const abs = require('path').join(__dirname, '..', cover);
-            try { if (fs.existsSync(abs)) fs.unlinkSync(abs); } catch {}
-        }
-        for (const img of imgs) {
-            const abs = require('path').join(__dirname, '..', img);
-            try { if (fs.existsSync(abs)) fs.unlinkSync(abs); } catch {}
-        }
-        // Delete size chart file if exists
-        const scRes = await request.query`
-            SELECT size_chart FROM products WHERE product_id = ${id}
-        `;
-        const scPathDel = scRes.recordset[0]?.size_chart || null;
-        if (scPathDel) {
-            try {
-                const absSc = require('path').join(__dirname, '..', scPathDel);
-                if (fs.existsSync(absSc)) fs.unlinkSync(absSc);
-            } catch {}
-        }
-        // Delete dependent records to avoid FK constraint failures
-        await request.query`DELETE FROM cart_items WHERE product_id = ${id}`;
-        await request.query`DELETE FROM wishlist_items WHERE product_id = ${id}`;
-        await request.query`DELETE FROM reviews WHERE product_id = ${id}`;
-        // Delete variants
-        await request.query`
-            DELETE FROM product_variants WHERE product_id = ${id}
-        `;
-        // Delete product
-        const result = await request.query`
-            DELETE FROM products WHERE product_id = ${id}
+        // Remove from active carts/wishlists so it stops appearing for shoppers.
+        await (new sql.Request(transaction)).query`DELETE FROM cart_items WHERE product_id = ${id}`;
+        await (new sql.Request(transaction)).query`DELETE FROM wishlist_items WHERE product_id = ${id}`;
+        // Flag as deleted (keeps order history, reviews, variants and images intact).
+        const result = await (new sql.Request(transaction)).query`
+            UPDATE products SET is_deleted = 1 WHERE product_id = ${id}
         `;
         if (result.rowsAffected[0] === 0) {
             await transaction.rollback();
@@ -784,8 +823,9 @@ exports.deleteProduct = async (req, res) => {
         } catch {}
         res.json({ message: 'Product deleted' });
     } catch (err) {
+        console.error(err);
         if (transaction._aborted === false) await transaction.rollback();
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: `Server error: ${err}` });
     }
 };

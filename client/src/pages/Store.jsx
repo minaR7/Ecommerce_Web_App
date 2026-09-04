@@ -2,6 +2,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Card, Breadcrumb, Row, Col, } from 'antd';
+import { PictureOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 const Store = () => {
@@ -44,10 +45,20 @@ const Store = () => {
                         <Link to={`/store/${sub.name}`}>
                         <Card
                             hoverable
-                            cover={<img alt={sub.name} src={sub.cover_img} width={1} height={1}/>}
-                            style={{ position: 'relative',  boxShadow: '2px 3px 4px lightgray', fontSize: '20px', color: 'black', height: '50%' }}
+                            className="store-card"
+                            cover={
+                                sub.cover_img ? (
+                                    <img alt={sub.name} src={sub.cover_img} loading="lazy" decoding="async" />
+                                ) : (
+                                    <div className="store-card-placeholder"><PictureOutlined /></div>
+                                )
+                            }
+                            style={{ position: 'relative', color: 'black' }}
                         >
-                            <Card.Meta title={sub.name} description={`(${sub.description})`} />
+                            <Card.Meta
+                                title={sub.name}
+                                description={sub.description?.trim() ? sub.description : null}
+                            />
                         </Card>
                         </Link>
                     </Col>

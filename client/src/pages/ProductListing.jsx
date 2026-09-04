@@ -2,6 +2,7 @@
 import { useParams, Link  } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Card, Breadcrumb, Row, Col, Rate, Tag} from 'antd';
+import { PictureOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 const ProductListing = () => {
@@ -83,35 +84,21 @@ const ProductListing = () => {
                         <Link to={`/product/${product.product_id}`}>
                           <Card
                             hoverable
+                            className="store-card"
                             style={{
                               position: 'relative',
-                              boxShadow: '2px 3px 4px lightgray',
-                              fontSize: '16px',
                               color: 'black',
-                              height: '100%', // ensure uniform height
                             }}
-                            // style={{
-                    //               width: '100%',
-                    //               height: '100%',
-                    //               objectFit: 'cover', // maintains aspect ratio and fills the box
-                    //             }}/>}
-                    //         style={{ position: 'relative',  boxShadow: '2px 3px 4px lightgray', fontSize: '20px', color: 'black' }}
                             cover={
                               product.cover_img ? (
                                 <img
                                   alt={product.name}
                                   src={product.cover_img}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  loading="lazy"
+                                  decoding="async"
                                 />
                               ) : (
-                                <div
-                                  style={{
-                                    width: '100%',
-                                    height: 220,
-                                    borderRadius: 8,
-                                    background: 'linear-gradient(135deg, #f0f0f0 0%, #d9d9d9 100%)',
-                                  }}
-                                />
+                                <div className="store-card-placeholder"><PictureOutlined /></div>
                               )
                             }
                           >

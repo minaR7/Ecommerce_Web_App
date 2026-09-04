@@ -1,5 +1,6 @@
 const sql = require('mssql');
 const { notifyAdmins } = require('../services/notificationService');
+const { sendOrderStatusEmail } = require('./invoiceController');
 
 exports.getDashboardStats = async (req, res) => {
   try {
@@ -11,27 +12,30 @@ exports.getDashboardStats = async (req, res) => {
     request.input('curStart', sql.DateTime, curStart);
     request.input('nextStart', sql.DateTime, nextStart);
     request.input('prevStart', sql.DateTime, prevStart);
+    // An order counts as "paid" when it has a succeeded payment in the payments table
+    // (payment state no longer lives on the orders table).
+    const PAID = `EXISTS (SELECT 1 FROM payments p WHERE p.order_id = o.order_id AND p.payment_status = 'succeeded')`;
     const curRevRes = await request.query(`
       SELECT COALESCE(SUM(total_amount),0) AS sum
-      FROM orders
-      WHERE payment_status = 'paid' AND created_at >= @curStart AND created_at < @nextStart
+      FROM orders o
+      WHERE ${PAID} AND created_at >= @curStart AND created_at < @nextStart
     `);
     const prevRevRes = await request.query(`
       SELECT COALESCE(SUM(total_amount),0) AS sum
-      FROM orders
-      WHERE payment_status = 'paid' AND created_at >= @prevStart AND created_at < @curStart
+      FROM orders o
+      WHERE ${PAID} AND created_at >= @prevStart AND created_at < @curStart
     `);
-    const totalRevRes = await sql.query`SELECT COALESCE(SUM(total_amount),0) AS sum FROM orders WHERE payment_status = 'paid'`;
+    const totalRevRes = await sql.query(`SELECT COALESCE(SUM(total_amount),0) AS sum FROM orders o WHERE ${PAID}`);
     const totalOrdersRes = await sql.query`SELECT COUNT(*) AS cnt FROM orders`;
     const curOrdersRes = await request.query`SELECT COUNT(*) AS cnt FROM orders WHERE created_at >= @curStart AND created_at < @nextStart`;
     const prevOrdersRes = await request.query`SELECT COUNT(*) AS cnt FROM orders WHERE created_at >= @prevStart AND created_at < @curStart`;
-    const totalProductsRes = await sql.query`SELECT COUNT(*) AS cnt FROM products`;
+    const totalProductsRes = await sql.query`SELECT COUNT(*) AS cnt FROM products WHERE ISNULL(is_deleted, 0) = 0`;
     const prodColRes = await sql.query`SELECT COUNT(*) AS cnt FROM sys.columns WHERE object_id = OBJECT_ID('products') AND name = 'created_at'`;
     let prodCurCnt = 0;
     let prodPrevCnt = 0;
     if ((prodColRes.recordset[0]?.cnt || 0) > 0) {
-      const prodCurRes = await request.query`SELECT COUNT(*) AS cnt FROM products WHERE created_at >= @curStart AND created_at < @nextStart`;
-      const prodPrevRes = await request.query`SELECT COUNT(*) AS cnt FROM products WHERE created_at >= @prevStart AND created_at < @curStart`;
+      const prodCurRes = await request.query`SELECT COUNT(*) AS cnt FROM products WHERE ISNULL(is_deleted, 0) = 0 AND created_at >= @curStart AND created_at < @nextStart`;
+      const prodPrevRes = await request.query`SELECT COUNT(*) AS cnt FROM products WHERE ISNULL(is_deleted, 0) = 0 AND created_at >= @prevStart AND created_at < @curStart`;
       prodCurCnt = prodCurRes.recordset[0]?.cnt || 0;
       prodPrevCnt = prodPrevRes.recordset[0]?.cnt || 0;
     }
@@ -92,13 +96,15 @@ exports.getOrders = async (req, res) => {
         u.email,
         o.total_amount,
         o.status,
-        o.payment_status,
+        -- Payment state derived from the payments table (latest payment for the order)
+        (SELECT TOP 1 pmt.payment_status FROM payments pmt
+           WHERE pmt.order_id = o.order_id ORDER BY pmt.created_at DESC) AS payment_status,
         o.created_at,
         COUNT(oi.order_item_id) AS items_count
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.user_id
       LEFT JOIN order_items oi ON oi.order_id = o.order_id
-      GROUP BY o.order_id, o.user_id, u.email, o.total_amount, o.status, o.payment_status, o.created_at
+      GROUP BY o.order_id, o.user_id, u.email, o.total_amount, o.status, o.created_at
       ORDER BY o.created_at DESC
     `);
     res.status(200).json(result.recordset);
@@ -118,7 +124,8 @@ exports.getOrderById = async (req, res) => {
         u.email,
         o.total_amount,
         o.status,
-        o.payment_status,
+        (SELECT TOP 1 pmt.payment_status FROM payments pmt
+           WHERE pmt.order_id = o.order_id ORDER BY pmt.created_at DESC) AS payment_status,
         o.created_at
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.user_id
@@ -205,16 +212,16 @@ exports.saveOrder = async (orderData) => {
       //   VALUES ( ${userId}, ${totalAmount}, 'pending')
       // `);
       const request = new sql.Request();
-      // Insert new order
+      // Insert new order. Payment state lives in the payments table now, so the
+      // orders row only carries its fulfilment status.
       request.input('userId', sql.Int, userId);
       request.input('totalAmount', sql.Decimal, totalAmount);
       request.input('status', sql.VarChar, 'pending');
-      request.input('payment_status', sql.VarChar, 'pending');
-  
+
       const result = await request.query(`
-        INSERT INTO orders (user_id, total_amount, status, payment_status) 
+        INSERT INTO orders (user_id, total_amount, status)
         OUTPUT INSERTED.order_id
-        VALUES (@userId, @totalAmount, @status, @payment_status)
+        VALUES (@userId, @totalAmount, @status)
       `);
   
       const successResponse = {
@@ -267,6 +274,11 @@ exports.updateOrderStatus = async (req, res) => {
       SET status = @status
       WHERE order_id = @id
     `);
+    // No row updated → the order id didn't match. Report it clearly instead of a
+    // misleading 200 (which would make the admin UI look updated then revert on reload).
+    if ((result.rowsAffected[0] || 0) === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
     try {
       await notifyAdmins({
         type: 'order_status_changed',
@@ -275,8 +287,36 @@ exports.updateOrderStatus = async (req, res) => {
         meta: { orderId: Number(id), status }
       });
     } catch {}
+    // Email the customer about their new order status, including their items (best-effort).
+    try {
+      const infoRes = await sql.query`
+        SELECT u.email, u.first_name AS firstName, u.last_name AS lastName
+        FROM orders o
+        JOIN users u ON o.user_id = u.user_id
+        WHERE o.order_id = ${Number(id)}
+      `;
+      const customer = infoRes.recordset[0];
+      if (customer?.email) {
+        let items = [];
+        try {
+          const itemsRes = await sql.query`
+            SELECT p.name, oi.quantity, oi.price AS basePrice
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.product_id
+            WHERE oi.order_id = ${Number(id)}
+          `;
+          items = itemsRes.recordset || [];
+        } catch (itemsErr) {
+          console.error('Failed to load order items for status email:', itemsErr);
+        }
+        await sendOrderStatusEmail(customer, Number(id), status, items);
+      }
+    } catch (mailErr) {
+      console.error('Failed to send order status email:', mailErr);
+    }
     res.status(200).json({ success: true, rowsAffected: result.rowsAffected[0] || 0 });
   } catch (err) {
+    console.log(err)
     res.status(500).json({ error: 'Failed to update order status' });
   }
 };

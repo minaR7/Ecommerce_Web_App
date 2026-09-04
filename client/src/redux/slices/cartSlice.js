@@ -28,9 +28,14 @@ export const addToCart = createAsyncThunk(
         );
 
         if (existingItem) {
-                  console.log("Duplicate found")
+                  // console.log("Duplicate found")
           // Duplicate found — update instead of add
           const newQuantity = existingItem.quantity + finalPayload.quantity;
+
+          if (newQuantity > 10) {
+            toast.error('Maximum item quantity should be 10 or less.');
+            return rejectWithValue('Maximum item quantity is 10.');
+          }
 
           await dispatch(updateCartItem({
             cartItemId: existingItem.cart_item_id,
@@ -115,10 +120,14 @@ export const updateCartItem = createAsyncThunk(
       const res = await axios.put(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/${cartItemId}`, payload);
         window.dispatchEvent(new Event('cartUpdated'));
         toast.success('Cart updated successfully!');
-      return { cartItemId, data };
-    } catch (err) {
+
+      return { cartItemId, data: res.data, };
+    } 
+    catch (err) {
+      console.log(err)
       const errorMsg = err.response?.data?.message || err.message || 'Failed to update cart';
       toast.error(errorMsg);
+      console.log(errorMsg)
       return rejectWithValue(err.response?.data || err.message);
     }
   }

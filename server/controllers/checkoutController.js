@@ -9,6 +9,7 @@ const {updateProductStock} = require('./inventoryController');
 const {markCartItemsAsProcessed, checkAndAdjustCartItems} = require('./addToCartController')
 const {sendInvoiceEmail}= require('./invoiceController')
 const { notifyAdmins } = require('../services/notificationService');
+const { loadSettings } = require('./siteSettingsController');
 
 exports.doCheckout = async (req, res) => {
   try {
@@ -34,25 +35,26 @@ exports.doCheckout = async (req, res) => {
         (sum, item) => sum + item.basePrice * item.quantity,
         0
       );
-      // Compute shipping fee by country
+      // Compute shipping fee by country. Fallback = admin-configured default
+      // international rate (site settings), defaulting to 35 EUR if unset.
+      const defaultShippingFee = Number(loadSettings().default_intl_shipping_fee);
+      const fallbackShippingFee = Number.isFinite(defaultShippingFee) ? defaultShippingFee : 35;
       const shippingCountry = payload?.shipping?.country;
-      let shippingFee = 0;
+      let shippingFee = fallbackShippingFee;
       if (shippingCountry) {
         try {
           const feeResult = await sql.query`
-            SELECT TOP 1 fee FROM shipping_rates 
+            SELECT TOP 1 fee FROM shipping_rates
             WHERE LOWER(country) = LOWER(${shippingCountry}) AND status = 'active'
           `;
           if (feeResult.recordset.length > 0) {
             shippingFee = Number(feeResult.recordset[0].fee);
           } else {
-            shippingFee = 35; // default fallback
+            shippingFee = fallbackShippingFee;
           }
         } catch (e) {
-          shippingFee = 35;
+          shippingFee = fallbackShippingFee;
         }
-      } else {
-        shippingFee = 35;
       }
       //      // convert total amount to cents
       // // const amountInCents = Math.round(payload.totalAmount * 100);
@@ -128,15 +130,40 @@ exports.doCheckout = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Failed to save order items' });
       }
 
-      // Save Payment Info
+      // Save Payment Info. This payments row (payment_status = 'succeeded') is now the
+      // single source of truth for whether an order is paid — the orders table no
+      // longer carries a payment_status column.
       const paymentSaveResult = await savePayment(orderId, paymentResponse);
       if (!paymentSaveResult.success) {
       return res.status(400).json({ success: false, message: 'Failed to save payment info' });
       }
-      // Mark order as paid
-      try {
-        await sql.query`UPDATE orders SET payment_status = 'paid' WHERE order_id = ${orderId}`;
-      } catch {}
+
+      // Increment coupon usage on successful order (best-effort; the WHERE guard
+      // keeps used_count from exceeding usage_limit under concurrent checkouts).
+      if (payload.couponCode) {
+        try {
+          const upd = await sql.query`
+            UPDATE coupons
+            SET used_count = ISNULL(used_count, 0) + 1, updated_at = GETDATE()
+            OUTPUT INSERTED.coupon_id, INSERTED.code, INSERTED.usage_limit, INSERTED.used_count
+            WHERE LOWER(code) = LOWER(${payload.couponCode})
+              AND (usage_limit IS NULL OR ISNULL(used_count, 0) < usage_limit)
+          `;
+          // If this order pushed the coupon to its limit, alert admins so they can
+          // deactivate or delete it from the notification.
+          const c = upd.recordset[0];
+          if (c && c.usage_limit != null && c.used_count >= c.usage_limit) {
+            await notifyAdmins({
+              type: 'coupon_limit_reached',
+              title: 'Coupon usage limit reached',
+              message: `Coupon "${c.code}" has reached its usage limit (${c.used_count}/${c.usage_limit}). Deactivate or delete it?`,
+              meta: { couponId: c.coupon_id, code: c.code }
+            });
+          }
+        } catch (e) {
+          console.error('Failed to increment coupon usage', e);
+        }
+      }
 
       // Update stock quantity
       const stockUpdateResult = await updateProductStock(updatedCartItems);

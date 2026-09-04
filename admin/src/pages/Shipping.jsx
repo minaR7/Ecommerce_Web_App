@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Space, message, Popconfirm, InputNumber } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, GlobalOutlined } from '@ant-design/icons';
 import { AdminLayout } from '../components/layout/AdminLayout';
-import { shippingApi } from '../services/api';
+import { shippingApi, siteSettingsApi } from '../services/api';
 import { AppButton } from '../components/AppButton';
 import countries from 'world-countries';
 
@@ -21,11 +21,43 @@ const Shipping = () => {
   const [searchText, setSearchText] = useState('');
   const [form] = Form.useForm();
 
-  useEffect(() => {
+  // Default international rate (fallback used at checkout when no country row matches)
+  const [defaultFee, setDefaultFee] = useState(35);
+  const [savedDefaultFee, setSavedDefaultFee] = useState(35);
+  const [savingDefault, setSavingDefault] = useState(false);
+
+  const loadFees = () => {
     setLoading(true);
-    shippingApi.getAll().then(setFees).catch(() => setFees([
-      // { id: '1', country: 'United States', countryCode: 'US', fee: 9.99, estimatedDays: '5-7 days', status: 'active' }
-    ])).finally(() => setLoading(false));
+    return shippingApi.getAll().then(setFees).catch(() => setFees([])).finally(() => setLoading(false));
+  };
+
+  const loadDefaultFee = () => {
+    return siteSettingsApi.getAll()
+      .then((s) => {
+        const fee = Number(s?.default_intl_shipping_fee);
+        const val = Number.isFinite(fee) ? fee : 35;
+        setDefaultFee(val);
+        setSavedDefaultFee(val);
+      })
+      .catch(() => {});
+  };
+
+  const saveDefaultFee = async () => {
+    setSavingDefault(true);
+    try {
+      await siteSettingsApi.update({ default_intl_shipping_fee: Number(defaultFee) });
+      setSavedDefaultFee(Number(defaultFee));
+      message.success('Default international rate saved');
+    } catch (err) {
+      message.error(err.message || 'Could not save default rate');
+    } finally {
+      setSavingDefault(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFees();
+    loadDefaultFee();
   }, []);
 
   const handleSubmit = async (values) => {
@@ -36,23 +68,35 @@ const Shipping = () => {
     try {
       if (editingFee) await shippingApi.update(editingFee.id, payload);
       else await shippingApi.create(payload);
+      message.success(editingFee ? 'Shipping rate updated' : 'Shipping rate added');
+      await loadFees();
       setIsModalOpen(false);
-    } catch {
-      if (editingFee) setFees(fees.map(f => f.id === editingFee.id ? { ...f, ...payload } : f));
-      else setFees([...fees, { id: Date.now().toString(), ...payload }]);
-      setIsModalOpen(false);
+      form.resetFields();
+    } catch (err) {
+      message.error(err.message || 'Could not save shipping rate');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await shippingApi.delete(id);
+      message.success('Deleted');
+      await loadFees();
+    } catch (err) {
+      message.error(err.message || 'Could not delete shipping rate');
     }
   };
 
   const columns = [
     { title: 'Country', key: 'country', render: (_, r) => <div className="flex items-center gap-2"><GlobalOutlined />{r.country}</div> },
-    { title: 'Fee', dataIndex: 'fee', key: 'fee', render: (f) => `$${f.toFixed(2)}` },
+    { title: 'Fee', dataIndex: 'fee', key: 'fee', render: (f) => `$${Number(f).toFixed(2)}` },
     { title: 'Delivery', dataIndex: 'estimatedDays', key: 'estimatedDays' },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (s) => <span className={`px-2 py-1 rounded-full text-xs ${s === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>{s}</span> },
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
-        <Button type="text" icon={<EditOutlined />} onClick={() => { setEditingFee(r); form.setFieldsValue(r); setIsModalOpen(true); }} />
-        <Popconfirm title="Delete?" onConfirm={() => setFees(fees.filter(f => f.id !== r.id))}><Button type="text" icon={<DeleteOutlined />} className="text-red-400" /></Popconfirm>
+        <Button type="text" icon={<EditOutlined />} onClick={() => { setEditingFee(r); form.setFieldsValue(r); setIsModalOpen(true); }}   className="text-muted-foreground hover:text-foreground"/>
+        <Popconfirm title="Delete?" okText="Delete" cancelText="Cancel"  okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
+         onConfirm={() => handleDelete(r.id)}><Button type="text" icon={<DeleteOutlined />}  className="text-muted-foreground hover:text-destructive"/></Popconfirm>
       </Space>
     )}
   ];
@@ -71,28 +115,58 @@ const Shipping = () => {
           </AppButton>
         </div>
         <div className="bg-card rounded-xl border border-border p-6">
-          <Input placeholder="Search..." prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="max-w-sm mb-4" />
-          <Table columns={columns} dataSource={fees.filter(f => f.country.toLowerCase().includes(searchText.toLowerCase()))} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
+          <h2 className="text-base font-semibold text-foreground mb-1">Default International Rate</h2>
+          <p className="text-muted-foreground text-sm mb-3">
+            Applied at checkout when the destination country has no specific rate above.
+          </p>
+          <Space>
+            <InputNumber
+              min={0}
+              precision={2}
+              addonBefore="€"
+              value={defaultFee}
+              onChange={(v) => setDefaultFee(v ?? 0)}
+              style={{ width: 160 }}
+            />
+            <AppButton
+              type="primary"
+              loading={savingDefault}
+              onClick={saveDefaultFee}
+              disabled={Number(defaultFee) === Number(savedDefaultFee)}
+              style={{ color: '#000', fontWeight: 500 }}
+            >
+              Save
+            </AppButton>
+          </Space>
         </div>
-        <Modal title={editingFee ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null}>
+
+        <div className="bg-card rounded-xl border border-border p-6">
+          <Input placeholder="Search..." prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="max-w-sm mb-4" />
+          <Table columns={columns} dataSource={fees.filter(f => (f.country || '').toLowerCase().includes(searchText.toLowerCase()))} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
+        </div>
+        <Modal title={editingFee ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={600}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
-            <Form.Item name="countryCode" label="Country" rules={[{ required: true }]}>
-              <Select
-                disabled={!!editingFee}
-                showSearch
-                placeholder="Select a country"
-                optionFilterProp="children"
-              >
-                {COUNTRY_OPTIONS.map((c) => (
-                  <Select.Option key={c.code} value={c.code}>
-                    {c.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <Form.Item name="fee" label="Fee (USD)" rules={[{ required: true }]}><InputNumber className="w-full" min={0} precision={2} /></Form.Item>
-            <Form.Item name="estimatedDays" label="Delivery Time" rules={[{ required: true }]}><Input placeholder="e.g., 5-7 days" /></Form.Item>
-            <Form.Item name="status" label="Status"><Select><Select.Option value="active">Active</Select.Option><Select.Option value="inactive">Inactive</Select.Option></Select></Form.Item>
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item name="countryCode" label="Country" rules={[{ required: true }]}>
+                <Select
+                  disabled={!!editingFee}
+                  showSearch
+                  placeholder="Select a country"
+                  optionFilterProp="children"
+                >
+                  {COUNTRY_OPTIONS.map((c) => (
+                    <Select.Option key={c.code} value={c.code}>
+                      {c.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="fee" label="Fee (USD)" rules={[{ required: true }]}><InputNumber className="w-full" min={0} precision={2}  style={{ width: '100%' }} /></Form.Item>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item name="estimatedDays" label="Delivery Time" rules={[{ required: true }]}><Input placeholder="e.g., 5-7 days" /></Form.Item>
+              <Form.Item name="status" label="Status"><Select><Select.Option value="active">Active</Select.Option><Select.Option value="inactive">Inactive</Select.Option></Select></Form.Item>
+            </div>
             <Space>
               <AppButton onClick={() => setIsModalOpen(false)}>Cancel</AppButton>
               <AppButton type="primary" htmlType="submit" style={{ color: '#000', fontWeight: 500 }}>

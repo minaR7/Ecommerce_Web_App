@@ -1,5 +1,5 @@
 // API Service for connecting to Express.js backend
-const API_BASE_URL = `${(import.meta.env.VITE_BACKEND_SERVER_URL || 'http://elmaghrib.com')}/api`;
+const API_BASE_URL = `${(import.meta.env.VITE_BACKEND_SERVER_URL || 'http://api.elmaghrib.com')}/api`;
 
 // Generic fetch wrapper with error handling
 async function fetchApi(endpoint, options) {
@@ -163,6 +163,7 @@ export const subcategoriesApi = {
 export const productsApi = {
   getAll: () => fetchApi('/products'),
   getById: (id) => fetchApi(`/products/${id}`),
+  getBestSellers: () => fetchApi('/products/best-sellers'),
   create: (data) => {
     if (data instanceof FormData) {
       const token = localStorage.getItem('authToken');
@@ -328,6 +329,74 @@ export const pagesApi = {
   delete: (id) => fetchApi(`/sizes/${id}`, {
     method: 'DELETE',
   }),
+};
+
+export const siteSettingsApi = {
+  getAll: () => fetchApi('/site-settings'),
+  update: (data) => fetchApi('/site-settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  uploadLogo: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    const token = localStorage.getItem('authToken');
+    return fetch(`${API_BASE_URL}/site-settings/upload/logo`, {
+      method: 'POST',
+      body: form,
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
+  },
+  uploadHero: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    const token = localStorage.getItem('authToken');
+    return fetch(`${API_BASE_URL}/site-settings/upload/hero`, {
+      method: 'POST',
+      body: form,
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
+  },
+  uploadIntroImage: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    const token = localStorage.getItem('authToken');
+    return fetch(`${API_BASE_URL}/site-settings/upload/intro-image`, {
+      method: 'POST',
+      body: form,
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
+  },
+  uploadPaymentIcon: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    const token = localStorage.getItem('authToken');
+    return fetch(`${API_BASE_URL}/site-settings/upload/payment-icon`, {
+      method: 'POST',
+      body: form,
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      credentials: 'include',
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data; // { icon_url, icon_url_resolved }
+    });
+  },
 };
 
 export const notificationsApi = {

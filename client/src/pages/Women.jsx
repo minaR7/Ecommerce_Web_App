@@ -24,10 +24,16 @@ const Women = () => {
                         <Col xs={24} sm={12} md={8} lg={6} key={sub.key}>
                         <Card
                             hoverable
-                            cover={<img alt={sub.label} src={sub.img} />}
-                            style={{ position: 'relative',  boxShadow: '2px 3px 4px lightgray', fontSize: '20px', color: 'black' }}
+                            className="store-card"
+                            cover={<img alt={sub.label} src={sub.img} loading="lazy" decoding="async" />}
+                            style={{ position: 'relative', color: 'black' }}
                         >
-                            <Link to={`/women/${sub.key}`}><Card.Meta title={sub.label} description={`(${sub.items})`} /></Link>
+                            <Link to={`/women/${sub.key}`}>
+                                <Card.Meta
+                                    title={sub.label}
+                                    description={sub.items ? sub.items : null}
+                                />
+                            </Link>
                         </Card>
                     </Col>
                         ))

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Form, Input, Button, Card, Typography, message, Space, Tabs } from 'antd';
 import { SaveOutlined, ArrowLeftOutlined, EyeOutlined, CodeOutlined, EditOutlined } from '@ant-design/icons';
@@ -12,15 +12,34 @@ import { pagesApi } from '../services/api';
 const { Title } = Typography;
 const { TextArea } = Input;
 
+// Slug → Site Content tab section, so we can return to the right place.
+const ABOUT_US_SLUGS  = ['our-history', 'legal-notice', 'privacy-policy', 'conditions-of-sale'];
+const QUICK_LINK_SLUGS = ['exchange-return', 'delivery-time', 'payment-method'];
+const sectionForSlug = (s) =>
+  ABOUT_US_SLUGS.includes(s) ? 'about-us'
+  : QUICK_LINK_SLUGS.includes(s) ? 'quick-links'
+  : null;
+
+const humanize = (s = '') =>
+  s.split('-').filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
 const PageEditor = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
   const isEditing = !!slug;
   const [isPreview, setIsPreview] = useState(false);
   const [isHtmlMode, setIsHtmlMode] = useState(false);
   const [content, setContent] = useState('');
+
+  // For "create" the target slug arrives via ?slug=. Determine which Site
+  // Content section to return to (explicit ?section= wins, else derive it).
+  const querySlug    = searchParams.get('slug');
+  const effectiveSlug = slug || querySlug;
+  const section      = searchParams.get('section') || sectionForSlug(effectiveSlug);
+  const backTo       = section ? `/site-content?tab=${section}` : '/site-content';
 
   const { data: page, isLoading } = useQuery({
     queryKey: ['page', slug],
@@ -33,7 +52,7 @@ const PageEditor = () => {
     onSuccess: () => {
       message.success(`Page ${isEditing ? 'updated' : 'created'} successfully`);
       queryClient.invalidateQueries(['pages']);
-      navigate('/pages');
+      navigate(backTo);
     },
     onError: (error) => {
       message.error(`Failed to save page: ${error.message}`);
@@ -50,6 +69,13 @@ const PageEditor = () => {
       setContent(page.content);
     }
   }, [page, form]);
+
+  // Pre-fill slug (and a humanized title) when creating from a known section.
+  useEffect(() => {
+    if (!isEditing && querySlug) {
+      form.setFieldsValue({ slug: querySlug, title: humanize(querySlug) });
+    }
+  }, [isEditing, querySlug, form]);
 
   const onFinish = (values) => {
     mutation.mutate({ ...values, content });
@@ -82,9 +108,9 @@ const PageEditor = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <Button 
-              icon={<ArrowLeftOutlined />} 
-              onClick={() => navigate('/pages')}
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate(backTo)}
               type="text"
             />
             <div>

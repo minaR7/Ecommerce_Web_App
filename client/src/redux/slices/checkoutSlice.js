@@ -9,7 +9,7 @@ import { clearCart } from './cartSlice';
 // Async thunk for order checkout
 export const placeOrder = createAsyncThunk(
   'checkout/placeOrder',
-  async ({ validatedValues,  paymentIntentId, cartItems, discount, useDifferentBilling }, { dispatch, rejectWithValue }) => {
+  async ({ validatedValues,  paymentIntentId, cartItems, discount, couponCode, useDifferentBilling }, { dispatch, rejectWithValue }) => {
 
     // const navigate = useNavigate();
     try {
@@ -69,6 +69,7 @@ export const placeOrder = createAsyncThunk(
         paymentIntentId,
         totalAmount: totalAmount,
         cartItems,
+        couponCode: discount > 0 ? couponCode : null,
       };
       // http://localhost:3005
       const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/checkout`, { payload });
