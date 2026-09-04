@@ -14,8 +14,29 @@ const Checkout = () => {
   const [user, setUser] = useState(null);
   const [guestCart, setGuestCart] = useState([]);
   const [quantities, setQuantities] = useState({});
+  const [shippingFee, setShippingFee] = useState(35);
   const reduxCart = useSelector(state => state.cart?.items || []);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadShippingFee = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/shipping`, { credentials: 'include' });
+        if (!res.ok) return;
+        const rates = await res.json();
+        const activeFees = rates
+          .filter(rate => rate.status === 'active')
+          .map(rate => Number(rate.fee))
+          .filter(fee => !isNaN(fee));
+        if (activeFees.length > 0) {
+          setShippingFee(Math.min(...activeFees));
+        }
+      } catch (err) {
+        console.error('Failed to load shipping fee', err);
+      }
+    };
+    loadShippingFee();
+  }, []);
 
   useEffect(() => {
     const loadCart = () => {
@@ -108,6 +129,7 @@ const Checkout = () => {
     
 
     const handleDelete = (itemToDelete) => {
+        const wasLastItem = cartItems.length === 1;
         if (user) {
             // dispatch(removeFromCart(itemToDelete.productId, itemToDelete.size, itemToDelete.color));
             dispatch(removeFromCart(itemToDelete.cart_item_id));
@@ -127,6 +149,9 @@ const Checkout = () => {
                 return updated;
             });
             window.dispatchEvent(new Event('guestCartUpdated'));
+        }
+        if (wasLastItem) {
+            navigate('/');
         }
     };
 
@@ -195,14 +220,14 @@ const Checkout = () => {
             </span>
           </div>
           <div className="flex justify-between text-base">
-            <span>Shipping Charges</span>
-            <span className="font-semibold">€35.00</span>
+            <span>Estimated Shipping</span>
+            <span className="font-semibold">€{shippingFee.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-lg font-bold">
             <span>Total</span>
             <span>
               €{(
-                cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + 35
+                cartItems.reduce((acc, item) => acc + item.basePrice * item.quantity, 0) + shippingFee
               ).toFixed(2)}
             </span>
           </div>
