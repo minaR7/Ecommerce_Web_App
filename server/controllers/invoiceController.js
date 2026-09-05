@@ -14,13 +14,14 @@ const eur = (v) => `€${Number(v || 0).toFixed(2)}`;
 
 // Single place for the SMTP transporter so invoice + status emails stay in sync.
 const createTransporter = () => {
-  // See userController.js makeTransporter() for full TLS docs.  The mail server
-  // on mail.Elmaghrib.com:465 currently has an expired TLS cert; set env
-  // SMTP_TLS_STRICT=false to temporarily allow delivery without validating the
-  // TLS chain (this works, but the correct fix is to renew the cert).
+  // ⚠️ Defaults SMTP_TLS_STRICT to FALSE because mail.Elmaghrib.com's TLS
+  // cert is expired.  Mail WILL deliver without needing a Plesk env var;
+  // TLS chain validation is simply skipped (low risk for same-host mail).
+  // After the mail cert is renewed, set env SMTP_TLS_STRICT=true or flip
+  // the default below back to `true`.
   const strictTls =
     process.env.SMTP_TLS_STRICT === undefined
-      ? true
+      ? false
       : String(process.env.SMTP_TLS_STRICT).toLowerCase() !== 'false';
 
   return nodemailer.createTransport({

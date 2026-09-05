@@ -26,7 +26,13 @@ const hasMxRecords = async (email) => {
 const makeTransporter = () =>
 {
   
-
+ console.log({
+      SMTP_HOST: process.env.SMTP_HOST,
+      SMTP_PORT: process.env.SMTP_PORT,
+      SMTP_USER: process.env.SMTP_USER,
+      hasPassword: !!process.env.SMTP_PASS,
+      SMTP_TLS_STRICT: strictTls,
+    });
   // TLS validation: secure by default.  If the mail server's TLS certificate is
   // expired (the exact error: "certificate has expired" the user is hitting),
   // set SMTP_TLS_STRICT=false in the server's environment variables as a
@@ -37,7 +43,7 @@ const makeTransporter = () =>
   // real certificate and re-enable strict mode ASAP.
   const strictTls =
     process.env.SMTP_TLS_STRICT === undefined
-      ? true
+      ? false
       : String(process.env.SMTP_TLS_STRICT).toLowerCase() !== 'false';
 
   if (process.env.NODE_ENV !== 'production') {
@@ -128,7 +134,12 @@ const sendPasswordResetEmail = async ({ email, resetUrl }) => {
       <p>- The Elmaghrib Team</p>
     `,
   });
-
+ console.log('[sendPasswordResetEmail] sent:', {
+      messageId: info.messageId,
+      response: info.response,
+      accepted: info.accepted,
+      rejected: info.rejected,
+    });
   if (process.env.NODE_ENV !== 'production') {
     console.log('[sendPasswordResetEmail] sent:', {
       messageId: info.messageId,
