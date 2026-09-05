@@ -656,3 +656,22 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+exports.getMe = async (req, res) => {
+  try {
+    const request = new sql.Request();
+    request.input('id', sql.Int, req.user.id);
+    const result = await request.query(`
+      SELECT TOP 1 u.user_id, u.email, c.username, c.is_admin
+      FROM users u
+      JOIN credentials c ON u.user_id = c.user_id
+      WHERE u.user_id = @id
+    `);
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    return res.status(200).json(result.recordset[0]);
+  } catch (error) {
+    console.error('getMe error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
