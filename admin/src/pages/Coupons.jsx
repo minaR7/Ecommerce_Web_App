@@ -19,20 +19,9 @@ const Coupons = () => {
     try {
       const data = await couponsApi.getAll();
       setCoupons(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
       setCoupons([]);
-      // setCoupons([
-      //   {
-      //     id: '1',
-      //     code: 'SUMMER20',
-      //     discountType: 'percentage',
-      //     discountValue: 20,
-      //     usedCount: 45,
-      //     validFrom: '2024-06-01',
-      //     validUntil: '2024-08-31',
-      //     status: 'active',
-      //   },
-      // ]);
+      message.error(err?.message || 'Failed to load coupons');
     } finally {
       setLoading(false);
     }
@@ -59,13 +48,12 @@ const Coupons = () => {
       }
       await loadCoupons();
       setIsModalOpen(false);
-    } catch {
-      if (editingCoupon) {
-        setCoupons(coupons.map(c => c.id === editingCoupon.id ? { ...c, ...payload } : c));
-      } else {
-        setCoupons([...coupons, { id: Date.now().toString(), ...payload, usedCount: 0 }]);
-      }
-      setIsModalOpen(false);
+      form.resetFields();
+      setEditingCoupon(null);
+    } catch (err) {
+      // IMPORTANT: do NOT touch local state on error — do not fake success.
+      // Keep the modal open so the user can fix & retry without losing their input.
+      message.error(err?.message || (editingCoupon ? 'Failed to update coupon' : 'Failed to create coupon'));
     }
   };
 
