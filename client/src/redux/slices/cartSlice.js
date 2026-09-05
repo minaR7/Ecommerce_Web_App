@@ -181,7 +181,7 @@ const cartSlice = createSlice({
         state.error = null;
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
-        state.items = state.items.filter((item) => item.id !== action.payload);
+        state.items = state.items.filter((item) => item.cart_item_id !== action.payload);
       })
       .addCase(removeFromCart.rejected, (state, action) => {
         state.loading = false;
@@ -208,7 +208,7 @@ const cartSlice = createSlice({
       })
       .addCase(updateCartItem.fulfilled, (state, action) => {
         const { cartItemId, data } = action.payload;
-        const index = state.items.findIndex(item => item.id === cartItemId);
+        const index = state.items.findIndex(item => item.cart_item_id === cartItemId);
         if (index !== -1) {
           state.items[index] = { ...state.items[index], ...data };
         }
