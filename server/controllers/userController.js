@@ -76,55 +76,27 @@ const sendSignupEmail = async ({ email, first_name }) => {
   });
 };
 
-// const sendPasswordResetEmail = async ({ email, resetUrl }) => {
-//   const transporter = makeTransporter();
-//   await transporter.sendMail({
-//     from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
-//     to: email,
-//     subject: 'Reset your Elmaghrib password',
-//     text: `We received a request to reset your password.\n\nReset it here (link valid for 30 minutes):\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.\n\n- The Elmaghrib Team`,
-//     html: `<p>We received a request to reset your password.</p>
-//            <p><a href="${resetUrl}">Click here to reset your password</a> (link valid for 30 minutes).</p>
-//            <p>If you didn't request this, you can safely ignore this email.</p>
-//            <p>- The Elmaghrib Team</p>`,
-//   });
-// };
-
 const sendPasswordResetEmail = async ({ email, resetUrl }) => {
   const transporter = makeTransporter();
-
   await transporter.verify();
-
   console.log('SMTP connection successful');
 
   const info = await transporter.sendMail({
     from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
     to: email,
     subject: 'Reset your Elmaghrib password',
-
-    text: `We received a request to reset your password.
-
-Reset it here (link valid for 30 minutes):
-${resetUrl}
-
-If you didn't request this, you can ignore this email.
-
-- The Elmaghrib Team`,
-
+    text: `We received a request to reset your password.\n\nReset it here (link valid for 30 minutes):\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.\n\n- The Elmaghrib Team`,
     html: `
       <p>We received a request to reset your password.</p>
-
       <p>
         <a href="${resetUrl}">
           Click here to reset your password
         </a>
         (link valid for 30 minutes).
       </p>
-
       <p>
         If you didn't request this, you can safely ignore this email.
       </p>
-
       <p>- The Elmaghrib Team</p>
     `,
   });
@@ -232,7 +204,14 @@ exports.checkEmail = async (req, res) => {
 };
 
 exports.registerUser = async (req, res) => {
-  const { first_name, last_name, email, address, password, username, is_admin } = req.body;
+  const { first_name, last_name, email, address, password, username } = req.body;
+
+  if (!email || !username || !password) {
+    return res.status(400).json({ error: 'Username, email and password are required' });
+  }
+  if (String(password).length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
 
   const request = new sql.Request();
   request.input('email', sql.VarChar, email);
@@ -376,7 +355,9 @@ exports.registerUser = async (req, res) => {
     request.input('user_id', sql.Int, user_id)
     request.input('hashedPassword', sql.VarChar, hashedPassword)
     request.input('username', sql.VarChar, username)
-    request.input('is_admin', sql.Bit, is_admin)
+    // request.input('is_admin', sql.Bit, is_admin)
+    credentialRequest.input('is_admin', sql.Bit, false);
+
     // Insert into credentials table
     await request.query(
       `INSERT INTO credentials (user_id, email, username, password, is_admin)
@@ -645,16 +626,29 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
     }
 
-    const hash = await bcrypt.hash(String(password), saltRounds);
     const request = new sql.Request();
     request.input('id', sql.Int, payload.id);
-    request.input('password', sql.VarChar, hash);
-    const result = await request.query(`
-      UPDATE credentials SET password = @password WHERE user_id = @id
+    const accountRes = await request.query(`
+      SELECT TOP 1 u.user_id
+      FROM users u
+      JOIN credentials c ON u.user_id = c.user_id
+      WHERE u.user_id = @id AND u.is_registered = 1
     `);
-    if ((result.rowsAffected[0] || 0) === 0) {
+    if (accountRes.recordset.length === 0) {
       return res.status(400).json({ error: 'Account not found for this reset link.' });
     }
+
+    const hash = await bcrypt.hash(String(password), saltRounds);
+    // const request = new sql.Request();
+    // request.input('id', sql.Int, payload.id);
+    request.input('password', sql.VarChar, hash);
+    // const result = 
+    await request.query(`
+      UPDATE credentials SET password = @password WHERE user_id = @id
+    `);
+    // if ((result.rowsAffected[0] || 0) === 0) {
+    //   return res.status(400).json({ error: 'Account not found for this reset link.' });
+    // }
     return res.status(200).json({ message: 'Password updated successfully. You can now log in.' });
   } catch (error) {
     console.error('resetPassword error:', error);
