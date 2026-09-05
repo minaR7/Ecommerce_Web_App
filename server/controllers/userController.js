@@ -638,6 +638,12 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Account not found for this reset link.' });
     }
 
+    // Single-use: any token issued before the last password change is dead.
+    const changedAt = accountRes.recordset[0].password_changed_at;
+    if (changedAt && payload.iat * 1000 < new Date(changedAt).getTime()) {
+      return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
+    }
+
     const hash = await bcrypt.hash(String(password), saltRounds);
     // const request = new sql.Request();
     // request.input('id', sql.Int, payload.id);

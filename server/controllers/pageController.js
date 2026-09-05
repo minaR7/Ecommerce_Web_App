@@ -36,16 +36,17 @@ exports.getPageBySlug = async (req, res) => {
 // Update page content
 exports.updatePage = async (req, res) => {
     const { slug } = req.params;
-    const { content } = req.body;
+    const { content, title } = req.body;
     
     try {
         const request = new sql.Request();
         request.input('slug', sql.NVarChar, slug);
         request.input('content', sql.NVarChar, content);
+        request.input('title', sql.NVarChar, title);
         
         const query = `
             UPDATE pages 
-            SET content = @content, updated_at = GETDATE() 
+            SET content = @content, title = ISNULL(@title, title), updated_at = GETDATE() 
             WHERE slug = @slug;
             
             SELECT * FROM pages WHERE slug = @slug;
@@ -53,7 +54,7 @@ exports.updatePage = async (req, res) => {
         
         const result = await request.query(query);
         
-        if (result.rowsAffected[0] === 0) {
+        if ((result.rowsAffected[0] || 0) === 0) {
             return res.status(404).json({ error: 'Page not found' });
         }
         
@@ -91,6 +92,22 @@ exports.createPage = async (req, res) => {
         if (err.number === 2627) { // Unique constraint violation
             return res.status(400).json({ error: 'Slug already exists' });
         }
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+exports.deletePage = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const request = new sql.Request();
+        request.input('id', sql.Int, Number(id));
+        const result = await request.query('DELETE FROM pages WHERE page_id = @id');
+        if ((result.rowsAffected[0] || 0) === 0) {
+            return res.status(404).json({ error: 'Page not found' });
+        }
+        res.status(200).json({ message: 'Page deleted' });
+    } catch (err) {
+        console.error('Error deleting page:', err);
         res.status(500).json({ error: 'Server error' });
     }
 };
