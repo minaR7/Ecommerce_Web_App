@@ -1,5 +1,21 @@
 const sql = require('mssql');
 
+const formatDate = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const mapCoupon = (row) => ({
+  ...row,
+  validFrom: formatDate(row.validFrom),
+  validUntil: formatDate(row.validUntil),
+});
+
 exports.getCoupons = async (req, res) => {
   try {
     const result = await sql.query(`
@@ -18,8 +34,8 @@ exports.getCoupons = async (req, res) => {
       FROM coupons
       ORDER BY created_at DESC
     `);
-    console.error(result);
-    res.status(200).json(result.recordset);
+    const mapped = result.recordset.map(mapCoupon);
+    res.status(200).json(mapped);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -44,7 +60,7 @@ exports.getCouponById = async (req, res) => {
       FROM coupons WHERE coupon_id = ${id}
     `;
     if (result.recordset.length === 0) return res.status(404).json({ message: 'Not found' });
-    res.status(200).json(result.recordset[0]);
+    res.status(200).json(mapCoupon(result.recordset[0]));
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -76,7 +92,7 @@ exports.createCoupon = async (req, res) => {
         updated_at
       FROM coupons WHERE code = ${code}
     `;
-    res.status(201).json(result.recordset[0]);
+    res.status(201).json(mapCoupon(result.recordset[0]));
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -111,7 +127,7 @@ exports.updateCoupon = async (req, res) => {
         updated_at
       FROM coupons WHERE coupon_id = ${id}
     `;
-    res.status(200).json(result.recordset[0]);
+    res.status(200).json(mapCoupon(result.recordset[0]));
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

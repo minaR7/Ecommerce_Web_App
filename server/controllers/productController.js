@@ -185,7 +185,7 @@ exports.getAllProducts = async (req, res) => {
             const sizesArray = product.sizes ? product.sizes.split(',') : [];
             return {
                 ...product,
-                description: product.description == null ? '-' : product.description,
+                description: product.description == null ? '' : product.description,
                 cover_img: product.cover_img ? `${baseUrl}/${String(product.cover_img).replace(/^\/+/, '')}` : null,
                 discounted_price: discountedPrice,
                 slide_images: slideImages,

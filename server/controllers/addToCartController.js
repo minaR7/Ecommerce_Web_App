@@ -2,10 +2,12 @@ const sql = require('mssql');
 
 exports.addToCart = async (req, res) => {
     try {
-      const { userId, productId, quantity, variantId, cartItems } = req.body;
+      const { userId, productId, quantity, variantId, variant_id } = req.body;
       console.log(userId)
       
-      if (!userId || !productId || !quantity ||  !variantId) {
+      const finalVariantId = variantId || variant_id;
+      
+      if (!userId || !productId || !quantity || !finalVariantId) {
         return res.status(400).json({ message: 'Missing required fields' });
       }
   
@@ -14,7 +16,7 @@ exports.addToCart = async (req, res) => {
       request.input('userId', sql.Int, userId);
       request.input('productId', sql.Int, productId);
       request.input('quantity', sql.Int, quantity);
-      request.input('variantId', sql.Int, variantId);
+      request.input('variantId', sql.Int, finalVariantId);
       request.input('processed', sql.Bit, 0);
 
       await request.query(`
@@ -39,7 +41,8 @@ exports.addBulkToCart = async (req, res) => {
       }
   
       for (const item of cartItems) {
-      const { productId, quantity, variantId } = item;
+      const { productId, quantity, variantId, variant_id } = item;
+      const finalVariantId = variantId || variant_id;
       if (!productId || !quantity) continue;
 
       const checkQuery = `
@@ -50,7 +53,7 @@ exports.addBulkToCart = async (req, res) => {
       const requestCheck = new sql.Request();
       requestCheck.input('userId', sql.Int, userId);
       requestCheck.input('productId', sql.Int, productId);
-      requestCheck.input('variantId', sql.Int, variantId || null);
+      requestCheck.input('variantId', sql.Int, finalVariantId || null);
 
       const existingItem = await requestCheck.query(checkQuery);
 
@@ -72,7 +75,7 @@ exports.addBulkToCart = async (req, res) => {
         insertRequest.input('userId', sql.Int, userId);
         insertRequest.input('productId', sql.Int, productId);
         insertRequest.input('quantity', sql.Int, quantity);
-        insertRequest.input('variantId', sql.Int, variantId || null);
+        insertRequest.input('variantId', sql.Int, finalVariantId || null);
         insertRequest.input('processed', sql.Bit, 0);
 
         await insertRequest.query(`
@@ -147,21 +150,24 @@ exports.updateCartItem = async (req, res) => {
   const { cartItemId } = req.params;
   const { productId, quantity, size, color } = req.body;
 
-  if (!productId && !quantity || !size || !color) {
+  if (quantity === undefined && !size && !color) {
     return res.status(400).json({ message: 'No fields to update' });
   }
 
   let updates = [];
   if (quantity !== undefined) updates.push(`quantity = ${quantity}`);
-  // if (size !== undefined) updates.push(`size = '${size}'`);
+    // if (size !== undefined) updates.push(`size = '${size}'`);
   // if (color !== undefined) updates.push(`color = '${color}'`);
 
-  // const updateQuery = updates.join(', ');
-  const updateQuery = updates;
+  if (updates.length === 0) {
+    return res.status(400).json({ message: 'No fields to update' });
+  }
+
+  const updateQuery = updates.join(', ');
 
   try {
     const result = await sql.query(`UPDATE cart_items SET ${updateQuery} WHERE cart_item_id = ${cartItemId}`);
-    res.status(200).json({ message: 'Cart item updated successfully', result: result });
+    res.status(200).json({ message: 'Cart item updated successfully', result: result, cart_item_id: cartItemId, quantity });
   } catch (error) {
     console.error('Error updating cart item:', error);
     res.status(500).json({ message: 'Server error updating cart item' });
