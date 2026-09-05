@@ -11,6 +11,13 @@ node_modules
 dist
 dist-ssr
 *.local
+/public
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +30,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Playwright
+/playwright/.auth/
