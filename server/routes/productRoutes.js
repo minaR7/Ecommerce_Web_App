@@ -1,6 +1,8 @@
 const express = require('express');
 const productController = require('../controllers/productController');
 const { uploadProductMedia } = require('../middleware/upload');
+const verifyToken = require('../middleware/auth');
+const requireAdmin = require('../middleware/requireAdmin');
 const router = express.Router();
 
 // router.get('/', productController.getProducts);
@@ -18,7 +20,9 @@ router.get('/:id', productController.getProductById);
 //     next();
 //   });
 // }, productController.createProduct);
-router.post('/', async (req, res, next) => {
+
+//admin only
+router.post('/', verifyToken, requireAdmin, async (req, res, next) => {
   try {
     // Wrap Multer upload in a Promise
     await new Promise((resolve, reject) => {
@@ -36,7 +40,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', verifyToken, requireAdmin, async (req, res, next) => {
   try {
     await new Promise((resolve, reject) => {
       uploadProductMedia(req, res, (err) => {
@@ -50,6 +54,6 @@ router.put('/:id', async (req, res, next) => {
     res.status(400).json({ error: err.message });
   }
 });
-router.delete('/:id', productController.deleteProduct);
+router.delete('/:id', verifyToken, requireAdmin, productController.deleteProduct);
 
 module.exports = router;
