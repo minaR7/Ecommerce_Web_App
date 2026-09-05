@@ -29,12 +29,8 @@ async function fetchApi(endpoint, options) {
 export const categoriesApi = {
   getAll: () => fetchApi('/categories'),
   getById: (id) => fetchApi(`/categories/${id}`),
-  // create: (data) => fetchApi('/categories', {
-  //   method: 'POST',
-  //   body: JSON.stringify(data),
-  // }),
   create: (data) => {
-    console.log(data)
+    console.log(data)   
     // const formData = new FormData();
   
     // formData.append('name', data.name);
@@ -43,11 +39,14 @@ export const categoriesApi = {
     // if (data.image) {
     //   formData.append('image', data.image);
     // }
-  
+    const token = localStorage.getItem('authToken');
     return fetch(`${API_BASE_URL}/categories`, {
       method: 'POST',
       // body: formData,
       body: data,
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
       credentials: 'include',
     }).then(async (res) => {
       const result = await res.json();
@@ -82,9 +81,13 @@ export const categoriesApi = {
   upload: (file) => {
     const form = new FormData();
     form.append('image', file);
+    const token = localStorage.getItem('authToken');
     return fetch(`${API_BASE_URL}/categories/upload`, {
       method: 'POST',
       body: form,
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
       credentials: 'include',
     }).then(async (res) => {
       const data = await res.json();
@@ -147,9 +150,13 @@ export const subcategoriesApi = {
   upload: (file) => {
     const form = new FormData();
     form.append('image', file);
+    const token = localStorage.getItem('authToken');
     return fetch(`${API_BASE_URL}/subcategories/upload`, {
       method: 'POST',
       body: form,
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
       credentials: 'include',
     }).then(async (res) => {
       const data = await res.json();
