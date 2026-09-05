@@ -21,9 +21,11 @@ const MyAccount = () => {
       });
 
       const user = loginRes.data.data
+      const token = loginRes.data.token;
       localStorage.setItem('user', JSON.stringify(user));
       console.log(loginRes)
-
+      if (token) localStorage.setItem('token', token);
+      
       if (user?.is_admin) {
         const adminBase = import.meta.env.VITE_ADMIN_BASE_URL || 'http://admin.elmaghrib.com';
         window.location.href = adminBase;

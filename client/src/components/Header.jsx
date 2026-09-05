@@ -96,7 +96,7 @@ import { useSiteSettings } from '../hooks/useSiteSettings';
 
 const { Header } = Layout;
 import { useSelector, useDispatch } from 'react-redux';
-import { openDrawer, closeDrawer } from '../redux/slices/cartSlice';
+import { openDrawer, closeDrawer, clearCart } from '../redux/slices/cartSlice';
 
 
 const DEFAULT_LOGO = '/assets/logo/El-Maghrib-logo.png';
@@ -132,7 +132,9 @@ const HeaderMenu = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
-    setUser(null);
+    localStorage.removeItem('token');
+    setUser(null); 
+    dispatch(clearCart());   // don't leak the previous user's cart to the next visitor
     navigate('/');
   };
 

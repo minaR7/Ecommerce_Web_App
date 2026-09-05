@@ -46,7 +46,9 @@ axiosInstance.interceptors.response.use(
         console.warn('Unauthorized, redirecting to login...');
         // Optional: remove token and redirect
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        localStorage.removeItem('user');
+        // window.location.href = '/login';
+        window.location.href = '/my-account';
       }
     }  
     else if (error && error.code === "ERR_NETWORK") {
