@@ -126,6 +126,8 @@ const ProductDetail = () => {
         try {
             const resultAction = await dispatch(addToCart(payload));
             setIsModalOpen(true); 
+            // Reset quantity back to 1 after successfully adding to cart
+            setSelectedQuantity(1);
             // dispatch(openDrawer());
             // setTimeout(() => {
             // dispatch(closeDrawer());
