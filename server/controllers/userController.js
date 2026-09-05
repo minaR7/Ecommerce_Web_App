@@ -25,22 +25,14 @@ const hasMxRecords = async (email) => {
 
 const makeTransporter = () =>
 {
-  
- console.log({
-      SMTP_HOST: process.env.SMTP_HOST,
-      SMTP_PORT: process.env.SMTP_PORT,
-      SMTP_USER: process.env.SMTP_USER,
-      hasPassword: !!process.env.SMTP_PASS,
-      SMTP_TLS_STRICT: strictTls,
-    });
-  // TLS validation: secure by default.  If the mail server's TLS certificate is
-  // expired (the exact error: "certificate has expired" the user is hitting),
-  // set SMTP_TLS_STRICT=false in the server's environment variables as a
-  // TEMPORARY workaround until the cert is renewed on mail.Elmaghrib.com.
+  // ⚠️ Default is SMTP_TLS_STRICT = FALSE as a TEMPORARY workaround because
+  // the TLS certificate on mail.Elmaghrib.com:465 is expired.  This means mail
+  // delivery works RIGHT NOW without any Plesk env var, but the connection does
+  // NOT validate the mail server's TLS certificate chain.
   //
-  // WARNING: SMTP_TLS_STRICT=false skips TLS certificate validation. This
-  // allows delivery but means the connection is vulnerable to MITM. Fix the
-  // real certificate and re-enable strict mode ASAP.
+  // HOW TO RE-ENABLE SECURITY after the mail cert is renewed:
+  //   (a) set env SMTP_TLS_STRICT=true in Plesk Node.js env vars, OR
+  //   (b) flip the default line below from `false` back to `true`.
   const strictTls =
     process.env.SMTP_TLS_STRICT === undefined
       ? false
@@ -56,10 +48,22 @@ const makeTransporter = () =>
     });
   }
 
+  // When not strict: fully neutralise TLS cert validation (both Node flags AND
+  // the explicit checkServerIdentity hook).  Node/tls on newer versions calls
+  // checkServerIdentity and throws "certificate has expired" for expired certs
+  // EVEN WHEN rejectUnauthorized:false — overriding the hook is the nuclear
+  // "allow any cert including expired / self-signed / wrong-hostname" switch.
+  const tlsOptions = strictTls
+    ? { rejectUnauthorized: true }
+    : {
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1',
+        checkServerIdentity: () => undefined,
+      };
+
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 465,
-    // Port 465 = implicit TLS (secure:true). Port 587 = STARTTLS (secure:false).
     secure: Number(process.env.SMTP_PORT) === 465,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     connectionTimeout: 15000,
@@ -67,11 +71,7 @@ const makeTransporter = () =>
     socketTimeout: 15000,
     logger: process.env.NODE_ENV !== 'production',
     debug: process.env.NODE_ENV !== 'production',
-    tls: {
-      rejectUnauthorized: strictTls,
-      // If we're not strict, suppress TLS warning noise emitted by the client.
-      minVersion: strictTls ? undefined : 'TLSv1',
-    },
+    tls: tlsOptions,
   });
 }
 
@@ -636,7 +636,7 @@ exports.forgotPassword = async (req, res) => {
         // "email registered but SMTP cert expired" (500).  Same response 200.
         const msg = mailErr && mailErr.message ? String(mailErr.message) : String(mailErr);
         const isCertErr = /certificate/i.test(msg);
-        console.error(`[forgotPassword] SMTP failure sending to ${user.email}:`,
+        console.error(`[forgot password] SMTP failure sending to ${user.email}:`,
           isCertErr
             ? `TLS certificate issue — "${msg}". Fix: renew TLS cert on ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} OR set env SMTP_TLS_STRICT=false as a temporary workaround.`
             : msg);
@@ -646,7 +646,7 @@ exports.forgotPassword = async (req, res) => {
     // Same identical response whether: bad email / user missing / mail failed.
     return res.status(200).json(GENERIC_RESPONSE);
   } catch (error) {
-    console.error('[forgotPassword] unhandled error:', error);
+    console.error('[forgot password] unhandled error:', error);
     // Even on total crashes, don't leak — same 200 response.
     return res.status(200).json(GENERIC_RESPONSE);
   }
