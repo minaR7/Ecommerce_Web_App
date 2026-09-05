@@ -629,7 +629,7 @@ exports.resetPassword = async (req, res) => {
     const request = new sql.Request();
     request.input('id', sql.Int, payload.id);
     const accountRes = await request.query(`
-      SELECT TOP 1 u.user_id
+      SELECT TOP 1 u.user_id, c.password_changed_at
       FROM users u
       JOIN credentials c ON u.user_id = c.user_id
       WHERE u.user_id = @id AND u.is_registered = 1
@@ -650,7 +650,7 @@ exports.resetPassword = async (req, res) => {
     request.input('password', sql.VarChar, hash);
     // const result = 
     await request.query(`
-      UPDATE credentials SET password = @password WHERE user_id = @id
+      UPDATE credentials SET password = @password, password_changed_at = GETDATE() WHERE user_id = @id
     `);
     // if ((result.rowsAffected[0] || 0) === 0) {
     //   return res.status(400).json({ error: 'Account not found for this reset link.' });
