@@ -8,69 +8,44 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  // const onFinish = async (values) => {
-  //   setLoading(true);
-  //   try {
-  //     await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/users/forgot-password`, {
-  //       email: values.email,
-  //     });
-  //     setSent(true);
-  //     toast.success('If that email is registered, a reset link has been sent.');
-  //   } catch (err) {
-  //     if (!err.response) {
-  //       toast.error('Network error: unable to reach the server. Please try again.');
-  //     } else {
-  //       toast.error(err.response.data?.error || 'Something went wrong. Please try again.');
-  //     }
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const onFinish = async (values) => {
-  console.log('1. onFinish called');
-  console.log('2. values:', values);
-  console.log(
-    '3. Backend URL:',
-    import.meta.env.VITE_BACKEND_SERVER_URL
-  );
-
-  setLoading(true);
-
-  try {
-    console.log('4. About to make POST request');
-
-    const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_SERVER_URL}/api/users/forgot-password`,
-      {
-        email: values.email,
-      }
+    console.log('1. onFinish called');
+    console.log('2. values:', values);
+    console.log(
+      '3. Backend URL:',
+      import.meta.env.VITE_BACKEND_SERVER_URL
     );
-
-    console.log('5. POST completed:', response);
-
-    setSent(true);
-
-    toast.success(response.message);
-  } catch (err) {
-    console.error('6. Axios error:', err);
-
-    if (!err.response) {
-      toast.error(
-        'Network error: unable to reach the server. Please try again.'
+    setLoading(true);
+    try {
+      console.log('4. About to make POST request');
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_SERVER_URL}/api/users/forgot-password`,
+        {
+          email: values.email,
+        }
       );
-    } else {
-      toast.error(
-        err.response.data?.error ||
-          'Something went wrong. Please try again.'
-      );
+      console.log('5. POST completed:', response);
+      setSent(true);
+      toast.success(response.data?.message || 'If that email is registered, a reset link has been sent.');
+    } catch (err) {
+      console.error('6. Axios error:', err);
+
+      if (!err.response) {
+        toast.error(
+          'Network error: unable to reach the server. Please try again.'
+        );
+      } else {
+        toast.error(
+          err.response.data?.error ||
+            'Something went wrong. Please try again.'
+        );
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-  return (
+  return (    
     <div className="flex items-center justify-center px-4 mt-12">
       <div
         className="p-8 rounded-2xl w-full max-w-md"
