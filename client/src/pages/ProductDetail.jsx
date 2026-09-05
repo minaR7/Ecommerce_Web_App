@@ -302,10 +302,10 @@ const ProductDetail = () => {
                     </div>
 
                     {/* Sizes Label + Tags + Size Chart Button */}
-                    <div className="flex items-center justify-between mt-4 flex-wrap">
-                       <div className="flex">
-                            <h3 className="text-xl font-semibold mr-2">Sizes:</h3>
-                            <div className="flex gap-2 flex-wrap">
+                    <div className="flex-col sm:flex-row sm:flex sm:items-center sm:justify-between mt-4 flex w-full">
+                       <div className="flex-col sm:flex-row flex sm:items-start items-center w-full sm:w-auto mb-3 sm:mb-0 gap-2 sm:gap-0">
+                            <h3 className="text-xl font-semibold mr-2 mb-2 sm:mb-0 shrink-0 w-full sm:w-auto text-center sm:text-left">Sizes:</h3>
+                            <div className="flex gap-2 flex-wrap justify-center sm:justify-start w-full sm:w-auto">
                                 {productSizes.map(size => (
                                 <Tag
                                     key={size}
@@ -314,9 +314,10 @@ const ProductDetail = () => {
                                     textAlign: 'center',
                                     backgroundColor: size === selectedSize ? 'lightblue' : '',
                                     cursor: 'pointer',
-                                    padding: '2px 16px',
+                                    padding: '6px 18px',
                                     fontSize: '16px',
                                     fontWeight: '400',
+                                    minWidth: '56px',
                                     }}
                                     onClick={() => handleSizeSelect(size)}
                                 >
@@ -325,8 +326,8 @@ const ProductDetail = () => {
                                 ))}
                             </div>
                        </div>
-                        <div className="flex">
-                            <Button type="primary" style={{ backgroundColor: "rgb(71, 89, 122)" }}  className='size-chart-btn' onClick={openSizeChart}>Size Chart</Button>
+                        <div className="flex justify-center sm:justify-end w-full sm:w-auto">
+                            <Button type="primary" style={{ backgroundColor: "rgb(71, 89, 122)", width: '100%' }} className='size-chart-btn sm:w-auto' onClick={openSizeChart}>Size Chart</Button>
                         </div>
                     </div>
 
