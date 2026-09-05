@@ -334,7 +334,7 @@ export const pagesApi = {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  delete: (id) => fetchApi(`/sizes/${id}`, {
+  delete: (id) => fetchApi(`/pages/${id}`, {
     method: 'DELETE',
   }),
 };

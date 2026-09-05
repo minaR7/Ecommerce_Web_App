@@ -37,6 +37,7 @@ export const AdminHeader = ({ title }) => {
   const handleLogout = () => {
     // Clear user session
     localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('user');
     // Redirect to login page
     window.location.href = '/login';

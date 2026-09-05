@@ -79,7 +79,15 @@ const Coupons = () => {
       <Space>
         <Button type="text" icon={<EditOutlined />} onClick={() => { setEditingCoupon(r); form.setFieldsValue({ ...r, validFrom: dayjs(r.validFrom), validUntil: dayjs(r.validUntil) }); setIsModalOpen(true); }} />
         <Popconfirm title="Delete?" okText="Delete" cancelText="Cancel"  okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
-         onConfirm={() => setCoupons(coupons.filter(c => c.id !== r.id))}><Button type="text" icon={<DeleteOutlined />} className="text-muted-foreground hover:text-destructive" /></Popconfirm>
+         onConfirm={async () => {
+           try {
+             await couponsApi.delete(r.id);
+             setCoupons(coupons.filter(c => c.id !== r.id));
+             message.success('Coupon deleted');
+           } catch (err) {
+             message.error(err.message || 'Failed to delete coupon');
+           }
+         }}><Button type="text" icon={<DeleteOutlined />} className="text-muted-foreground hover:text-destructive" /></Popconfirm>
       </Space>
     )}
   ];
