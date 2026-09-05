@@ -129,7 +129,7 @@ const Checkout = () => {
     
 
     const handleDelete = (itemToDelete) => {
-        const wasLastItem = cartItems.length === 1;
+        //const wasLastItem = cartItems.length === 1;
         if (user) {
             // dispatch(removeFromCart(itemToDelete.productId, itemToDelete.size, itemToDelete.color));
             dispatch(removeFromCart(itemToDelete.cart_item_id));
@@ -150,10 +150,36 @@ const Checkout = () => {
             });
             window.dispatchEvent(new Event('guestCartUpdated'));
         }
-        if (wasLastItem) {
-            navigate('/');
-        }
     };
+
+  if (isCartEmpty) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6 py-16">
+        <div className="text-8xl mb-6 opacity-50">🛒</div>
+        <h2 className="text-3xl font-bold text-gray-800 mb-3">Your Cart is Empty</h2>
+        <p className="text-gray-500 mb-10 max-w-md">
+          Looks like you haven't added any items to your cart yet.
+          Browse our collection and find something you love!
+        </p>
+        <Button
+          type="primary"
+          onClick={() => navigate('/')}
+          style={{
+            backgroundColor: 'black',
+            borderColor: 'black',
+            color: 'white',
+            fontWeight: '700',
+            padding: '0.85rem 2.5rem',
+            height: 'auto',
+            fontSize: '1rem',
+          }}
+          className="hover:bg-gray-800 transition-all"
+        >
+          Start Shopping
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Col className="flex flex-col lg:flex-row gap-6 px-8 pt-10">
