@@ -64,6 +64,7 @@ const makeTransporter = () =>
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 465,
+    // Port 465 = implicit TLS (secure:true). Port 587 = STARTTLS (secure:false).
     secure: Number(process.env.SMTP_PORT) === 465,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     connectionTimeout: 15000,
@@ -625,9 +626,18 @@ exports.forgotPassword = async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: '30m' }
       );
-      // Point the reset link at the storefront that made the request.
-      const base = req.headers.origin || process.env.CLIENT_URL || 'https://elmaghrib.com';
-      const resetUrl = `${base.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+      // Password reset link always points at the canonical storefront domain
+      // (CLIENT_URL env var, defaulting to elmaghrib.com).  We MUST NOT use
+      // req.headers.origin here — origin reflects whoever CALLED the API
+      // (admin.elmaghrib.com, localhost:5173 dev server, 3rd-party tooling)
+      // and the reset page only exists on the client storefront.  Using
+      // origin was causing deployed users to receive links like
+      // "https://admin.elmaghrib.com/reset-password?token=…" which 404 on the
+      // admin panel and made them think no email arrived.
+      const resetBase =
+        (process.env.CLIENT_URL && String(process.env.CLIENT_URL).trim()) ||
+        'https://elmaghrib.com';
+      const resetUrl = `${resetBase.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
       try {
         await sendPasswordResetEmail({ email: user.email, resetUrl });
       } catch (mailErr) {
@@ -671,35 +681,37 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
     }
 
-    const request = new sql.Request();
-    request.input('id', sql.Int, payload.id);
-    const accountRes = await request.query(`
-      SELECT TOP 1 u.user_id, c.password_changed_at
+    const lookupReq = new sql.Request();
+    lookupReq.input('id', sql.Int, payload.id);
+    const accountRes = await lookupReq.query(`
+      SELECT TOP 1 u.user_id, u.is_registered, c.password_changed_at
       FROM users u
       JOIN credentials c ON u.user_id = c.user_id
-      WHERE u.user_id = @id AND u.is_registered = 1
+      WHERE u.user_id = @id
     `);
     if (accountRes.recordset.length === 0) {
       return res.status(400).json({ error: 'Account not found for this reset link.' });
     }
+    const account = accountRes.recordset[0];
 
     // Single-use: any token issued before the last password change is dead.
-    const changedAt = accountRes.recordset[0].password_changed_at;
-    if (changedAt && payload.iat * 1000 < new Date(changedAt).getTime()) {
+    if (account.password_changed_at && payload.iat * 1000 < new Date(account.password_changed_at).getTime()) {
       return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
     }
 
     const hash = await bcrypt.hash(String(password), saltRounds);
-    // const request = new sql.Request();
-    // request.input('id', sql.Int, payload.id);
-    request.input('password', sql.VarChar, hash);
-    // const result = 
-    await request.query(`
-      UPDATE credentials SET password = @password, password_changed_at = GETDATE() WHERE user_id = @id
+    const updateReq = new sql.Request();
+    updateReq.input('id', sql.Int, payload.id);
+    updateReq.input('password', sql.VarChar, hash);
+    // If this was a guest user (is_registered = 0 from checkout auto-create) who
+    // now set a real password via reset link → promote them to a fully registered
+    // user so the is_registered filter on other endpoints (customer list, etc.)
+    // includes them going forward.
+    await updateReq.query(`
+      UPDATE credentials SET password = @password, password_changed_at = GETDATE() WHERE user_id = @id;
+      UPDATE users SET is_registered = 1, updated_at = GETDATE() WHERE user_id = @id AND ISNULL(is_registered, 0) = 0
     `);
-    // if ((result.rowsAffected[0] || 0) === 0) {
-    //   return res.status(400).json({ error: 'Account not found for this reset link.' });
-    // }
+
     return res.status(200).json({ message: 'Password updated successfully. You can now log in.' });
   } catch (error) {
     console.error('resetPassword error:', error);
