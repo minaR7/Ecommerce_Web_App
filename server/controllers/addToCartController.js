@@ -98,7 +98,9 @@ exports.getCart = async (req, res) => {
     const { userId } = req.params;
     console.log(userId)
     try {
-        const result = await sql.query(`
+        const request = new sql.Request();
+        request.input('userId', sql.Int, Number(userId));
+        const result = await request.query(`
             SELECT 
               ci.cart_item_id,
               ci.quantity,
@@ -117,15 +119,12 @@ exports.getCart = async (req, res) => {
             JOIN product_variants v ON ci.variant_id = v.variant_id
             LEFT JOIN product_colors c ON v.color_id = c.color_id
             LEFT JOIN product_sizes s ON v.size_id = s.size_id
-            WHERE ci.user_id = ${userId} AND ci.processed = 0
+            WHERE ci.user_id = @userId AND ci.processed = 0
+            ORDER BY ci.cart_item_id DESC
         `)
         
-        if (!result.recordset.length) {
-            return res.status(404).json({ message: 'Cart is empty' });
-          }
-        else{
-          const baseUrl = `${req.protocol}://${req.get('host')}`;
-          const modifiedResponse = result.recordset.map((item) => ({
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const modifiedResponse = result.recordset.map((item) => ({
             name: item.name,
             size: item.size,
             color: item.color,
@@ -134,10 +133,9 @@ exports.getCart = async (req, res) => {
             basePrice: item.base_price,
             productId: item.product_id,
             quantity: item.quantity,
-            coverImg: `${baseUrl}/${item.cover_img}`
-          }));
-          res.status(200).json(modifiedResponse);
-        }
+            coverImg: item.cover_img ? `${baseUrl}/${item.cover_img}` : '/fallback.jpg'
+        }));
+        res.status(200).json(modifiedResponse);
           
     } catch (error) {
         console.log(error)
@@ -178,10 +176,16 @@ exports.updateCartItem = async (req, res) => {
 exports.removeFromCart = async (req, res) => {
     const { cartItemId } = req.params;
     try {
-        const pool = await sql.query(`DELETE FROM cart_items WHERE cart_item_id = ${cartItemId}`);
-        res.status(200).json({ message: 'Item removed from cart' });
+        const request = new sql.Request();
+        request.input('cartItemId', sql.Int, Number(cartItemId));
+        const result = await request.query(`DELETE FROM cart_items WHERE cart_item_id = @cartItemId`);
+        if ((result.rowsAffected[0] || 0) === 0) {
+            return res.status(404).json({ message: 'Cart item not found' });
+        }
+        res.status(200).json({ message: 'Item removed from cart', cart_item_id: Number(cartItemId) });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error(error);
+        res.status(500).json({ message: error.message || 'Failed to remove item from cart' });
     }
 };
 

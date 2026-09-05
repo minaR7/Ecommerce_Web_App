@@ -10,13 +10,17 @@ export const addToCart = createAsyncThunk(
   async (payload, { getState, dispatch, rejectWithValue }) => {
     console.log('addTocart', payload)
     const user = getLoggedInUser();
-    const finalPayload = {
-      productId: payload.productId,
-      variantId: payload.variant_id,
-      quantity: payload.quantity,
-      userId: user ? user.user_id : null,
-    }
+    const MAX_PER_VARIANT = 10;
+
+    const userRequestedQty = Number(payload.quantity) || 1;
+
     if (user) {
+        const finalPayload = {
+          productId: payload.productId,
+          variantId: payload.variant_id,
+          quantity: payload.quantity,
+          userId: user ? user.user_id : null,
+        }
         const { cart } = getState(); // Access cart from Redux store
         console.log(cart)
         const existingItem = cart.items?.find(
@@ -28,28 +32,44 @@ export const addToCart = createAsyncThunk(
         );
 
         if (existingItem) {
-                  // console.log("Duplicate found")
-          // Duplicate found — update instead of add
-          const newQuantity = existingItem.quantity + finalPayload.quantity;
+          // Duplicate found — increase existing qty, capped at MAX_PER_VARIANT
+          const currentQty = Number(existingItem.quantity) || 0;
+          const uncapped = currentQty + userRequestedQty;
+          const newQuantity = Math.min(MAX_PER_VARIANT, uncapped);
+          const actuallyAdded = newQuantity - currentQty;
 
-          if (newQuantity > 10) {
-            toast.error('Maximum item quantity should be 10 or less.');
-            return rejectWithValue('Maximum item quantity is 10.');
+          if (actuallyAdded <= 0) {
+            toast.error(`You've already reached the max of ${MAX_PER_VARIANT} items for this product.`);
+            return rejectWithValue(`Already at max ${MAX_PER_VARIANT}`);
           }
 
-          await dispatch(updateCartItem({
+          if (uncapped > MAX_PER_VARIANT) {
+            toast.warning(`Only ${actuallyAdded} more item${actuallyAdded === 1 ? '' : 's'} were added (max ${MAX_PER_VARIANT} per product).`);
+          }
+
+          // Update the existing cart item with the *new total quantity*
+          const resultAction = await dispatch(updateCartItem({
             cartItemId: existingItem.cart_item_id,
             productId: finalPayload.productId,
+            variantId: payload.variant_id,
             size: payload.size,
             color: payload.color,
             quantity: newQuantity
           }));
 
-          // notification.success({ message: 'Cart item updated' });
-          return;
+          if (updateCartItem.rejected.match(resultAction)) {
+            return rejectWithValue(resultAction.payload || resultAction.error?.message);
+          }
+          return { merged: true, newQuantity, cart_item_id: existingItem.cart_item_id };
+        }
+
+        // No existing match — cap the initial add just in case
+        const firstQty = Math.min(MAX_PER_VARIANT, userRequestedQty);
+        if (firstQty !== userRequestedQty) {
+          toast.warning(`Only ${firstQty} item${firstQty === 1 ? '' : 's'} were added (max ${MAX_PER_VARIANT} per product).`);
         }
       try {
-        const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/add`, finalPayload);
+        const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/add`, { ...finalPayload, quantity: firstQty });
         window.dispatchEvent(new Event('cartUpdated'));
         return res.data;
       } catch (err) {
@@ -69,19 +89,36 @@ export const addToCart = createAsyncThunk(
         );
 
         if (itemIndex > -1) {
-            // Item exists, increase quantity
-            cart[itemIndex].quantity += payload.quantity;
-        } 
+            // Item exists — increase quantity, capped at MAX_PER_VARIANT
+            const currentQty = Number(cart[itemIndex].quantity) || 0;
+            const uncapped = currentQty + userRequestedQty;
+            const newQuantity = Math.min(MAX_PER_VARIANT, uncapped);
+            const actuallyAdded = newQuantity - currentQty;
+
+            if (actuallyAdded <= 0) {
+              toast.error(`You've already reached the max of ${MAX_PER_VARIANT} items for this product.`);
+              return rejectWithValue(`Already at max ${MAX_PER_VARIANT}`);
+            }
+
+            if (uncapped > MAX_PER_VARIANT) {
+              toast.warning(`Only ${actuallyAdded} more item${actuallyAdded === 1 ? '' : 's'} were added (max ${MAX_PER_VARIANT} per product).`);
+            }
+            cart[itemIndex].quantity = newQuantity;
+        }
         else {
-            // Add new item
-            cart.push(payload);
+            // Add new item (capped)
+            const firstQty = Math.min(MAX_PER_VARIANT, userRequestedQty);
+            if (firstQty !== userRequestedQty) {
+              toast.warning(`Only ${firstQty} item${firstQty === 1 ? '' : 's'} were added (max ${MAX_PER_VARIANT} per product).`);
+            }
+            cart.push({ ...payload, quantity: firstQty });
         }
 
         sessionStorage.setItem('guestCart', JSON.stringify(cart));
         // notification.success({ message: 'Added to cart' });
         // Dispatch custom event
         window.dispatchEvent(new Event('guestCartUpdated'));
-                window.dispatchEvent(new Event('cartUpdated'));
+        window.dispatchEvent(new Event('cartUpdated'));
         return cart;
       } catch (err) {
         notification.error({ message: 'Failed to add to cart.' });
@@ -121,7 +158,7 @@ export const updateCartItem = createAsyncThunk(
         window.dispatchEvent(new Event('cartUpdated'));
         toast.success('Cart updated successfully!');
 
-      return { cartItemId, data: res.data, };
+      return { cartItemId, quantity, data: res.data, };
     } 
     catch (err) {
       console.log(err)
@@ -169,34 +206,46 @@ const cartSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchCart.fulfilled, (state, action) => {
-        state.items = action.payload;
+        state.items = Array.isArray(action.payload) ? action.payload : [];
+        state.loading = false;
+        state.error = null;
         console.log(state)
       })
       .addCase(fetchCart.rejected, (state, action) => {
         state.loading = false;
+        state.items = [];
         state.error = action.error.message;
       })
-      .addCase(fetchCart.pending, (state, action) => {
+      .addCase(fetchCart.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
-        state.items = state.items.filter((item) => item.cart_item_id !== action.payload);
+        const removedId = typeof action.payload === 'object' ? action.payload?.cart_item_id : action.payload;
+        state.items = state.items.filter((item) => Number(item.cart_item_id) !== Number(removedId));
       })
       .addCase(removeFromCart.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       })
-      .addCase(removeFromCart.pending, (state, action) => {
+      .addCase(removeFromCart.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(addToCart.fulfilled, (state, action) => {
-        console.log(state, action)
-        // if (!Array.isArray(action.payload)) {
-        //   state.items.push(action.payload); // only for logged-in user
-        // }
-        state.cart = action.payload
+        console.log(state, action);
+        // If the thunk merged with an existing item (capped at 10 etc.),
+        // fetchCart / custom events refresh the store from the server.
+        // For brand-new logged-in item inserts that return one object, push it.
+        const p = action.payload;
+        if (p && !Array.isArray(p) && !p.merged && typeof p === 'object') {
+          if (p.cart_item_id != null) {
+            const already = state.items.find(i => Number(i.cart_item_id) === Number(p.cart_item_id));
+            if (!already) state.items.push(p);
+          }
+        }
+        state.loading = false;
+        state.error = null;
       })
       .addCase(addToCart.rejected, (state, action) => {
         state.loading = false;
@@ -207,10 +256,13 @@ const cartSlice = createSlice({
         state.error = null;
       })
       .addCase(updateCartItem.fulfilled, (state, action) => {
-        const { cartItemId, data } = action.payload;
-        const index = state.items.findIndex(item => item.cart_item_id === cartItemId);
+        const { cartItemId, quantity } = action.payload || {};
+        const index = state.items.findIndex(item => Number(item.cart_item_id) === Number(cartItemId));
         if (index !== -1) {
-          state.items[index] = { ...state.items[index], ...data };
+          state.items[index] = {
+            ...state.items[index],
+            ...(quantity != null ? { quantity } : {})
+          };
         }
       });
       

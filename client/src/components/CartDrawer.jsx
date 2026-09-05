@@ -145,10 +145,42 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
     const displayCart = cartItems
     const isCartEmpty = !displayCart || displayCart.length === 0;
 
+    const handleViewCart = () => {
+      if (isCartEmpty) return;
+      navigate('/cart');
+      setTimeout(() => {
+        dispatch(closeDrawer());
+      }, 300);
+    };
+
+    const handleCheckout = () => {
+      if (isCartEmpty) return;
+      navigate('/checkout');
+      setTimeout(() => {
+        dispatch(closeDrawer());
+      }, 300);
+    };
+
     return (
         <Drawer title="Cart Items" placement="right" closable onClose={() => setCartOpen(false)} open={cartOpen}>
             {console.log(displayCart)}
-            {user ? (
+            {isCartEmpty ? (
+                <div className="flex flex-col items-center justify-center text-center py-16 px-4">
+                    <div className="text-6xl mb-4 opacity-50">🛒</div>
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Your cart is empty</h3>
+                    <p className="text-sm text-gray-500 mb-6">Looks like you haven't added anything yet.</p>
+                    <Button
+                        type="primary"
+                        onClick={() => {
+                            navigate('/');
+                            dispatch(closeDrawer());
+                        }}
+                        style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "700", padding: "0.75rem 1.5rem"  }}
+                    >
+                        Start Shopping
+                    </Button>
+                </div>
+            ) : user ? (
                 <List
                 itemLayout="horizontal"
                 dataSource={cartItems}
@@ -264,23 +296,17 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
                     <Button
                         type="primary"
                         // icon={<GoArrowRight />}
-                        onClick={() => {navigate('/checkout') 
-                            setTimeout(() => {
-                            dispatch(closeDrawer());
-                            }, 300);}}
+                        onClick={handleCheckout}
                         disabled={isCartEmpty}
                         style={{ backgroundColor: 'black', borderColor: 'black', color: "white", fontWeight: "700", width: "100%", padding: "1rem 2rem"  }}
                     >
                         Proceed to Checkout
                     </Button>
                      <Button
-                        onClick={() => {navigate('/cart')
-                            setTimeout(() => {
-                            dispatch(closeDrawer());
-                            }, 300);}}
-                        // disabled={isCartEmpty}
-                        style={{ borderColor: 'black', color: "black", fontWeight: "700", padding: "1rem 2rem" }}
-                        className="w-full bg-white hover:bg-blue-700 transition-all"
+                        onClick={handleViewCart}
+                        disabled={isCartEmpty}
+                        style={{ borderColor: isCartEmpty ? '#d9d9d9' : 'black', color: isCartEmpty ? '#bfbfbf' : "black", fontWeight: "700", padding: "1rem 2rem", cursor: isCartEmpty ? 'not-allowed' : 'pointer' }}
+                        className={`w-full bg-white hover:bg-blue-700 transition-all ${isCartEmpty ? 'pointer-events-none opacity-60' : ''}`}
                     >
                         View Cart
                     </Button>
