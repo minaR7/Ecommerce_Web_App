@@ -2,9 +2,12 @@ const express = require('express');
 const subcategoryController = require('../controllers/subcategoryController');
 const { uploadSubcategoryImage } = require('../middleware/upload');
 const router = express.Router();
+const verifyToken = require('../middleware/auth');
+const requireAdmin = require('../middleware/requireAdmin');
 
 router.get('/', subcategoryController.getSubcategories);
 router.get('/:id', subcategoryController.getSubcategoryById);
+
 router.post('/', uploadSubcategoryImage, subcategoryController.createSubcategory);
 router.put('/:id', uploadSubcategoryImage, subcategoryController.updateSubcategory);
 router.delete('/:id', subcategoryController.deleteSubcategory);
