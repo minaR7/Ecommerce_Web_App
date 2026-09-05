@@ -23,12 +23,29 @@ import Login from "./pages/Login";
 const queryClient = new QueryClient();
 
 const Protected = ({ children }) => {
-  const raw = localStorage.getItem("user");
-  try {
-    const user = raw ? JSON.parse(raw) : null;
-    if (user && user.is_admin) return children;
-  } catch {}
-  return <Navigate to="/login" replace />;
+  const [state, setState] = useState('checking');
+   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await usersApi.getMe();
+        if (!cancelled) setState(me?.is_admin ? 'ok' : 'denied');
+      } catch {
+        if (!cancelled) setState('denied');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (state === 'checking') return <div style={{ padding: 24 }}>Checking access…</div>;
+  if (state === 'denied') return <Navigate to="/login" replace />;
+  return children;
+  // const raw = localStorage.getItem("user");
+  // try {
+  //   const user = raw ? JSON.parse(raw) : null;
+  //   if (user && user.is_admin) return children;
+  // } catch {}
+  // return <Navigate to="/login" replace />;
 };
 
 const App = () => (

@@ -276,7 +276,8 @@ export const usersApi = {
   delete: (id) => fetchApi(`/users/${id}`, {
     method: 'DELETE',
   }),
-  getCustomers: () => fetchApi('/users/customers'),
+  getCustomers: () => fetchApi('/users/customers'), 
+  getMe: () => fetchApi('/users/me'),
 };
 
 // Coupons API
