@@ -37,10 +37,9 @@ export const AdminHeader = ({ title }) => {
   const handleLogout = () => {
     // Clear user session
     localStorage.removeItem('token');
-    localStorage.removeItem('authToken');
     localStorage.removeItem('user');
     // Redirect to login page
-    window.location.href = '/login';
+    window.location.replace('/login');
   };
 
   const markAllAsRead = async () => {
@@ -98,21 +97,58 @@ export const AdminHeader = ({ title }) => {
     const pollId = setInterval(loadUnread, 30000);
 
     const base = import.meta.env.VITE_BACKEND_SERVER_URL;
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
+
+    // NOTE: Plesk / shared-hosting reverse proxies sometimes don't forward
+    // the /socket.io path to Node (or strip the Upgrade: websocket header).
+    // In those cases the client CANNOT establish a socket — and if we let
+    // socket.io's default "reconnect forever" run, the browser will spam
+    // console with CORS errors (because the request lands on Plesk's default
+    // 404 landing page instead of Node).  To keep the admin panel usable
+    // when the proxy is misconfigured, we cap reconnect attempts, back off
+    // aggressively, and silence socket's built-in error logging.
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 3;
     const socket = io(base, {
       auth: token ? { token } : { role: 'admin' },
-      // Allow long-polling to negotiate first, then upgrade to WebSocket when
-      // possible. WebSocket-only fails hard behind IIS/proxies that don't upgrade.
       transports: ['polling', 'websocket'],
       withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 15000,
+      randomizationFactor: 0.5,
+      timeout: 10000,
+      forceNew: true,
     });
+
     socket.on('new-notification', (n) => {
       setNotifications(prev => [n, ...prev]);
     });
+
+    socket.on('reconnect_attempt', (n) => {
+      reconnectAttempts = n;
+      // Intentionally silent — don't spam toast notifications for retries.
+    });
+
+    socket.io.on('reconnect_failed', () => {
+      // Socket tried 3 times and still couldn't reach Node's /socket.io.
+      // The admin panel keeps working via the HTTP fallback poll, so this is
+      // non-fatal.  Do NOT keep retrying forever — that's what was flooding
+      // the console with CORS errors.
+      try { socket.disconnect(); } catch {}
+    });
+
+    // Silence the "polling-xhr closed" / "xhr poll error" noise. Socket.io
+    // already handles these internally; the repeated console warnings were
+    // part of what made the devtools output look broken.
+    socket.on('connect_error', () => { /* silent */ });
+    socket.on('error', () => { /* silent */ });
+
     return () => {
       active = false;
       clearInterval(pollId);
-      socket.close();
+      try { socket.close(); } catch {}
     };
   }, []);
 

@@ -8,10 +8,22 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
+const clearClientSession = () => {
+  try {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  } catch {}
+};
+
+// Same burst-guard as the admin interceptor — prevents the Chrome
+// "Throttling navigation to prevent hanging" warning when many parallel
+// requests 401 at once and each tries to rewrite window.location.
+let clientRedirectingToAccount = false;
+
 // Request Interceptor: Attach token
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token'); // or use Redux selector if preferred
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -38,27 +50,29 @@ axiosInstance.interceptors.response.use(
       {
         return;
       }
-      message.error(`${status}: ${errorMsg}`);
-      
       if(error.response.status === 401)
       {
-        // Token expired or unauthorized
-        console.warn('Unauthorized, redirecting to login...');
-        // Optional: remove token and redirect
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        // window.location.href = '/login';
-        window.location.href = '/my-account';
+        // Token expired or unauthorized — or password-changed logout-everywhere
+        clearClientSession();
+        if (!clientRedirectingToAccount) {
+          clientRedirectingToAccount = true;
+          setTimeout(() => { clientRedirectingToAccount = false; }, 2000);
+          const onAccountPage = window.location.pathname === '/my-account';
+          if (!onAccountPage) {
+            console.warn('Unauthorized, redirecting to my-account...');
+            window.location.replace('/my-account');
+          }
+        }
+        return Promise.reject(error);
       }
+      message.error(`${status}: ${errorMsg}`);
     }  
     else if (error && error.code === "ERR_NETWORK") {
-      // Token expired or unauthorized
       console.warn('NETWORK ERROR');
       message.error("Network error. Please check your connection or try again later.");
     }    
     if (error.response && error.response.status === 405) {
-      // Token expired or unauthorized
-      console.warn('Unauthorized, redirecting to login...');
+      console.warn('Method not allowed');
     }
 
 

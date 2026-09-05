@@ -77,6 +77,61 @@ const saveSettings = (data) => {
 // default international shipping fee without going through the HTTP layer.
 exports.loadSettings = loadSettings;
 
+// Fields that are SAFE to expose publicly — the storefront needs these to
+// render the homepage, product pages and footer.  Anything NOT on this list
+// (default_intl_shipping_fee, future admin-only config) is returned ONLY via
+// the protected (requireAdmin) GET /api/site-settings endpoint.
+const PUBLIC_FIELDS = [
+  'logo_url',
+  'hero_image_url',
+  'intro_image_url',
+  'hero_eyebrow',
+  'hero_heading',
+  'hero_subheading',
+  'hero_cta_text',
+  'hero_cta_link',
+  'intro_eyebrow',
+  'intro_heading',
+  'intro_text',
+  'footer_description',
+  'footer_need_help_text',
+  'footer_whatsapp',
+  'footer_email',
+  'footer_phone',
+  'footer_instagram',
+  'footer_facebook',
+  'footer_linkedin',
+  'footer_copyright',
+  'product_shipping_charges',
+  'product_collection',
+  'product_postage',
+  'product_returns',
+  'payment_methods',
+];
+
+const pickPublic = (settings) => {
+  const out = {};
+  for (const k of PUBLIC_FIELDS) if (settings[k] !== undefined) out[k] = settings[k];
+  return out;
+};
+
+exports.getPublicSettings = (req, res) => {
+  const settings = loadSettings();
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const resolved = pickPublic({ ...settings });
+  if (resolved.logo_url) resolved.logo_url = `${baseUrl}/${resolved.logo_url.replace(/^\/+/, '')}`;
+  if (resolved.hero_image_url) resolved.hero_image_url = `${baseUrl}/${resolved.hero_image_url.replace(/^\/+/, '')}`;
+  if (resolved.intro_image_url) resolved.intro_image_url = `${baseUrl}/${resolved.intro_image_url.replace(/^\/+/, '')}`;
+  resolved.payment_methods = Array.isArray(settings.payment_methods)
+    ? settings.payment_methods.map((m) => ({
+        name: m.name || '',
+        icon_url: m.icon_url || '',
+        icon_url_resolved: resolveUrl(baseUrl, m.icon_url),
+      }))
+    : [];
+  res.json(resolved);
+};
+
 exports.getSettings = (req, res) => {
   const settings = loadSettings();
   const baseUrl = `${req.protocol}://${req.get('host')}`;

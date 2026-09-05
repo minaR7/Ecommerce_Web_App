@@ -59,8 +59,11 @@ const fetchSettings = () => {
   if (!pendingPromise) {
     // Plain axios (NOT the shared instance) with a short timeout: never blocks
     // the UI and never triggers the global network-error toast.
+    // Calls /public which only returns the storefront-facing fields — internal
+    // settings like default_intl_shipping_fee are not included here (they're
+    // served only via the protected admin GET /api/site-settings endpoint).
     pendingPromise = axios
-      .get(`${API_BASE}/api/site-settings`, { timeout: 6000 })
+      .get(`${API_BASE}/api/site-settings/public`, { timeout: 6000 })
       .then((res) => {
         cachedSettings = res.data;
         try { localStorage.setItem(CACHE_KEY, JSON.stringify(res.data)); } catch {}

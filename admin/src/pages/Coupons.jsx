@@ -32,6 +32,10 @@ const Coupons = () => {
   }, []);
 
   const handleSubmit = async (values) => {
+    if (values.validFrom && values.validUntil && !values.validFrom.isBefore(values.validUntil, 'day')) {
+      message.error('"Valid From" date must be before the "Valid Until" date.');
+      return;
+    }
     const payload = { 
       ...values, 
       discountType: 'percentage',
@@ -101,8 +105,40 @@ const Coupons = () => {
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
             <div className="grid grid-cols-3 gap-4">
               <Form.Item name="code" label="Code" rules={[{ required: true }]}><Input /></Form.Item>
-              <Form.Item name="validFrom" label="Valid From" rules={[{ required: true }]}><DatePicker className="w-full" format="DD-MM-YYYY" /></Form.Item>
-              <Form.Item name="validUntil" label="Valid Until" rules={[{ required: true }]}><DatePicker className="w-full" format="DD-MM-YYYY" /></Form.Item>
+              <Form.Item
+                name="validFrom"
+                label="Valid From"
+                dependencies={['validUntil']}
+                rules={[
+                  { required: true },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const to = getFieldValue('validUntil');
+                      if (!value || !to || value.isBefore(to, 'day')) return Promise.resolve();
+                      return Promise.reject(new Error('Must be before Valid Until'));
+                    },
+                  }),
+                ]}
+              >
+                <DatePicker className="w-full" format="DD-MM-YYYY" />
+              </Form.Item>
+              <Form.Item
+                name="validUntil"
+                label="Valid Until"
+                dependencies={['validFrom']}
+                rules={[
+                  { required: true },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const from = getFieldValue('validFrom');
+                      if (!value || !from || value.isAfter(from, 'day')) return Promise.resolve();
+                      return Promise.reject(new Error('Must be after Valid From'));
+                    },
+                  }),
+                ]}
+              >
+                <DatePicker className="w-full" format="DD-MM-YYYY" />
+              </Form.Item>
             </div>
 
             <div className="grid grid-cols-3 gap-4">

@@ -72,6 +72,15 @@ exports.createCoupon = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
+    const fromDate = new Date(validFrom);
+    const untilDate = new Date(validUntil);
+    if (isNaN(fromDate.getTime()) || isNaN(untilDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
+    if (!(fromDate < untilDate)) {
+      return res.status(400).json({ message: '"Valid From" date must be before the "Valid Until" date.' });
+    }
+
     // Duplicate check
     const dupReq = new sql.Request();
     dupReq.input('code', sql.VarChar(50), String(code).trim());
@@ -120,6 +129,17 @@ exports.updateCoupon = async (req, res) => {
     existsReq.input('id', sql.Int, Number(id));
     const exists = await existsReq.query(`SELECT coupon_id FROM coupons WHERE coupon_id = @id`);
     if (exists.recordset.length === 0) return res.status(404).json({ message: 'Coupon not found' });
+
+    if (validFrom && validUntil) {
+      const fromDate = new Date(validFrom);
+      const untilDate = new Date(validUntil);
+      if (isNaN(fromDate.getTime()) || isNaN(untilDate.getTime())) {
+        return res.status(400).json({ message: 'Invalid date format' });
+      }
+      if (!(fromDate < untilDate)) {
+        return res.status(400).json({ message: '"Valid From" date must be before the "Valid Until" date.' });
+      }
+    }
 
     const updateReq = new sql.Request();
     updateReq.input('id', sql.Int, Number(id));

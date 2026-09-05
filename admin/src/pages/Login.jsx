@@ -14,7 +14,12 @@ const Login = () => {
     try {
       const raw = localStorage.getItem('user');
       const user = raw ? JSON.parse(raw) : null;
-      if (user && user.is_admin) navigate('/', { replace: true });
+      const hasToken = !!localStorage.getItem('token');
+      // Only auto-bounce if BOTH the admin user marker AND a token exist.
+      // When the session is revoked (401) we clear both AND the user object,
+      // so this check reliably prevents the "/login ⇄ /" redirect loop
+      // that Chrome flags as "Throttling navigation to prevent hanging".
+      if (user && user.is_admin && hasToken) navigate('/', { replace: true });
     } catch {}
   }, [navigate]);
 
@@ -39,7 +44,6 @@ const Login = () => {
       }
       localStorage.setItem('user', JSON.stringify(user));
       if (token) {
-        localStorage.setItem('authToken', token);
         localStorage.setItem('token', token);
       }
 

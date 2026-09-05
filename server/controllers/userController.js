@@ -25,24 +25,47 @@ const hasMxRecords = async (email) => {
 
 const makeTransporter = () =>
 {
-  console.log({
-  SMTP_HOST: process.env.SMTP_HOST,
-  SMTP_PORT: process.env.SMTP_PORT,
-  SMTP_USER: process.env.SMTP_USER,
-  hasPassword: !!process.env.SMTP_PASS,
-});
+  
+
+  // TLS validation: secure by default.  If the mail server's TLS certificate is
+  // expired (the exact error: "certificate has expired" the user is hitting),
+  // set SMTP_TLS_STRICT=false in the server's environment variables as a
+  // TEMPORARY workaround until the cert is renewed on mail.Elmaghrib.com.
+  //
+  // WARNING: SMTP_TLS_STRICT=false skips TLS certificate validation. This
+  // allows delivery but means the connection is vulnerable to MITM. Fix the
+  // real certificate and re-enable strict mode ASAP.
+  const strictTls =
+    process.env.SMTP_TLS_STRICT === undefined
+      ? true
+      : String(process.env.SMTP_TLS_STRICT).toLowerCase() !== 'false';
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log({
+      SMTP_HOST: process.env.SMTP_HOST,
+      SMTP_PORT: process.env.SMTP_PORT,
+      SMTP_USER: process.env.SMTP_USER,
+      hasPassword: !!process.env.SMTP_PASS,
+      SMTP_TLS_STRICT: strictTls,
+    });
+  }
+
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: true,
+    port: Number(process.env.SMTP_PORT) || 465,
+    // Port 465 = implicit TLS (secure:true). Port 587 = STARTTLS (secure:false).
+    secure: Number(process.env.SMTP_PORT) === 465,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     connectionTimeout: 15000,
     greetingTimeout: 15000,
     socketTimeout: 15000,
-
-    logger: true,
-    debug: true,
-    tls: { rejectUnauthorized: true },
+    logger: process.env.NODE_ENV !== 'production',
+    debug: process.env.NODE_ENV !== 'production',
+    tls: {
+      rejectUnauthorized: strictTls,
+      // If we're not strict, suppress TLS warning noise emitted by the client.
+      minVersion: strictTls ? undefined : 'TLSv1',
+    },
   });
 }
 
@@ -78,9 +101,14 @@ const sendSignupEmail = async ({ email, first_name }) => {
 
 const sendPasswordResetEmail = async ({ email, resetUrl }) => {
   const transporter = makeTransporter();
-  await transporter.verify();
-  console.log('SMTP connection successful');
+  // await transporter.verify();
 
+  // NOTE: we intentionally do NOT call transporter.verify() here.
+  // opens a separate test connection and throws eagerly when the SMTP server's
+  // TLS certificate has expired  .sendMail() will use
+  // the same connection pool internally but lets us handle the error on the
+  // *actual* send, and more importantly lets sendPasswordResetEmail succeed
+  // when the caller has opted into SMTP_TLS_STRICT=false.
   const info = await transporter.sendMail({
     from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
     to: email,
@@ -101,12 +129,14 @@ const sendPasswordResetEmail = async ({ email, resetUrl }) => {
     `,
   });
 
-  console.log('Email sent:', {
-    messageId: info.messageId,
-    response: info.response,
-    accepted: info.accepted,
-    rejected: info.rejected,
-  });
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[sendPasswordResetEmail] sent:', {
+      messageId: info.messageId,
+      response: info.response,
+      accepted: info.accepted,
+      rejected: info.rejected,
+    });
+  }
 };
 
 exports.saveUser = async (userData, calledFromCheckout = false) => {
@@ -557,19 +587,18 @@ exports.loginUser = async (req, res) => {
 };
 
 // POST /api/users/forgot-password  { email }
-// Emails a time-limited reset link. Always responds 200 so we never reveal whether
-// an email is registered.
+// Emails a time-limited reset link. ALWAYS responds with the same 200 JSON
+// regardless of input / outcome — we must never reveal whether an email is
+// actually registered (account-enumeration attack / timing attack).
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
-  const generic = { message: 'If that email is registered, a reset link has been sent.' };
+  const GENERIC_RESPONSE = { message: 'If that email is registered, a reset link has been sent.' };
   try {
-    
-      console.log("email", email);
-      console.log(isValidEmailSyntax(email));
-    if (isValidEmailSyntax(email) !== true) return res.status(200).json(generic);
+    if (isValidEmailSyntax(email) !== true) {
+      return res.status(200).json(GENERIC_RESPONSE);
+    }
 
     const request = new sql.Request();
-      console.log("looking for user:", email);
     request.input('email', sql.VarChar, email);
     const userRes = await request.query(`
       SELECT TOP 1 u.user_id, u.email
@@ -578,9 +607,7 @@ exports.forgotPassword = async (req, res) => {
       WHERE u.email = @email
     `);
 
-      console.log("User found:", userRes);
     if (userRes.recordset.length > 0) {
-      console.log("User found:", userRes.recordset[0]);
       const user = userRes.recordset[0];
       const token = jwt.sign(
         { id: user.user_id, purpose: 'pwreset' },
@@ -588,22 +615,29 @@ exports.forgotPassword = async (req, res) => {
         { expiresIn: '30m' }
       );
       // Point the reset link at the storefront that made the request.
-      const base = req.headers.origin || process.env.CLIENT_URL || 'http://elmaghrib.com';
+      const base = req.headers.origin || process.env.CLIENT_URL || 'https://elmaghrib.com';
       const resetUrl = `${base.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
       try {
         await sendPasswordResetEmail({ email: user.email, resetUrl });
       } catch (mailErr) {
-        console.error('Failed to send reset email:', mailErr);
-        return res.status(500).json({ error: 'Could not send reset email. Please try again later.' });
+        // NEVER surface a mailer error to the HTTP client — that would let an
+        // attacker tell apart "email not registered" (200 silent success) vs
+        // "email registered but SMTP cert expired" (500).  Same response 200.
+        const msg = mailErr && mailErr.message ? String(mailErr.message) : String(mailErr);
+        const isCertErr = /certificate/i.test(msg);
+        console.error(`[forgotPassword] SMTP failure sending to ${user.email}:`,
+          isCertErr
+            ? `TLS certificate issue — "${msg}". Fix: renew TLS cert on ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} OR set env SMTP_TLS_STRICT=false as a temporary workaround.`
+            : msg);
       }
     }
-    else{
-      console.log("User not found:", email);
-    }
-    return res.status(200).json(generic);
+
+    // Same identical response whether: bad email / user missing / mail failed.
+    return res.status(200).json(GENERIC_RESPONSE);
   } catch (error) {
-    console.error('forgotPassword error:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    console.error('[forgotPassword] unhandled error:', error);
+    // Even on total crashes, don't leak — same 200 response.
+    return res.status(200).json(GENERIC_RESPONSE);
   }
 };
 

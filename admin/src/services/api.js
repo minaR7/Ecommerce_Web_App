@@ -1,9 +1,19 @@
 // API Service for connecting to Express.js backend
 const API_BASE_URL = `${(import.meta.env.VITE_BACKEND_SERVER_URL || 'http://api.elmaghrib.com')}/api`;
 
+const clearAdminSession = () => {
+  try {
+    localStorage.removeItem('token');
+
+    localStorage.removeItem('user');
+  } catch {}
+};
+
+let redirectingToLogin = false;
+
 // Generic fetch wrapper with error handling
 async function fetchApi(endpoint, options) {
-  const token = localStorage.getItem('authToken');
+  const token = localStorage.getItem('token');
   
   const headers = {
     'Content-Type': 'application/json',
@@ -11,11 +21,36 @@ async function fetchApi(endpoint, options) {
     ...options?.headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+  } catch (err) {
+    // Network error — do NOT redirect, just surface so UI can handle
+    throw new Error('Network error — could not reach the server.');
+  }
+
+  if (response.status === 401) {
+    // Session is dead (bad token / password changed logout-everywhere).
+    // Clear session storage once and perform a single hard redirect to /login
+    // without triggering a loop. Use a short guard to squash any parallel
+    // 401s that arrive in the same tick from firing multiple redirects
+    // (that's what causes Chrome's "Throttling navigation" crash warning).
+    clearAdminSession();
+    if (!redirectingToLogin) {
+      redirectingToLogin = true;
+      setTimeout(() => { redirectingToLogin = false; }, 2000);
+      const onLoginPage = window.location.pathname === '/login';
+      if (!onLoginPage) {
+        window.location.replace('/login');
+      }
+    }
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Session expired — please log in again.');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'An error occurred' }));
@@ -39,7 +74,7 @@ export const categoriesApi = {
     // if (data.image) {
     //   formData.append('image', data.image);
     // }
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     return fetch(`${API_BASE_URL}/categories`, {
       method: 'POST',
       // body: formData,
@@ -56,7 +91,7 @@ export const categoriesApi = {
   },
   update: (id, data) => {
     if (data instanceof FormData) {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       return fetch(`${API_BASE_URL}/categories/${id}`, {
         method: 'PUT',
         body: data,
@@ -81,7 +116,7 @@ export const categoriesApi = {
   upload: (file) => {
     const form = new FormData();
     form.append('image', file);
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     return fetch(`${API_BASE_URL}/categories/upload`, {
       method: 'POST',
       body: form,
@@ -104,7 +139,7 @@ export const subcategoriesApi = {
   getById: (id) => fetchApi(`/subcategories/${id}`),
   create: (data) => {
     if (data instanceof FormData) {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       return fetch(`${API_BASE_URL}/subcategories`, {
         method: 'POST',
         body: data,
@@ -125,7 +160,7 @@ export const subcategoriesApi = {
   },
   update: (id, data) => {
     if (data instanceof FormData) {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       return fetch(`${API_BASE_URL}/subcategories/${id}`, {
         method: 'PUT',
         body: data,
@@ -150,7 +185,7 @@ export const subcategoriesApi = {
   upload: (file) => {
     const form = new FormData();
     form.append('image', file);
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     return fetch(`${API_BASE_URL}/subcategories/upload`, {
       method: 'POST',
       body: form,
@@ -173,7 +208,7 @@ export const productsApi = {
   getBestSellers: () => fetchApi('/products/best-sellers'),
   create: (data) => {
     if (data instanceof FormData) {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       return fetch(`${API_BASE_URL}/products`, {
         method: 'POST',
         body: data,
@@ -195,7 +230,7 @@ export const productsApi = {
   },
   update: (id, data) => {
     if (data instanceof FormData) {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       return fetch(`${API_BASE_URL}/products/${id}`, {
         method: 'PUT',
         body: data,
@@ -348,7 +383,7 @@ export const siteSettingsApi = {
   uploadLogo: (file) => {
     const form = new FormData();
     form.append('image', file);
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     return fetch(`${API_BASE_URL}/site-settings/upload/logo`, {
       method: 'POST',
       body: form,
@@ -363,7 +398,7 @@ export const siteSettingsApi = {
   uploadHero: (file) => {
     const form = new FormData();
     form.append('image', file);
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     return fetch(`${API_BASE_URL}/site-settings/upload/hero`, {
       method: 'POST',
       body: form,
@@ -378,7 +413,7 @@ export const siteSettingsApi = {
   uploadIntroImage: (file) => {
     const form = new FormData();
     form.append('image', file);
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     return fetch(`${API_BASE_URL}/site-settings/upload/intro-image`, {
       method: 'POST',
       body: form,
@@ -393,7 +428,7 @@ export const siteSettingsApi = {
   uploadPaymentIcon: (file) => {
     const form = new FormData();
     form.append('image', file);
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     return fetch(`${API_BASE_URL}/site-settings/upload/payment-icon`, {
       method: 'POST',
       body: form,
