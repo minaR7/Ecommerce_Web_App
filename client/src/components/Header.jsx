@@ -135,6 +135,7 @@ const HeaderMenu = () => {
     localStorage.removeItem('token');
     setUser(null); 
     dispatch(clearCart());   // don't leak the previous user's cart to the next visitor
+    window.dispatchEvent(new Event('user-logout'));
     navigate('/');
   };
 

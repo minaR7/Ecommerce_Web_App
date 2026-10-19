@@ -50,6 +50,11 @@ axiosInstance.interceptors.response.use(
       {
         return;
       }
+      // Callers that render their own friendly error opt out of the raw toast.
+      if (error.config?.skipGlobalError && error.response.status !== 401)
+      {
+        return Promise.reject(error);
+      }
       if(error.response.status === 401)
       {
         // Token expired or unauthorized — or password-changed logout-everywhere

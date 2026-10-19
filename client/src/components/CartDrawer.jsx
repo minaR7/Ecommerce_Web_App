@@ -14,6 +14,19 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
     const [user, setUser] = useState(null);
     const [guestCart, setGuestCart] = useState([]);
     const [quantities, setQuantities] = useState({});
+    // The drawer lives in the header and never remounts, so re-read the session
+    // on login/logout. Otherwise, after logging in without a reload, it kept the
+    // guest code path and +/− / delete silently edited the (empty) guest cart.
+    const [authVersion, setAuthVersion] = useState(0);
+    useEffect(() => {
+        const bump = () => setAuthVersion(v => v + 1);
+        window.addEventListener('user-login', bump);
+        window.addEventListener('user-logout', bump);
+        return () => {
+            window.removeEventListener('user-login', bump);
+            window.removeEventListener('user-logout', bump);
+        };
+    }, []);
 
     useEffect(() => {
         const storedUser = JSON.parse(localStorage.getItem('user'));
@@ -69,7 +82,7 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
         //         window.removeEventListener('guestCartUpdated', loadGuestCart);
         //     };
         // }
-    }, [dispatch]);
+    }, [dispatch, authVersion]);
     
     // useEffect(() => {
     //     const loadCart = () => {
@@ -121,8 +134,9 @@ const CartDrawer = ({ cartOpen, setCartOpen }) => {
     const handleDelete = (itemToDelete) => {
         if (user) {
             // dispatch(removeFromCart(itemToDelete.productId, itemToDelete.size, itemToDelete.color));
+            // The thunk fires 'cartUpdated' itself once the DELETE has finished;
+            // firing it here too would refetch before the row is gone.
             dispatch(removeFromCart(itemToDelete.cart_item_id));
-            window.dispatchEvent(new Event('cartUpdated'));
         } else {
             // const updatedCart = guestCart.filter(item => item.productId !== productId);
             const updatedCart = guestCart.filter(item =>

@@ -150,21 +150,30 @@ export const fetchCart = createAsyncThunk('cart/fetch', async (_, { rejectWithVa
 export const updateCartItem = createAsyncThunk(
   'cart/update',
   async ({ cartItemId, productId, size, color, quantity}, { rejectWithValue }) => {
+    if (cartItemId == null) {
+      toast.error('This cart item could not be updated. Please refresh the page and try again.');
+      return rejectWithValue('Missing cart item id');
+    }
     const payload = {
       productId, size, color, quantity
     }
     try {
-      const res = await axios.put(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/${cartItemId}`, payload);
+      // skipGlobalError: this thunk shows its own friendly toast, so the axios
+      // interceptor must not also pop the raw "<status>: <backend message>".
+      const res = await axios.put(`/api/cart/${cartItemId}`, payload, { skipGlobalError: true });
         window.dispatchEvent(new Event('cartUpdated'));
         toast.success('Cart updated successfully!');
 
       return { cartItemId, quantity, data: res.data, };
-    } 
+    }
     catch (err) {
-      console.log(err)
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to update cart';
+      // 400s carry user-facing messages (e.g. stock limit); anything else is an
+      // internal error whose text should not be shown to shoppers.
+      const status = err.response?.status;
+      const errorMsg = status === 400 && err.response?.data?.message
+        ? err.response.data.message
+        : 'Could not update the cart. Please try again.';
       toast.error(errorMsg);
-      console.log(errorMsg)
       return rejectWithValue(err.response?.data || err.message);
     }
   }
@@ -174,11 +183,24 @@ export const updateCartItem = createAsyncThunk(
 export const removeFromCart = createAsyncThunk(
   'cart/remove',
   async (cart_item_id, { rejectWithValue }) => {
+    if (cart_item_id == null) {
+      toast.error('This cart item could not be removed. Please refresh the page and try again.');
+      return rejectWithValue('Missing cart item id');
+    }
     try {
-      await axios.delete(`/api/cart/${cart_item_id}`);
+      await axios.delete(`/api/cart/${cart_item_id}`, { skipGlobalError: true });
         window.dispatchEvent(new Event('cartUpdated'));
+      toast.success('Item removed from cart.');
       return cart_item_id;
     } catch (err) {
+      // Already gone on the server (e.g. removed in another tab): drop it from
+      // the UI and tell the shopper, rather than showing an error.
+      if (err.response?.status === 404) {
+        toast.info('This item was already removed from your cart.');
+        window.dispatchEvent(new Event('cartUpdated'));
+        return cart_item_id;
+      }
+      toast.error('Could not remove the item. Please try again.');
       return rejectWithValue(err.response?.data || err.message);
     }
   }
