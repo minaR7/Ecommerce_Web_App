@@ -1,6 +1,6 @@
 {
-  "logo_url": null,
-  "hero_image_url": null,
+  "logo_url": "assets/uploads/site/moroccan-thobesjpg-1781223624152.webp",
+  "hero_image_url": "assets/uploads/site/slide-hero-1784481318861.jpg",
   "intro_image_url": "assets/uploads/site/nick-owuor-astro-nic-visuals-OKDQyPcMT6w-unsplash-1781121559934.jpg",
   "hero_eyebrow": "Authentic Moroccan Craftsmanship4646",
   "hero_heading": "Jabador & Moroccan Thobes Online",
@@ -18,5 +18,21 @@
   "footer_instagram": "",
   "footer_facebook": "",
   "footer_linkedin": "",
-  "footer_copyright": "© 2026 Jabador - All rights reserved"
+  "footer_copyright": "© 2026 Jabador - All rights reserved",
+  "product_shipping_charges": "Free shipping on all orders.",
+  "product_collection": "Click & Collect - Select store at checkout.",
+  "product_postage": "Free delivery in 2-3 days",
+  "product_returns": "3 days return. Seller pays for return postage. ",
+  "payment_methods": [
+    {
+      "name": "Mastercard",
+      "icon_url": "/assets/icons/mastercard-svgrepo-com.svg"
+    },
+    {
+      "name": "PayPal",
+      "icon_url": "assets/uploads/site/paypal-svgrepo-com-1785000285963.svg"
+    }
+  ],
+  "default_intl_shipping_fee": 20,
+  "product_payments": "We accept Visa and Mastercard PayPal."
 }
