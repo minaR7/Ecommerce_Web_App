@@ -46,7 +46,7 @@ const ProductListing = () => {
 
   return (
     <div style={{ backgroundColor: 'white', }}>
-        <div style={{ width: '100%', padding: '2rem 6rem 1rem',  backgroundColor: 'rgba(132, 152, 176, 0.5)', margin: '16px 0px'}}> 
+        <div style={{ width: '100%', padding: '2rem clamp(1rem, 5vw, 6rem) 1rem',  backgroundColor: 'rgba(132, 152, 176, 0.5)', margin: '16px 0px'}}> 
             <Breadcrumb style={{ marginBottom: '16px', font: '32px', color: 'black', }}>
                 <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
                 <Breadcrumb.Item><Link to={`/store/${categoryName}`}>{categoryName}</Link></Breadcrumb.Item>
@@ -64,7 +64,7 @@ const ProductListing = () => {
           </div>
         ))}
       </div> */}
-        <div className='product-list-container' style={{ width: '100%', padding: '2rem 6rem 1em', margin: '16px 0px'}}>
+        <div className='product-list-container' style={{ width: '100%', padding: '2rem clamp(1rem, 5vw, 6rem) 1em', margin: '16px 0px'}}>
             <Row gutter={[16,16]}>
                 { products?.length === 0 ? (
                     <p>No products found in this category.</p>) 
