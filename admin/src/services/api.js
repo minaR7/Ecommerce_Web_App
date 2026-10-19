@@ -53,8 +53,10 @@ async function fetchApi(endpoint, options) {
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    // IIS can replace the API's JSON error with an HTML page; keep the status
+    // so the admin still sees something actionable.
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || error.error || `Request failed (HTTP ${response.status}).`);
   }
 
   return response.json();
@@ -201,6 +203,14 @@ export const subcategoriesApi = {
   }
 };
 
+// Non-JSON failures come from IIS itself (e.g. 404.13 / 413 when the upload is
+// too large), so give the admin the status instead of a bare "Failed".
+const uploadFailureMessage = (status, action) => {
+  if (status === 413 || status === 404) return 'The upload is too large for the server. Use fewer or smaller images.';
+  if (status === 401 || status === 403) return 'Your session has expired or lacks admin rights. Please log in again.';
+  return `Failed to ${action} product (HTTP ${status}).`;
+};
+
 // Products API
 export const productsApi = {
   getAll: () => fetchApi('/products'),
@@ -218,7 +228,7 @@ export const productsApi = {
       }).then(async res => {
          if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || err.message || 'Failed to create product');
+            throw new Error(err.error || err.message || uploadFailureMessage(res.status, 'create'));
          }
          return res.json();
       });
@@ -240,7 +250,7 @@ export const productsApi = {
       }).then(async res => {
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || err.message || 'Failed to update product');
+          throw new Error(err.error || err.message || uploadFailureMessage(res.status, 'update'));
         }
         return res.json();
       });

@@ -26,6 +26,11 @@ import { mockProducts } from '../data/mockData';
 import { categoriesApi, subcategoriesApi, productsApi, colorsApi, sizesApi } from '../services/api';
 import { AppButton } from '../components/AppButton';
 
+// Must match imageFilter / limits in server/middleware/upload.js.
+const ACCEPTED_IMAGE_TYPES = 'image/png,image/jpeg,image/webp,image/gif';
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_UPLOAD_BYTES = 25 * 1024 * 1024;
+
 const statusColors = {
   active: 'green',
   inactive: 'default',
@@ -205,10 +210,18 @@ const Products = () => {
   };
 
   const handleSubmit = async (values) => {
+    // IIS rejects request bodies above ~28 MB with an HTML error page, which
+    // surfaced as a vague "Failed to save product". Catch it up front.
+    const totalBytes = [...fileList, ...coverImageUpload, ...sizeChartUpload]
+      .reduce((sum, f) => sum + (f.originFileObj?.size || 0), 0);
+    if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
+      message.error(`New images total ${(totalBytes / 1024 / 1024).toFixed(1)} MB — please keep the total under 25 MB (upload fewer or smaller images).`);
+      return;
+    }
     try {
       if (editingProduct) {
           const formData = new FormData();
-          formData.append('category_id', values.categoryId);
+          if (values.categoryId != null) formData.append('category_id', values.categoryId);
           if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
           formData.append('name', values.name);
           formData.append('description', values.description ?? '');
@@ -250,7 +263,7 @@ const Products = () => {
             return;
           }
           const formData = new FormData();
-          formData.append('category_id', values.categoryId);
+          if (values.categoryId != null) formData.append('category_id', values.categoryId);
           if (values.subcategoryId) formData.append('subcategory_id', values.subcategoryId);
           formData.append('name', values.name);
           formData.append('description', values.description ?? '');
@@ -291,6 +304,20 @@ const Products = () => {
       console.error('Failed to save product:', error);
       message.error('Failed to save product: ' + error.message);
     }
+  };
+
+  // Mirror the server's upload rules (middleware/upload.js) so a bad file is
+  // rejected here with a clear message instead of failing the whole save.
+  const validateImageFile = (file) => {
+    if (!ACCEPTED_IMAGE_TYPES.split(',').includes(file.type)) {
+      message.error(`"${file.name}" is not supported. Use PNG, JPG, WEBP or GIF (iPhone HEIC photos must be converted first).`);
+      return Upload.LIST_IGNORE;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      message.error(`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB — each image must be under 10 MB.`);
+      return Upload.LIST_IGNORE;
+    }
+    return false; // keep the file locally; it's uploaded on Save
   };
 
   // Handle image upload
@@ -422,11 +449,25 @@ const Products = () => {
       dataIndex: 'stock_quantity',
       key: 'stock_quantity',
       sorter: (a, b) => (a.stock_quantity || 0) - (b.stock_quantity || 0),
-      render: (stock) => (
-        <span className={stock === 0 ? 'text-red-400' : 'text-foreground'}>
-          {stock}
-        </span>
-      ),
+      // The shop shows per-variant stock (sales reduce it per size/colour), so
+      // surface it when it differs from the product-level number.
+      render: (stock, record) => {
+        const min = record.variant_stock_min;
+        const max = record.variant_stock_max;
+        const differs = min != null && (min !== stock || max !== stock);
+        return (
+          <div>
+            <span className={stock === 0 ? 'text-red-400' : 'text-foreground'}>{stock}</span>
+            {differs && (
+              <Tooltip title="Stock per size/colour as shown in the shop. Change the stock value and save to reset all variants.">
+                <div className={`text-xs ${min === 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                  variants: {min === max ? min : `${min}–${max}`}
+                </div>
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
     },
     // {
     //   title: 'Images',
@@ -662,10 +703,10 @@ const Products = () => {
               listType="picture-card"
               fileList={fileList}
               onChange={handleUploadChange}
-              beforeUpload={() => false}
+              beforeUpload={validateImageFile}
               multiple
               maxCount={10}
-              accept="image/*"
+              accept={ACCEPTED_IMAGE_TYPES}
               className="product-upload"
             >
               {fileList.length >= 10 ? null : uploadButton}
@@ -682,9 +723,9 @@ const Products = () => {
               listType="picture-card"
               fileList={coverImageUpload}
               onChange={({ fileList }) => setCoverImageUpload(fileList)}
-              beforeUpload={() => false}
+              beforeUpload={validateImageFile}
               maxCount={1}
-              accept="image/*"
+              accept={ACCEPTED_IMAGE_TYPES}
               className="cover-image-upload"
             >
               {coverImageUpload.length >= 1 ? null : uploadButton}
@@ -701,9 +742,9 @@ const Products = () => {
               listType="picture-card"
               fileList={sizeChartUpload}
               onChange={({ fileList }) => setSizeChartUpload(fileList)}
-              beforeUpload={() => false}
+              beforeUpload={validateImageFile}
               maxCount={1}
-              accept="image/*"
+              accept={ACCEPTED_IMAGE_TYPES}
               className="size-chart-upload"
             >
               {sizeChartUpload.length >= 1 ? null : uploadButton}

@@ -28,7 +28,7 @@ const Login = () => {
       const loginRes = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/users/login`,
         {
-          identifier: values.username,
+          identifier: String(values.username || '').trim(),
           password: values.password,
         },
         {
@@ -76,7 +76,12 @@ const Login = () => {
         'Email is not deliverable': 'That email address is not deliverable.',
       };
 
-      toast.error(friendly[serverMsg] || serverMsg || 'Login failed. Please try again.');
+      // IIS may replace the JSON error body with an HTML page; fall back to status.
+      const byStatus = {
+        401: 'Wrong credentials, or this account is not an admin.',
+        403: 'This account is not registered.',
+      };
+      toast.error(friendly[serverMsg] || serverMsg || byStatus[status] || 'Login failed. Please try again.');
     }
   };
 

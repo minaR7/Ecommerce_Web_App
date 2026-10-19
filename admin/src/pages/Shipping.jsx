@@ -164,7 +164,7 @@ const Shipping = () => {
               <Form.Item name="fee" label="Fee (USD)" rules={[{ required: true }]}><InputNumber className="w-full" min={0} precision={2}  style={{ width: '100%' }} /></Form.Item>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Form.Item name="estimatedDays" label="Delivery Time" rules={[{ required: true }]}><Input placeholder="e.g., 5-7 days" /></Form.Item>
+              <Form.Item name="estimatedDays" label="Delivery Time" rules={[{ required: true }, { max: 32, message: 'Max 32 characters' }]}><Input placeholder="e.g., 5-7 days" maxLength={32} showCount /></Form.Item>
               <Form.Item name="status" label="Status"><Select><Select.Option value="active">Active</Select.Option><Select.Option value="inactive">Inactive</Select.Option></Select></Form.Item>
             </div>
             <Space>

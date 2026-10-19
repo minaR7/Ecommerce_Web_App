@@ -142,8 +142,23 @@ const Coupons = () => {
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <Form.Item name="discountValue" label="Value" rules={[{ required: true }]}><InputNumber className="w-full" style={{ width: '100%' }} /></Form.Item>
-              <Form.Item name="usageLimit" label="Usage Limit" rules={[{ required: false }]}><InputNumber className="w-full" style={{ width: '100%' }} /></Form.Item>
+              <Form.Item
+                name="discountValue"
+                label="Value (%)"
+                rules={[
+                  { required: true, message: 'Discount is required' },
+                  { type: 'number', min: 1, max: 100, message: 'Discount must be between 1% and 100%' },
+                ]}
+              >
+                <InputNumber className="w-full" style={{ width: '100%' }} min={1} max={100} precision={2} addonAfter="%" />
+              </Form.Item>
+              <Form.Item
+                name="usageLimit"
+                label="Usage Limit"
+                rules={[{ type: 'number', min: 1, message: 'Usage limit must be at least 1' }]}
+              >
+                <InputNumber className="w-full" style={{ width: '100%' }} min={1} precision={0} />
+              </Form.Item>
               <Form.Item name="status" label="Status">
                 <Select>
                   <Select.Option value="active">Active</Select.Option>
