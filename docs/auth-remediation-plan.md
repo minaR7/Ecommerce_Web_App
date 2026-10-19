@@ -6,7 +6,7 @@ Work is grouped into phases because **the order matters**: enforcing server-side
 
 > Line numbers refer to the state at commit `bc7a9e5` and will drift as you apply edits. Work top-down within a file, or match on the surrounding code rather than the line number.
 
----
+***
 
 ## Phase 0 — Cleanup (no behavior change, no risk)
 
@@ -70,7 +70,7 @@ Delete the redundant second toast in each file — keep the personalized "Welcom
 - [client/src/pages/Login.jsx:53](../client/src/pages/Login.jsx#L53) — delete `toast.success('Logged in successfully!');`
 - [admin/src/pages/Login.jsx:50](../admin/src/pages/Login.jsx#L50) — delete the same line.
 
----
+***
 
 ## Phase 1 — Server hardening (safe: no client contract changes)
 
@@ -212,13 +212,13 @@ Replace the new-user path, **[lines 352-397](../server/controllers/userControlle
 
 Keep the existing "user exists without credentials" recovery branch — it repairs rows orphaned before this fix.
 
----
+***
 
 ## Phase 2 — Token plumbing (prerequisite for Phase 3)
 
 ### #8 Admin: settle on one storage key
 
-Verified: **[admin/src/utils/axios.js](../admin/src/utils/axios.js) is imported by nothing** — the admin app talks to the API exclusively through [services/api.js](../admin/src/services/api.js), which reads `authToken`.
+Verified: **[admin/src/utils/axios.js](../admin/src/utils/axios.js)** **is imported by nothing** — the admin app talks to the API exclusively through [services/api.js](../admin/src/services/api.js), which reads `authToken`.
 
 1. **Delete** `admin/src/utils/axios.js`.
 2. **[admin/src/pages/Login.jsx:41-44](../admin/src/pages/Login.jsx#L41)** — drop the duplicate key:
@@ -229,7 +229,7 @@ Verified: **[admin/src/utils/axios.js](../admin/src/utils/axios.js) is imported 
       }
 ```
 
-3. **[AdminHeader.jsx:37-43](../admin/src/components/layout/AdminHeader.jsx#L37)** — clear the key that's actually used:
+1. **[AdminHeader.jsx:37-43](../admin/src/components/layout/AdminHeader.jsx#L37)** — clear the key that's actually used:
 
 ```js
   const handleLogout = () => {
@@ -283,7 +283,7 @@ import { openDrawer, closeDrawer, clearCart } from '../redux/slices/cartSlice';
       }
 ```
 
----
+***
 
 ## Phase 3 — Enforce authentication (the critical fix)
 
@@ -291,7 +291,7 @@ import { openDrawer, closeDrawer, clearCart } from '../redux/slices/cartSlice';
 
 [server/middleware/auth.js](../server/middleware/auth.js) already works and populates `req.user = { id, is_admin }`. It just needs to be used.
 
-**Step 1 — new file `server/middleware/requireAdmin.js`:**
+**Step 1 — new file** **`server/middleware/requireAdmin.js`:**
 
 ```js
 // Must run after verifyToken, which populates req.user from the JWT.
@@ -362,7 +362,7 @@ module.exports = router;
 
 ### #18 Give the admin guard real teeth
 
-**New controller in [userController.js](../server/controllers/userController.js)** — identity comes from the token, never the request body:
+**New controller in** **[userController.js](../server/controllers/userController.js)** — identity comes from the token, never the request body:
 
 ```js
 exports.getMe = async (req, res) => {
@@ -419,7 +419,7 @@ const Protected = ({ children }) => {
 
 Requires adding `useState, useEffect` and `usersApi` imports. The client check stays a UX convenience — Step 2 is what actually enforces access.
 
----
+***
 
 ## Phase 4 — Schema change
 
@@ -463,7 +463,7 @@ A replayed link then has an `iat` older than `password_changed_at` and is refuse
 
 **Optional follow-up:** apply the same check to login tokens to force logout-everywhere on password change. Larger blast radius — separate work.
 
----
+***
 
 ## Phase 5 — Signup UX & consistency
 
@@ -551,7 +551,7 @@ And consume it in [Signup.jsx:65-67](../client/src/pages/Signup.jsx#L65):
       navigate('/');
 ```
 
----
+***
 
 ## Verification
 
@@ -560,3 +560,4 @@ And consume it in [Signup.jsx:65-67](../client/src/pages/Signup.jsx#L65):
 - **Phase 3:** call each protected endpoint with no token → 401; with a non-admin token → 403; then walk the admin UI end to end, plus the storefront guest browse → add to cart → guest checkout path.
 - **Phase 4:** complete a reset, then replay the same link → "invalid or has expired"; request two links, use the newer → older is refused.
 - **Phase 5:** sign up and confirm names reach the DB, the welcome email is addressed correctly, and mismatched passwords are rejected client-side.
+
