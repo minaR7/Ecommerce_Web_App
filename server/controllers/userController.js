@@ -541,7 +541,12 @@ exports.getCustomers = async (req, res) => {
 };
 
 exports.loginUser = async (req, res) => {
-  const { identifier, password } = req.body;
+  const { password } = req.body;
+  // Mobile keyboards often add stray spaces around the email/username.
+  const identifier = String(req.body.identifier || '').trim();
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Username/email and password are required' });
+  }
 
   const request = new sql.Request();
   request.input('identifier', sql.VarChar, identifier);

@@ -130,7 +130,9 @@ exports.getAllProducts = async (req, res) => {
                 c.name AS category,
                 sc.name AS subcategory,
                 ca.colors,
-                sa.sizes
+                sa.sizes,
+                vs.variant_stock_min,
+                vs.variant_stock_max
             FROM products p
             LEFT JOIN reviews r ON p.product_id = r.product_id
             LEFT JOIN categories c ON p.category_id = c.category_id
@@ -155,6 +157,11 @@ exports.getAllProducts = async (req, res) => {
                 ) t2
                 GROUP BY t2.product_id
             ) sa ON sa.product_id = p.product_id
+            LEFT JOIN (
+                SELECT product_id, MIN(stock_quantity) AS variant_stock_min, MAX(stock_quantity) AS variant_stock_max
+                FROM product_variants
+                GROUP BY product_id
+            ) vs ON vs.product_id = p.product_id
         `;
 
         query += ` WHERE ISNULL(p.is_deleted, 0) = 0`;
@@ -162,7 +169,7 @@ exports.getAllProducts = async (req, res) => {
             query += ` AND p.subcategory_id = ${subcategory}`;
         }
 
-        query += ' GROUP BY p.product_id, p.category_id, p.subcategory_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors, sa.sizes';
+        query += ' GROUP BY p.product_id, p.category_id, p.subcategory_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors, sa.sizes, vs.variant_stock_min, vs.variant_stock_max';
 
         const result = await sql.query(query);
         const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -438,7 +445,8 @@ exports.createProduct = async (req, res) => {
 
     // Coerce numeric fields so they bind as proper SQL numeric types
     const toNum = (v) => (v === undefined || v === null || v === '') ? null : Number(v);
-    const toInt = (v) => (v === undefined || v === null || v === '') ? null : parseInt(v, 10);
+    // 'undefined'/'null' strings come from FormData when the admin leaves a field empty.
+    const toInt = (v) => { const n = parseInt(v, 10); return Number.isNaN(n) ? null : n; };
     price          = toNum(price);
     stock_quantity = toInt(stock_quantity);
     category_id    = toInt(category_id);
@@ -584,7 +592,8 @@ exports.updateProduct = async (req, res) => {
     // (multipart/form-data sends everything as strings, which made SQL Server
     //  attempt implicit string→number conversions and fail).
     const toNum = (v) => (v === undefined || v === null || v === '') ? null : Number(v);
-    const toInt = (v) => (v === undefined || v === null || v === '') ? null : parseInt(v, 10);
+    // 'undefined'/'null' strings come from FormData when the admin leaves a field empty.
+    const toInt = (v) => { const n = parseInt(v, 10); return Number.isNaN(n) ? null : n; };
     price          = toNum(price);
     stock_quantity = toInt(stock_quantity);
     category_id    = toInt(category_id);
@@ -633,9 +642,10 @@ exports.updateProduct = async (req, res) => {
             }
             images_json_update = JSON.stringify(finalImages);
         }
-        // Fetch current cover image
-        const currentCoverRes = await (new sql.Request(transaction)).query`SELECT cover_img FROM products WHERE product_id = ${id}`;
+        // Fetch current cover image (+ stock, to detect a stock change below)
+        const currentCoverRes = await (new sql.Request(transaction)).query`SELECT cover_img, stock_quantity FROM products WHERE product_id = ${id}`;
         const currentCover = currentCoverRes.recordset[0]?.cover_img || null;
+        const currentStock = currentCoverRes.recordset[0]?.stock_quantity ?? null;
         // Handle cover image removal/replacement
         if (coverImgField === 'null') {
             deleteFileSafe(currentCover);
@@ -771,12 +781,22 @@ exports.updateProduct = async (req, res) => {
             }
         }
 
+        // The storefront shows (and checkout deducts) per-variant stock, but the
+        // admin edits one product-level number. When the admin changes that number,
+        // apply it to every variant; otherwise keep variant stock as-is so sales
+        // deductions are not undone by an unrelated edit.
+        if (stock_quantity !== null && stock_quantity !== currentStock) {
+            await (new sql.Request(transaction)).query`
+                UPDATE product_variants SET stock_quantity = ${stock_quantity} WHERE product_id = ${id}
+            `;
+        }
+
         await transaction.commit();
         res.json({ message: 'Product updated' });
     } catch (err) {
         if (transaction._aborted === false) await transaction.rollback();
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: 'Server error: ' + err.message });
     }
 };
 

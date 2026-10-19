@@ -22,6 +22,17 @@ const SAFE_SQL_MESSAGE = (err, fallback) => {
   return fallback;
 };
 
+// Percentage coupons must stay within 1–100%; anything above 100 would make
+// the order total negative. Returns an error message, or null when valid.
+const validateDiscount = (discountType, discountValue) => {
+  const value = Number(discountValue);
+  if (!Number.isFinite(value) || value <= 0) return 'Discount value must be greater than 0.';
+  if (String(discountType).toLowerCase() === 'percentage' && value > 100) {
+    return 'Percentage discount cannot exceed 100%.';
+  }
+  return null;
+};
+
 const SELECT_FIELDS = `
   coupon_id AS id,
   code,
@@ -71,6 +82,8 @@ exports.createCoupon = async (req, res) => {
     if (!code || !discountType || discountValue == null || !validFrom || !validUntil) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
+    const discountError = validateDiscount(discountType, discountValue);
+    if (discountError) return res.status(400).json({ message: discountError });
 
     const fromDate = new Date(validFrom);
     const untilDate = new Date(validUntil);
@@ -129,6 +142,9 @@ exports.updateCoupon = async (req, res) => {
     existsReq.input('id', sql.Int, Number(id));
     const exists = await existsReq.query(`SELECT coupon_id FROM coupons WHERE coupon_id = @id`);
     if (exists.recordset.length === 0) return res.status(404).json({ message: 'Coupon not found' });
+
+    const discountError = validateDiscount(discountType, discountValue);
+    if (discountError) return res.status(400).json({ message: discountError });
 
     if (validFrom && validUntil) {
       const fromDate = new Date(validFrom);
@@ -222,11 +238,14 @@ exports.validateCoupon = async (req, res) => {
                  'Coupon usage limit has been reached'
       });
     }
+    // Clamp so a legacy coupon saved above 100% before validation existed can
+    // never produce a negative order total.
+    const value = Math.min(100, Math.max(0, Number(c.discount_value) || 0));
     res.status(200).json({
       valid: true,
       type: c.discount_type,
-      value: Number(c.discount_value),
-      discountPercentage: c.discount_type === 'percentage' ? Number(c.discount_value) : 0
+      value,
+      discountPercentage: c.discount_type === 'percentage' ? value : 0
     });
   } catch (err) {
     res.status(500).json({ valid: false, message: SAFE_SQL_MESSAGE(err, 'Internal server error') });

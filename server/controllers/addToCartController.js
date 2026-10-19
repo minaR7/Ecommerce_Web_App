@@ -146,26 +146,28 @@ exports.getCart = async (req, res) => {
 //Update cart
 exports.updateCartItem = async (req, res) => {
   const { cartItemId } = req.params;
-  const { productId, quantity, size, color } = req.body;
+  const { quantity } = req.body;
+  const MAX_PER_VARIANT = 10;
 
-  if (quantity === undefined && !size && !color) {
-    return res.status(400).json({ message: 'No fields to update' });
+  // Values are validated and bound as parameters — never interpolated into SQL.
+  const id = Number(cartItemId);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: 'Invalid cart item.' });
   }
-
-  let updates = [];
-  if (quantity !== undefined) updates.push(`quantity = ${quantity}`);
-    // if (size !== undefined) updates.push(`size = '${size}'`);
-  // if (color !== undefined) updates.push(`color = '${color}'`);
-
-  if (updates.length === 0) {
-    return res.status(400).json({ message: 'No fields to update' });
+  const qty = Number(quantity);
+  if (!Number.isInteger(qty) || qty < 1 || qty > MAX_PER_VARIANT) {
+    return res.status(400).json({ message: `Quantity must be between 1 and ${MAX_PER_VARIANT}.` });
   }
-
-  const updateQuery = updates.join(', ');
 
   try {
-    const result = await sql.query(`UPDATE cart_items SET ${updateQuery} WHERE cart_item_id = ${cartItemId}`);
-    res.status(200).json({ message: 'Cart item updated successfully', result: result, cart_item_id: cartItemId, quantity });
+    const request = new sql.Request();
+    request.input('cartItemId', sql.Int, id);
+    request.input('quantity', sql.Int, qty);
+    const result = await request.query(`UPDATE cart_items SET quantity = @quantity WHERE cart_item_id = @cartItemId`);
+    if ((result.rowsAffected[0] || 0) === 0) {
+      return res.status(404).json({ message: 'Cart item not found' });
+    }
+    res.status(200).json({ message: 'Cart item updated successfully', cart_item_id: id, quantity: qty });
   } catch (error) {
     console.error('Error updating cart item:', error);
     res.status(500).json({ message: 'Server error updating cart item' });

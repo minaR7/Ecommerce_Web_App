@@ -78,9 +78,9 @@ const saveSettings = (data) => {
 exports.loadSettings = loadSettings;
 
 // Fields that are SAFE to expose publicly — the storefront needs these to
-// render the homepage, product pages and footer.  Anything NOT on this list
-// (default_intl_shipping_fee, future admin-only config) is returned ONLY via
-// the protected (requireAdmin) GET /api/site-settings endpoint.
+// render the homepage, product pages, footer, cart and checkout.  Anything NOT
+// on this list (future admin-only config) is returned ONLY via the protected
+// (requireAdmin) GET /api/site-settings endpoint.
 const PUBLIC_FIELDS = [
   'logo_url',
   'hero_image_url',
@@ -107,6 +107,9 @@ const PUBLIC_FIELDS = [
   'product_postage',
   'product_returns',
   'payment_methods',
+  // Customer-facing price shown in the cart and checkout; the storefront needs
+  // it so its totals match what checkoutController actually charges.
+  'default_intl_shipping_fee',
 ];
 
 const pickPublic = (settings) => {
