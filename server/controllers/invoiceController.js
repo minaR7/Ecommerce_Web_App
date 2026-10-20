@@ -13,19 +13,36 @@ const LOGO_CID = 'elmaghrib-logo';
 const eur = (v) => `€${Number(v || 0).toFixed(2)}`;
 
 // Single place for the SMTP transporter so invoice + status emails stay in sync.
-const createTransporter = () => nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  greetingTimeout: 10000,
-  tls: {
-    rejectUnauthorized: false, // ⚠️ Ignore expired cert (TESTING ONLY)
-  },
-});
+const createTransporter = () => {
+  // ⚠️ Defaults SMTP_TLS_STRICT to FALSE because mail.Elmaghrib.com's TLS
+  // cert is expired.  Mail WILL deliver without needing a Plesk env var;
+  // TLS chain validation is simply skipped (low risk for same-host mail).
+  // After the mail cert is renewed, set env SMTP_TLS_STRICT=true or flip
+  // the default below back to `true`.
+  const strictTls =
+    process.env.SMTP_TLS_STRICT === undefined
+      ? false
+      : String(process.env.SMTP_TLS_STRICT).toLowerCase() !== 'false';
+
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 465,
+    secure: Number(process.env.SMTP_PORT) === 465,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    greetingTimeout: 10000,
+    connectionTimeout: 15000,
+    socketTimeout: 15000,
+    logger: process.env.NODE_ENV !== 'production',
+    debug: process.env.NODE_ENV !== 'production',
+    tls: {
+      rejectUnauthorized: strictTls,
+      minVersion: strictTls ? undefined : 'TLSv1',
+    },
+  });
+};
 
 // Attach the logo (referenced by CID in the HTML) when the file is present.
 const logoAttachment = () =>

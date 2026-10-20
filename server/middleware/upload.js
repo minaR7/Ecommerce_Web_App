@@ -25,6 +25,8 @@ const ensureDir = (dir) => {
 //   },
 // });
 
+// Base names are capped at 40 chars: stored paths go into short DB columns
+// (products.size_chart is varchar(100)) and long camera/screenshot names overflowed them.
 const makeStorage = (subdir) =>
   multer.diskStorage({
     destination: (req, file, cb) => {
@@ -34,7 +36,7 @@ const makeStorage = (subdir) =>
     },
     filename: (req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
-      const base = path.basename(file.originalname, ext).replace(/[^a-z0-9\-_\s]/gi, '').replace(/\s+/g, '-');
+      const base = path.basename(file.originalname, ext).replace(/[^a-z0-9\-_\s]/gi, '').replace(/\s+/g, '-').slice(0, 40);
       const stamp = Date.now();
       cb(null, `${base}-${stamp}${ext}`);
     },
@@ -75,7 +77,7 @@ const productStorage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const base = path.basename(file.originalname, ext).replace(/[^a-z0-9\-_\s]/gi, '').replace(/\s+/g, '-');
+    const base = path.basename(file.originalname, ext).replace(/[^a-z0-9\-_\s]/gi, '').replace(/\s+/g, '-').slice(0, 40);
     const stamp = Date.now();
     cb(null, `${base}-${stamp}${ext}`);
   },

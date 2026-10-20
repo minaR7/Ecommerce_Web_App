@@ -19,20 +19,9 @@ const Coupons = () => {
     try {
       const data = await couponsApi.getAll();
       setCoupons(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
       setCoupons([]);
-      // setCoupons([
-      //   {
-      //     id: '1',
-      //     code: 'SUMMER20',
-      //     discountType: 'percentage',
-      //     discountValue: 20,
-      //     usedCount: 45,
-      //     validFrom: '2024-06-01',
-      //     validUntil: '2024-08-31',
-      //     status: 'active',
-      //   },
-      // ]);
+      message.error(err?.message || 'Failed to load coupons');
     } finally {
       setLoading(false);
     }
@@ -43,6 +32,10 @@ const Coupons = () => {
   }, []);
 
   const handleSubmit = async (values) => {
+    if (values.validFrom && values.validUntil && !values.validFrom.isBefore(values.validUntil, 'day')) {
+      message.error('"Valid From" date must be before the "Valid Until" date.');
+      return;
+    }
     const payload = { 
       ...values, 
       discountType: 'percentage',
@@ -59,13 +52,12 @@ const Coupons = () => {
       }
       await loadCoupons();
       setIsModalOpen(false);
-    } catch {
-      if (editingCoupon) {
-        setCoupons(coupons.map(c => c.id === editingCoupon.id ? { ...c, ...payload } : c));
-      } else {
-        setCoupons([...coupons, { id: Date.now().toString(), ...payload, usedCount: 0 }]);
-      }
-      setIsModalOpen(false);
+      form.resetFields();
+      setEditingCoupon(null);
+    } catch (err) {
+      // IMPORTANT: do NOT touch local state on error — do not fake success.
+      // Keep the modal open so the user can fix & retry without losing their input.
+      message.error(err?.message || (editingCoupon ? 'Failed to update coupon' : 'Failed to create coupon'));
     }
   };
 
@@ -79,7 +71,15 @@ const Coupons = () => {
       <Space>
         <Button type="text" icon={<EditOutlined />} onClick={() => { setEditingCoupon(r); form.setFieldsValue({ ...r, validFrom: dayjs(r.validFrom), validUntil: dayjs(r.validUntil) }); setIsModalOpen(true); }} />
         <Popconfirm title="Delete?" okText="Delete" cancelText="Cancel"  okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
-         onConfirm={() => setCoupons(coupons.filter(c => c.id !== r.id))}><Button type="text" icon={<DeleteOutlined />} className="text-muted-foreground hover:text-destructive" /></Popconfirm>
+         onConfirm={async () => {
+           try {
+             await couponsApi.delete(r.id);
+             setCoupons(coupons.filter(c => c.id !== r.id));
+             message.success('Coupon deleted');
+           } catch (err) {
+             message.error(err.message || 'Failed to delete coupon');
+           }
+         }}><Button type="text" icon={<DeleteOutlined />} className="text-muted-foreground hover:text-destructive" /></Popconfirm>
       </Space>
     )}
   ];
@@ -105,13 +105,60 @@ const Coupons = () => {
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
             <div className="grid grid-cols-3 gap-4">
               <Form.Item name="code" label="Code" rules={[{ required: true }]}><Input /></Form.Item>
-              <Form.Item name="validFrom" label="Valid From" rules={[{ required: true }]}><DatePicker className="w-full" format="DD-MM-YYYY" /></Form.Item>
-              <Form.Item name="validUntil" label="Valid Until" rules={[{ required: true }]}><DatePicker className="w-full" format="DD-MM-YYYY" /></Form.Item>
+              <Form.Item
+                name="validFrom"
+                label="Valid From"
+                dependencies={['validUntil']}
+                rules={[
+                  { required: true },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const to = getFieldValue('validUntil');
+                      if (!value || !to || value.isBefore(to, 'day')) return Promise.resolve();
+                      return Promise.reject(new Error('Must be before Valid Until'));
+                    },
+                  }),
+                ]}
+              >
+                <DatePicker className="w-full" format="DD-MM-YYYY" />
+              </Form.Item>
+              <Form.Item
+                name="validUntil"
+                label="Valid Until"
+                dependencies={['validFrom']}
+                rules={[
+                  { required: true },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const from = getFieldValue('validFrom');
+                      if (!value || !from || value.isAfter(from, 'day')) return Promise.resolve();
+                      return Promise.reject(new Error('Must be after Valid From'));
+                    },
+                  }),
+                ]}
+              >
+                <DatePicker className="w-full" format="DD-MM-YYYY" />
+              </Form.Item>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <Form.Item name="discountValue" label="Value" rules={[{ required: true }]}><InputNumber className="w-full" style={{ width: '100%' }} /></Form.Item>
-              <Form.Item name="usageLimit" label="Usage Limit" rules={[{ required: false }]}><InputNumber className="w-full" style={{ width: '100%' }} /></Form.Item>
+              <Form.Item
+                name="discountValue"
+                label="Value (%)"
+                rules={[
+                  { required: true, message: 'Discount is required' },
+                  { type: 'number', min: 1, max: 100, message: 'Discount must be between 1% and 100%' },
+                ]}
+              >
+                <InputNumber className="w-full" style={{ width: '100%' }} min={1} max={100} precision={2} addonAfter="%" />
+              </Form.Item>
+              <Form.Item
+                name="usageLimit"
+                label="Usage Limit"
+                rules={[{ type: 'number', min: 1, message: 'Usage limit must be at least 1' }]}
+              >
+                <InputNumber className="w-full" style={{ width: '100%' }} min={1} precision={0} />
+              </Form.Item>
               <Form.Item name="status" label="Status">
                 <Select>
                   <Select.Option value="active">Active</Select.Option>

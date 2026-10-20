@@ -70,6 +70,8 @@ const allowedOrigins = [
   'http://admin.elmaghrib.com',
   'https://www.admin.elmaghrib.com',
   'http://www.admin.elmaghrib.com',
+  'https://api.elmaghrib.com',
+  'http://api.elmaghrib.com',
   'http://78.159.113.48:80',
   'https://78.159.113.48:80',
   'http://localhost:5173',
@@ -78,17 +80,18 @@ const allowedOrigins = [
   'http://localhost:4173',
 ];
 
+const originIsAllowed = (origin) => {
+  if (!origin) return true;
+  return allowedOrigins.includes(origin);
+};
+
 app.use(cors({
   origin: function (origin, callback) {
-    console.log(origin)
+    console.log('[cors] origin =', origin);
     // allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+    if (originIsAllowed(origin)) return callback(null, true);
     // Reject cleanly without allowing the origin. Throwing an Error here would
-    // bubble up as a 500 (which is what the browser was reporting) instead of a
-    // normal CORS denial.
+    // bubble up as a 500 instead of a normal CORS denial.
     return callback(null, false);
   },
   credentials: true,
@@ -125,8 +128,17 @@ app.use('/api/site-settings', siteSettingsRoutes);
 // live outside httpdocs on locked-down hosts), then fall back to the bundled
 // assets folder. Must mirror ASSETS_UPLOAD_DIR used in middleware/upload.js.
 const UPLOAD_DIR = process.env.ASSETS_UPLOAD_DIR || path.join(__dirname, 'assets', 'uploads');
-app.use('/assets/uploads', express.static(UPLOAD_DIR));
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
+// Uploaded files carry a unique Date.now() stamp in their filename, so a given
+// URL never changes content — cache it immutably for a year to avoid a network
+// round-trip on every page view. Bundled assets change only on deploy, so give
+// them a shorter cache that still revalidates.
+app.use('/assets/uploads', express.static(UPLOAD_DIR, {
+  maxAge: '365d',
+  immutable: true,
+}));
+app.use('/assets', express.static(path.join(__dirname, 'assets'), {
+  maxAge: '7d',
+}));
 
 const extractRoutes = (router, basePath = '') => {
   const out = [];
@@ -195,20 +207,42 @@ const startServer = async () => {
         console.table(listAllRoutes());
         // app.listen(3005,'0.0.0.0', () => console.log('Server running on port 3005'));
         const io = new Server(server, {
+          path: '/socket.io',
+          // Socket.io EIO=4 clients (v4.x) negotiate long-poll first, then upgrade
+          // to WebSockets. allowEIO3 keeps compatibility if any v3 clients are used.
+          allowEIO3: true,
           cors: {
-            origin:function (origin, callback) {
-            console.log(origin)
-            // allow requests with no origin (like mobile apps or curl requests)
-            if (!origin) return callback(null, true);
-            if (allowedOrigins.includes(origin)) {
-              return callback(null, true);
-            } else {
-              return callback(new Error('Not allowed by CORS'));
-            }
-          },  
+            origin: function (origin, callback) {
+              console.log('[socket.io] origin =', origin);
+              // IMPORTANT: return callback(null, true/false). NEVER throw here —
+              // throwing in the socket.io cors origin callback returns a 500 on
+              // the handshake instead of a clean CORS deny, and then the browser
+              // reports "CORS: No Access-Control-Allow-Origin header" even when
+              // the real issue is the callback.
+              if (originIsAllowed(origin)) return callback(null, true);
+              return callback(null, false);
+            },
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             credentials: true,
+            // Expose these two headers explicitly so the admin's auth on the
+            // handshake can pass, and the polling EIO transport can reliably
+            // count the sid.
+            allowedHeaders: ['Authorization', 'Content-Type', 'X-Requested-With'],
+            exposedHeaders: ['Set-Cookie'],
           },
+          // Transports: allow long polling first (negotiation) + WebSocket.
+          // MUST match what the AdminHeader client sends: ['polling', 'websocket'].
+          transports: ['polling', 'websocket'],
+          // Guard against broken proxies (Plesk/IIS) that strip the Upgrade
+          // header. With pingInterval 20s + pingTimeout 25s, dead connections
+          // are cleaned up quickly without spamming reconnects.
+          pingInterval: 20000,
+          pingTimeout: 25000,
+          connectTimeout: 20000,
+          // No automatic per-server-room broadcast buffering. Cuts down on
+          // memory use when the socket can't actually reach clients via the
+          // proxy (since the Plesk 404-default-page case is very common here).
+          serveClient: false,
         });
         registerNotificationSocket(io);
         notificationService.init(io);

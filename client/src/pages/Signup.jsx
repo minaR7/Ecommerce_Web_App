@@ -56,6 +56,8 @@ const Signup = () => {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_SERVER_URL}/api/users/register`,
         {
+          first_name: values.first_name,
+          last_name: values.last_name,
           username: values.username,
           email: values.email,
           password: values.password,
@@ -84,6 +86,14 @@ const Signup = () => {
         <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
 
         <Form name="signup" onFinish={onFinish} layout="vertical">
+          <Form.Item name="first_name" rules={[{ required: true, message: 'Please input your first name!' }]}>
+            <Input placeholder="First name" />
+          </Form.Item>
+
+          <Form.Item name="last_name" rules={[{ required: true, message: 'Please input your last name!' }]}>
+            <Input placeholder="Last name" />
+          </Form.Item>
+
           <Form.Item
             name="username"
             rules={[{ required: true, message: 'Please input your username!' }]}
@@ -108,11 +118,38 @@ const Signup = () => {
             <Input type="email" placeholder="Email" onBlur={handleEmailBlur} />
           </Form.Item>
 
-          <Form.Item
+          {/* <Form.Item
             name="password"
             rules={[{ required: true, message: 'Please input your password!' }]}
           >
             <Input.Password placeholder="Password" />
+          </Form.Item> */}
+                    <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: 'Please input your password!' },
+              { min: 6, message: 'Password must be at least 6 characters.' },
+            ]}
+            hasFeedback
+          >
+            <Input.Password placeholder="Password" />
+          </Form.Item>
+
+          <Form.Item
+            name="confirm"
+            dependencies={['password']}
+            hasFeedback
+            rules={[
+              { required: true, message: 'Please confirm your password!' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) return Promise.resolve();
+                  return Promise.reject(new Error('The two passwords do not match.'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password placeholder="Confirm password" />
           </Form.Item>
 
           <Form.Item>

@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { updateCartItem, fetchCart, removeFromCart } from '../redux/slices/cartSlice';
 import { DeleteOutlined, PlusOutlined, MinusOutlined } from '@ant-design/icons';
+import { useSiteSettings } from '../hooks/useSiteSettings';
+import { getLoggedInUser } from '../utils/getLoggedInUser';
 
 const Checkout = () => {
 
@@ -14,34 +16,27 @@ const Checkout = () => {
   const [user, setUser] = useState(null);
   const [guestCart, setGuestCart] = useState([]);
   const [quantities, setQuantities] = useState({});
-  const [shippingFee, setShippingFee] = useState(35);
   const reduxCart = useSelector(state => state.cart?.items || []);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadShippingFee = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/shipping`, { credentials: 'include' });
-        if (!res.ok) return;
-        const rates = await res.json();
-        const activeFees = rates
-          .filter(rate => rate.status === 'active')
-          .map(rate => Number(rate.fee))
-          .filter(fee => !isNaN(fee));
-        if (activeFees.length > 0) {
-          setShippingFee(Math.min(...activeFees));
-        }
-      } catch (err) {
-        console.error('Failed to load shipping fee', err);
-      }
-    };
-    loadShippingFee();
-  }, []);
+  // No country is known yet on the cart page, so show the admin-configured
+  // default rate (Admin → Shipping → Default International Rate) — the same
+  // fallback Checkout and the server use until a country is chosen.
+  const { settings } = useSiteSettings();
+  const configuredFee = Number(settings.default_intl_shipping_fee);
+  const shippingFee = Number.isFinite(configuredFee) ? configuredFee : 35;
 
   useEffect(() => {
     const loadCart = () => {
+      // A logged-in user's cart lives on the server (redux). Never fall back to
+      // a leftover sessionStorage guest cart for them: those items have no
+      // cart_item_id, so update/delete would hit /api/cart/undefined.
+      if (getLoggedInUser()) {
+        setCartItems(reduxCart);
+        return;
+      }
       const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
-      setCartItems(reduxCart.length ? reduxCart : guestCart);
+      setCartItems(guestCart);
     };
   
     loadCart(); // Initial load
@@ -129,11 +124,12 @@ const Checkout = () => {
     
 
     const handleDelete = (itemToDelete) => {
-        const wasLastItem = cartItems.length === 1;
+        //const wasLastItem = cartItems.length === 1;
         if (user) {
             // dispatch(removeFromCart(itemToDelete.productId, itemToDelete.size, itemToDelete.color));
+            // The thunk fires 'cartUpdated' itself once the DELETE has finished;
+            // firing it here too would refetch before the row is gone.
             dispatch(removeFromCart(itemToDelete.cart_item_id));
-            window.dispatchEvent(new Event('cartUpdated'));
         } else {
             // const updatedCart = guestCart.filter(item => item.productId !== productId);
             const updatedCart = guestCart.filter(item =>
@@ -150,10 +146,36 @@ const Checkout = () => {
             });
             window.dispatchEvent(new Event('guestCartUpdated'));
         }
-        if (wasLastItem) {
-            navigate('/');
-        }
     };
+
+  if (isCartEmpty) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6 py-16">
+        <div className="text-8xl mb-6 opacity-50">🛒</div>
+        <h2 className="text-3xl font-bold text-gray-800 mb-3">Your Cart is Empty</h2>
+        <p className="text-gray-500 mb-10 max-w-md">
+          Looks like you haven't added any items to your cart yet.
+          Browse our collection and find something you love!
+        </p>
+        <Button
+          type="primary"
+          onClick={() => navigate('/')}
+          style={{
+            backgroundColor: 'black',
+            borderColor: 'black',
+            color: 'white',
+            fontWeight: '700',
+            padding: '0.85rem 2.5rem',
+            height: 'auto',
+            fontSize: '1rem',
+          }}
+          className="hover:bg-gray-800 transition-all"
+        >
+          Start Shopping
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Col className="flex flex-col lg:flex-row gap-6 px-8 pt-10">

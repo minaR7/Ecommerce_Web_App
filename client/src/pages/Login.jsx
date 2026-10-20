@@ -15,15 +15,18 @@ const MyAccount = () => {
   const onFinish = async (values) => {
     try {
       console.log('Received values:', values);
+      // Trim: phone keyboards often add a trailing/leading space to the email.
       const loginRes = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/users/login`, {
-        identifier: values.username,
+        identifier: String(values.username || '').trim(),
         password: values.password,
       });
 
       const user = loginRes.data.data
+      const token = loginRes.data.token;
       localStorage.setItem('user', JSON.stringify(user));
       console.log(loginRes)
-
+      if (token) localStorage.setItem('token', token);
+      
       if (user?.is_admin) {
         const adminBase = import.meta.env.VITE_ADMIN_BASE_URL || 'http://admin.elmaghrib.com';
         window.location.href = adminBase;
@@ -33,16 +36,21 @@ const MyAccount = () => {
       // Notify other componentsthat user logged in
       window.dispatchEvent(new Event('user-login'));
       
-       const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
+      // Merging the guest cart is best-effort: the user IS logged in at this
+      // point, so a failure here must not surface as "Login failed".
+      const guestCart = JSON.parse(sessionStorage.getItem('guestCart')) || [];
       if (guestCart.length > 0) {
-        await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/add/bulk`, {
-          userId: user.user_id,
-          cartItems: guestCart
-        });
-        sessionStorage.removeItem('guestCart');
+        try {
+          await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/add/bulk`, {
+            userId: user.user_id,
+            cartItems: guestCart
+          });
+          sessionStorage.removeItem('guestCart');
+        } catch (cartErr) {
+          console.error('Guest cart merge failed:', cartErr);
+          toast.warning('Logged in, but some items from your guest cart could not be moved to your account.');
+        }
       }
-      // const newCart = dispatch(fetchCart(user.user_id));
-      // console.log(newCart)
 
       await dispatch(fetchCart(user.user_id));
 
@@ -74,7 +82,13 @@ const MyAccount = () => {
         'Email is not deliverable': 'That email address is not deliverable.',
       };
 
-      toast.error(friendly[serverMsg] || serverMsg || 'Login failed. Please try again.');
+      // The live IIS host swaps JSON error bodies for HTML error pages, so the
+      // server message can be missing — fall back to the status code.
+      const byStatus = {
+        401: 'Wrong credentials — check your username/email and password.',
+        403: 'This account is not registered.',
+      };
+      toast.error(friendly[serverMsg] || serverMsg || byStatus[status] || 'Login failed. Please try again.');
     }
   };
 

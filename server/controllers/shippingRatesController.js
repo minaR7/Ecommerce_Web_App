@@ -54,6 +54,10 @@ exports.create = async (req, res) => {
     if (!country || !countryCode || fee == null) {
       return res.status(400).json({ message: 'country, countryCode and fee are required' });
     }
+    // shipping_rates.estimated_days is nvarchar(32); longer text failed the INSERT.
+    if (estimatedDays && String(estimatedDays).length > 32) {
+      return res.status(400).json({ message: 'Delivery time must be 32 characters or fewer' });
+    }
     const exists = await sql.query`SELECT id FROM shipping_rates WHERE LOWER(country) = LOWER(${country})`;
     if (exists.recordset.length > 0) {
       return res.status(409).json({ message: 'Rate for this country already exists' });

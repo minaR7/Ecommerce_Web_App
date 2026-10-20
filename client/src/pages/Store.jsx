@@ -15,7 +15,9 @@ const Store = () => {
     const fetchSubcategories = async () => {
       try {
         const res = await axios.get(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/categories`);
-        setCategories(res.data);
+        // Guard against non-array bodies (e.g. an HTML error page) — calling
+        // .map on them would crash the whole route to a blank screen.
+        setCategories(Array.isArray(res.data) ? res.data : []);
       } catch (error) {
         console.error('Error fetching categories:', error);
       } finally {
@@ -30,13 +32,13 @@ const Store = () => {
 
   return (
     <div style={{ backgroundColor: 'white', }}>
-        <div style={{ width: '100%', padding: '2rem 6rem 1rem',  backgroundColor: 'rgba(132, 152, 176, 0.5)', margin: '16px 0px'}}> 
+        <div style={{ width: '100%', padding: '2rem clamp(1rem, 5vw, 6rem) 1rem',  backgroundColor: 'rgba(132, 152, 176, 0.5)', margin: '16px 0px'}}> 
             <Breadcrumb style={{ marginBottom: '16px', font: '32px', color: 'black', }}>
                 <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
             </Breadcrumb>
             <h1 className="text-xxl font-semibold" style={{ margin: '16px 0', color: "rgb(71, 89, 122)" }}>Store</h1>
         </div>
-        <div style={{ width: '100%', padding: '2rem 6rem 1em', margin: '16px 0px'}}>
+        <div style={{ width: '100%', padding: '2rem clamp(1rem, 5vw, 6rem) 1em', margin: '16px 0px'}}>
             <Row gutter={[16,16]}>
                 {categories?.length === 0 ? (
                     <p>No categories found in store.</p>) 

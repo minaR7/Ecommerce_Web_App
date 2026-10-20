@@ -25,24 +25,54 @@ const hasMxRecords = async (email) => {
 
 const makeTransporter = () =>
 {
-  console.log({
-  SMTP_HOST: process.env.SMTP_HOST,
-  SMTP_PORT: process.env.SMTP_PORT,
-  SMTP_USER: process.env.SMTP_USER,
-  hasPassword: !!process.env.SMTP_PASS,
-});
+  // ⚠️ Default is SMTP_TLS_STRICT = FALSE as a TEMPORARY workaround because
+  // the TLS certificate on mail.Elmaghrib.com:465 is expired.  This means mail
+  // delivery works RIGHT NOW without any Plesk env var, but the connection does
+  // NOT validate the mail server's TLS certificate chain.
+  //
+  // HOW TO RE-ENABLE SECURITY after the mail cert is renewed:
+  //   (a) set env SMTP_TLS_STRICT=true in Plesk Node.js env vars, OR
+  //   (b) flip the default line below from `false` back to `true`.
+  const strictTls =
+    process.env.SMTP_TLS_STRICT === undefined
+      ? false
+      : String(process.env.SMTP_TLS_STRICT).toLowerCase() !== 'false';
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log({
+      SMTP_HOST: process.env.SMTP_HOST,
+      SMTP_PORT: process.env.SMTP_PORT,
+      SMTP_USER: process.env.SMTP_USER,
+      hasPassword: !!process.env.SMTP_PASS,
+      SMTP_TLS_STRICT: strictTls,
+    });
+  }
+
+  // When not strict: fully neutralise TLS cert validation (both Node flags AND
+  // the explicit checkServerIdentity hook).  Node/tls on newer versions calls
+  // checkServerIdentity and throws "certificate has expired" for expired certs
+  // EVEN WHEN rejectUnauthorized:false — overriding the hook is the nuclear
+  // "allow any cert including expired / self-signed / wrong-hostname" switch.
+  const tlsOptions = strictTls
+    ? { rejectUnauthorized: true }
+    : {
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1',
+        checkServerIdentity: () => undefined,
+      };
+
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: true,
+    port: Number(process.env.SMTP_PORT) || 465,
+    // Port 465 = implicit TLS (secure:true). Port 587 = STARTTLS (secure:false).
+    secure: Number(process.env.SMTP_PORT) === 465,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     connectionTimeout: 15000,
     greetingTimeout: 15000,
     socketTimeout: 15000,
-
-    logger: true,
-    debug: true,
-    tls: { rejectUnauthorized: true },
+    logger: process.env.NODE_ENV !== 'production',
+    debug: process.env.NODE_ENV !== 'production',
+    tls: tlsOptions,
   });
 }
 
@@ -76,65 +106,49 @@ const sendSignupEmail = async ({ email, first_name }) => {
   });
 };
 
-// const sendPasswordResetEmail = async ({ email, resetUrl }) => {
-//   const transporter = makeTransporter();
-//   await transporter.sendMail({
-//     from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
-//     to: email,
-//     subject: 'Reset your Elmaghrib password',
-//     text: `We received a request to reset your password.\n\nReset it here (link valid for 30 minutes):\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.\n\n- The Elmaghrib Team`,
-//     html: `<p>We received a request to reset your password.</p>
-//            <p><a href="${resetUrl}">Click here to reset your password</a> (link valid for 30 minutes).</p>
-//            <p>If you didn't request this, you can safely ignore this email.</p>
-//            <p>- The Elmaghrib Team</p>`,
-//   });
-// };
-
 const sendPasswordResetEmail = async ({ email, resetUrl }) => {
   const transporter = makeTransporter();
+  // await transporter.verify();
 
-  await transporter.verify();
-
-  console.log('SMTP connection successful');
-
+  // NOTE: we intentionally do NOT call transporter.verify() here.
+  // opens a separate test connection and throws eagerly when the SMTP server's
+  // TLS certificate has expired  .sendMail() will use
+  // the same connection pool internally but lets us handle the error on the
+  // *actual* send, and more importantly lets sendPasswordResetEmail succeed
+  // when the caller has opted into SMTP_TLS_STRICT=false.
   const info = await transporter.sendMail({
     from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
     to: email,
     subject: 'Reset your Elmaghrib password',
-
-    text: `We received a request to reset your password.
-
-Reset it here (link valid for 30 minutes):
-${resetUrl}
-
-If you didn't request this, you can ignore this email.
-
-- The Elmaghrib Team`,
-
+    text: `We received a request to reset your password.\n\nReset it here (link valid for 30 minutes):\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.\n\n- The Elmaghrib Team`,
     html: `
       <p>We received a request to reset your password.</p>
-
       <p>
         <a href="${resetUrl}">
           Click here to reset your password
         </a>
         (link valid for 30 minutes).
       </p>
-
       <p>
         If you didn't request this, you can safely ignore this email.
       </p>
-
       <p>- The Elmaghrib Team</p>
     `,
   });
-
-  console.log('Email sent:', {
-    messageId: info.messageId,
-    response: info.response,
-    accepted: info.accepted,
-    rejected: info.rejected,
-  });
+ console.log('[sendPasswordResetEmail] sent:', {
+      messageId: info.messageId,
+      response: info.response,
+      accepted: info.accepted,
+      rejected: info.rejected,
+    });
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[sendPasswordResetEmail] sent:', {
+      messageId: info.messageId,
+      response: info.response,
+      accepted: info.accepted,
+      rejected: info.rejected,
+    });
+  }
 };
 
 exports.saveUser = async (userData, calledFromCheckout = false) => {
@@ -232,7 +246,14 @@ exports.checkEmail = async (req, res) => {
 };
 
 exports.registerUser = async (req, res) => {
-  const { first_name, last_name, email, address, password, username, is_admin } = req.body;
+  const { first_name, last_name, email, address, password, username } = req.body;
+
+  if (!email || !username || !password) {
+    return res.status(400).json({ error: 'Username, email and password are required' });
+  }
+  if (String(password).length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
 
   const request = new sql.Request();
   request.input('email', sql.VarChar, email);
@@ -376,7 +397,9 @@ exports.registerUser = async (req, res) => {
     request.input('user_id', sql.Int, user_id)
     request.input('hashedPassword', sql.VarChar, hashedPassword)
     request.input('username', sql.VarChar, username)
-    request.input('is_admin', sql.Bit, is_admin)
+    // request.input('is_admin', sql.Bit, is_admin)
+    credentialRequest.input('is_admin', sql.Bit, false);
+
     // Insert into credentials table
     await request.query(
       `INSERT INTO credentials (user_id, email, username, password, is_admin)
@@ -518,7 +541,12 @@ exports.getCustomers = async (req, res) => {
 };
 
 exports.loginUser = async (req, res) => {
-  const { identifier, password } = req.body;
+  const { password } = req.body;
+  // Mobile keyboards often add stray spaces around the email/username.
+  const identifier = String(req.body.identifier || '').trim();
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Username/email and password are required' });
+  }
 
   const request = new sql.Request();
   request.input('identifier', sql.VarChar, identifier);
@@ -576,19 +604,18 @@ exports.loginUser = async (req, res) => {
 };
 
 // POST /api/users/forgot-password  { email }
-// Emails a time-limited reset link. Always responds 200 so we never reveal whether
-// an email is registered.
+// Emails a time-limited reset link. ALWAYS responds with the same 200 JSON
+// regardless of input / outcome — we must never reveal whether an email is
+// actually registered (account-enumeration attack / timing attack).
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
-  const generic = { message: 'If that email is registered, a reset link has been sent.' };
+  const GENERIC_RESPONSE = { message: 'If that email is registered, a reset link has been sent.' };
   try {
-    
-      console.log("email", email);
-      console.log(isValidEmailSyntax(email));
-    if (isValidEmailSyntax(email) !== true) return res.status(200).json(generic);
+    if (isValidEmailSyntax(email) !== true) {
+      return res.status(200).json(GENERIC_RESPONSE);
+    }
 
     const request = new sql.Request();
-      console.log("looking for user:", email);
     request.input('email', sql.VarChar, email);
     const userRes = await request.query(`
       SELECT TOP 1 u.user_id, u.email
@@ -597,32 +624,46 @@ exports.forgotPassword = async (req, res) => {
       WHERE u.email = @email
     `);
 
-      console.log("User found:", userRes);
     if (userRes.recordset.length > 0) {
-      console.log("User found:", userRes.recordset[0]);
       const user = userRes.recordset[0];
       const token = jwt.sign(
         { id: user.user_id, purpose: 'pwreset' },
         process.env.JWT_SECRET,
         { expiresIn: '30m' }
       );
-      // Point the reset link at the storefront that made the request.
-      const base = req.headers.origin || process.env.CLIENT_URL || 'http://elmaghrib.com';
-      const resetUrl = `${base.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+      // Password reset link always points at the canonical storefront domain
+      // (CLIENT_URL env var, defaulting to elmaghrib.com).  We MUST NOT use
+      // req.headers.origin here — origin reflects whoever CALLED the API
+      // (admin.elmaghrib.com, localhost:5173 dev server, 3rd-party tooling)
+      // and the reset page only exists on the client storefront.  Using
+      // origin was causing deployed users to receive links like
+      // "https://admin.elmaghrib.com/reset-password?token=…" which 404 on the
+      // admin panel and made them think no email arrived.
+      const resetBase =
+        (process.env.CLIENT_URL && String(process.env.CLIENT_URL).trim()) ||
+        'https://elmaghrib.com';
+      const resetUrl = `${resetBase.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
       try {
         await sendPasswordResetEmail({ email: user.email, resetUrl });
       } catch (mailErr) {
-        console.error('Failed to send reset email:', mailErr);
-        return res.status(500).json({ error: 'Could not send reset email. Please try again later.' });
+        // NEVER surface a mailer error to the HTTP client — that would let an
+        // attacker tell apart "email not registered" (200 silent success) vs
+        // "email registered but SMTP cert expired" (500).  Same response 200.
+        const msg = mailErr && mailErr.message ? String(mailErr.message) : String(mailErr);
+        const isCertErr = /certificate/i.test(msg);
+        console.error(`[forgot password] SMTP failure sending to ${user.email}:`,
+          isCertErr
+            ? `TLS certificate issue — "${msg}". Fix: renew TLS cert on ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} OR set env SMTP_TLS_STRICT=false as a temporary workaround.`
+            : msg);
       }
     }
-    else{
-      console.log("User not found:", email);
-    }
-    return res.status(200).json(generic);
+
+    // Same identical response whether: bad email / user missing / mail failed.
+    return res.status(200).json(GENERIC_RESPONSE);
   } catch (error) {
-    console.error('forgotPassword error:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    console.error('[forgot password] unhandled error:', error);
+    // Even on total crashes, don't leak — same 200 response.
+    return res.status(200).json(GENERIC_RESPONSE);
   }
 };
 
@@ -645,16 +686,37 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
     }
 
-    const hash = await bcrypt.hash(String(password), saltRounds);
-    const request = new sql.Request();
-    request.input('id', sql.Int, payload.id);
-    request.input('password', sql.VarChar, hash);
-    const result = await request.query(`
-      UPDATE credentials SET password = @password WHERE user_id = @id
+    const lookupReq = new sql.Request();
+    lookupReq.input('id', sql.Int, payload.id);
+    const accountRes = await lookupReq.query(`
+      SELECT TOP 1 u.user_id, u.is_registered, c.password_changed_at
+      FROM users u
+      JOIN credentials c ON u.user_id = c.user_id
+      WHERE u.user_id = @id
     `);
-    if ((result.rowsAffected[0] || 0) === 0) {
+    if (accountRes.recordset.length === 0) {
       return res.status(400).json({ error: 'Account not found for this reset link.' });
     }
+    const account = accountRes.recordset[0];
+
+    // Single-use: any token issued before the last password change is dead.
+    if (account.password_changed_at && payload.iat * 1000 < new Date(account.password_changed_at).getTime()) {
+      return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
+    }
+
+    const hash = await bcrypt.hash(String(password), saltRounds);
+    const updateReq = new sql.Request();
+    updateReq.input('id', sql.Int, payload.id);
+    updateReq.input('password', sql.VarChar, hash);
+    // If this was a guest user (is_registered = 0 from checkout auto-create) who
+    // now set a real password via reset link → promote them to a fully registered
+    // user so the is_registered filter on other endpoints (customer list, etc.)
+    // includes them going forward.
+    await updateReq.query(`
+      UPDATE credentials SET password = @password, password_changed_at = GETDATE() WHERE user_id = @id;
+      UPDATE users SET is_registered = 1, updated_at = GETDATE() WHERE user_id = @id AND ISNULL(is_registered, 0) = 0
+    `);
+
     return res.status(200).json({ message: 'Password updated successfully. You can now log in.' });
   } catch (error) {
     console.error('resetPassword error:', error);
@@ -662,3 +724,22 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+exports.getMe = async (req, res) => {
+  try {
+    const request = new sql.Request();
+    request.input('id', sql.Int, req.user.id);
+    const result = await request.query(`
+      SELECT TOP 1 u.user_id, u.email, c.username, c.is_admin
+      FROM users u
+      JOIN credentials c ON u.user_id = c.user_id
+      WHERE u.user_id = @id
+    `);
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    return res.status(200).json(result.recordset[0]);
+  } catch (error) {
+    console.error('getMe error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};

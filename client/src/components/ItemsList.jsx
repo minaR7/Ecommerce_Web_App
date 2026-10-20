@@ -89,8 +89,9 @@ const Items = ({ noDrawerBtn, cartOpen, setCartOpen }) => {
     const handleDelete = (itemToDelete) => {
         if (user) {
             // dispatch(removeFromCart(itemToDelete.productId, itemToDelete.size, itemToDelete.color));
+            // The thunk fires 'cartUpdated' itself once the DELETE has finished;
+            // firing it here too would refetch before the row is gone.
             dispatch(removeFromCart(itemToDelete.cart_item_id));
-            window.dispatchEvent(new Event('cartUpdated'));
         } else {
             // const updatedCart = guestCart.filter(item => item.productId !== productId);
             const updatedCart = guestCart.filter(item =>

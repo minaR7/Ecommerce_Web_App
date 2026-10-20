@@ -2,10 +2,12 @@ const sql = require('mssql');
 
 exports.addToCart = async (req, res) => {
     try {
-      const { userId, productId, quantity, variantId, cartItems } = req.body;
+      const { userId, productId, quantity, variantId, variant_id } = req.body;
       console.log(userId)
       
-      if (!userId || !productId || !quantity ||  !variantId) {
+      const finalVariantId = variantId || variant_id;
+      
+      if (!userId || !productId || !quantity || !finalVariantId) {
         return res.status(400).json({ message: 'Missing required fields' });
       }
   
@@ -14,7 +16,7 @@ exports.addToCart = async (req, res) => {
       request.input('userId', sql.Int, userId);
       request.input('productId', sql.Int, productId);
       request.input('quantity', sql.Int, quantity);
-      request.input('variantId', sql.Int, variantId);
+      request.input('variantId', sql.Int, finalVariantId);
       request.input('processed', sql.Bit, 0);
 
       await request.query(`
@@ -39,7 +41,8 @@ exports.addBulkToCart = async (req, res) => {
       }
   
       for (const item of cartItems) {
-      const { productId, quantity, variantId } = item;
+      const { productId, quantity, variantId, variant_id } = item;
+      const finalVariantId = variantId || variant_id;
       if (!productId || !quantity) continue;
 
       const checkQuery = `
@@ -50,7 +53,7 @@ exports.addBulkToCart = async (req, res) => {
       const requestCheck = new sql.Request();
       requestCheck.input('userId', sql.Int, userId);
       requestCheck.input('productId', sql.Int, productId);
-      requestCheck.input('variantId', sql.Int, variantId || null);
+      requestCheck.input('variantId', sql.Int, finalVariantId || null);
 
       const existingItem = await requestCheck.query(checkQuery);
 
@@ -72,7 +75,7 @@ exports.addBulkToCart = async (req, res) => {
         insertRequest.input('userId', sql.Int, userId);
         insertRequest.input('productId', sql.Int, productId);
         insertRequest.input('quantity', sql.Int, quantity);
-        insertRequest.input('variantId', sql.Int, variantId || null);
+        insertRequest.input('variantId', sql.Int, finalVariantId || null);
         insertRequest.input('processed', sql.Bit, 0);
 
         await insertRequest.query(`
@@ -95,7 +98,9 @@ exports.getCart = async (req, res) => {
     const { userId } = req.params;
     console.log(userId)
     try {
-        const result = await sql.query(`
+        const request = new sql.Request();
+        request.input('userId', sql.Int, Number(userId));
+        const result = await request.query(`
             SELECT 
               ci.cart_item_id,
               ci.quantity,
@@ -114,15 +119,12 @@ exports.getCart = async (req, res) => {
             JOIN product_variants v ON ci.variant_id = v.variant_id
             LEFT JOIN product_colors c ON v.color_id = c.color_id
             LEFT JOIN product_sizes s ON v.size_id = s.size_id
-            WHERE ci.user_id = ${userId} AND ci.processed = 0
+            WHERE ci.user_id = @userId AND ci.processed = 0
+            ORDER BY ci.cart_item_id DESC
         `)
         
-        if (!result.recordset.length) {
-            return res.status(404).json({ message: 'Cart is empty' });
-          }
-        else{
-          const baseUrl = `${req.protocol}://${req.get('host')}`;
-          const modifiedResponse = result.recordset.map((item) => ({
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const modifiedResponse = result.recordset.map((item) => ({
             name: item.name,
             size: item.size,
             color: item.color,
@@ -131,10 +133,9 @@ exports.getCart = async (req, res) => {
             basePrice: item.base_price,
             productId: item.product_id,
             quantity: item.quantity,
-            coverImg: `${baseUrl}/${item.cover_img}`
-          }));
-          res.status(200).json(modifiedResponse);
-        }
+            coverImg: item.cover_img ? `${baseUrl}/${item.cover_img}` : '/fallback.jpg'
+        }));
+        res.status(200).json(modifiedResponse);
           
     } catch (error) {
         console.log(error)
@@ -145,23 +146,28 @@ exports.getCart = async (req, res) => {
 //Update cart
 exports.updateCartItem = async (req, res) => {
   const { cartItemId } = req.params;
-  const { productId, quantity, size, color } = req.body;
+  const { quantity } = req.body;
+  const MAX_PER_VARIANT = 10;
 
-  if (!productId && !quantity || !size || !color) {
-    return res.status(400).json({ message: 'No fields to update' });
+  // Values are validated and bound as parameters — never interpolated into SQL.
+  const id = Number(cartItemId);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: 'Invalid cart item.' });
+  }
+  const qty = Number(quantity);
+  if (!Number.isInteger(qty) || qty < 1 || qty > MAX_PER_VARIANT) {
+    return res.status(400).json({ message: `Quantity must be between 1 and ${MAX_PER_VARIANT}.` });
   }
 
-  let updates = [];
-  if (quantity !== undefined) updates.push(`quantity = ${quantity}`);
-  // if (size !== undefined) updates.push(`size = '${size}'`);
-  // if (color !== undefined) updates.push(`color = '${color}'`);
-
-  // const updateQuery = updates.join(', ');
-  const updateQuery = updates;
-
   try {
-    const result = await sql.query(`UPDATE cart_items SET ${updateQuery} WHERE cart_item_id = ${cartItemId}`);
-    res.status(200).json({ message: 'Cart item updated successfully', result: result });
+    const request = new sql.Request();
+    request.input('cartItemId', sql.Int, id);
+    request.input('quantity', sql.Int, qty);
+    const result = await request.query(`UPDATE cart_items SET quantity = @quantity WHERE cart_item_id = @cartItemId`);
+    if ((result.rowsAffected[0] || 0) === 0) {
+      return res.status(404).json({ message: 'Cart item not found' });
+    }
+    res.status(200).json({ message: 'Cart item updated successfully', cart_item_id: id, quantity: qty });
   } catch (error) {
     console.error('Error updating cart item:', error);
     res.status(500).json({ message: 'Server error updating cart item' });
@@ -172,10 +178,16 @@ exports.updateCartItem = async (req, res) => {
 exports.removeFromCart = async (req, res) => {
     const { cartItemId } = req.params;
     try {
-        const pool = await sql.query(`DELETE FROM cart_items WHERE cart_item_id = ${cartItemId}`);
-        res.status(200).json({ message: 'Item removed from cart' });
+        const request = new sql.Request();
+        request.input('cartItemId', sql.Int, Number(cartItemId));
+        const result = await request.query(`DELETE FROM cart_items WHERE cart_item_id = @cartItemId`);
+        if ((result.rowsAffected[0] || 0) === 0) {
+            return res.status(404).json({ message: 'Cart item not found' });
+        }
+        res.status(200).json({ message: 'Item removed from cart', cart_item_id: Number(cartItemId) });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error(error);
+        res.status(500).json({ message: error.message || 'Failed to remove item from cart' });
     }
 };
 

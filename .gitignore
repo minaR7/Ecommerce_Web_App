@@ -24,6 +24,11 @@ jspm_packages/
 /test-screenshots
 *.mjs
 
+server/scripts/
+server/invoices/
+server/assets/*
+server/data/
+
 # Playwright browser binaries (large, machine-specific) and test output
 .playwright-browsers/
 test-results.txt

@@ -32,7 +32,9 @@ const Checkout = () => {
 
   // Default international shipping fee comes from admin Site Settings (falls back to 35).
   const { settings } = useSiteSettings();
-  const defaultShippingFee = Number(settings.default_intl_shipping_fee) || 35;
+  // Number.isFinite (not `|| 35`) so an admin-configured free rate of 0 is honoured.
+  const configuredFee = Number(settings.default_intl_shipping_fee);
+  const defaultShippingFee = Number.isFinite(configuredFee) ? configuredFee : 35;
   const [shippingFee, setShippingFee] = useState(defaultShippingFee);
   const [countryChosen, setCountryChosen] = useState(false);
 

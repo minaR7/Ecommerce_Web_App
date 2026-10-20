@@ -8,10 +8,22 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
+const clearAdminSession = () => {
+  try {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  } catch {}
+};
+
+// Prevent a burst of parallel failing requests from firing 401 on top of each
+// other and spamming `window.location = '/login'` hundreds of times — that's
+// exactly what triggers Chrome's "Throttling navigation" crash protection.
+let axiosRedirectingToLogin = false;
+
 // Request Interceptor: Attach token
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token'); // or use Redux selector if preferred
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -38,16 +50,21 @@ axiosInstance.interceptors.response.use(
       {
         return;
       }
-      message.error(`${status}: ${errorMsg}`);
-      
       if(error.response.status === 401)
       {
-        // Token expired or unauthorized
-        console.warn('Unauthorized, redirecting to login...');
-        // Optional: remove token and redirect
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+        clearAdminSession();
+        if (!axiosRedirectingToLogin) {
+          axiosRedirectingToLogin = true;
+          setTimeout(() => { axiosRedirectingToLogin = false; }, 2000);
+          const onLoginPage = window.location.pathname === '/login';
+          if (!onLoginPage) {
+            console.warn('Unauthorized, redirecting to login...');
+            window.location.replace('/login');
+          }
+        }
+        return Promise.reject(error);
       }
+      message.error(`${status}: ${errorMsg}`);
     }  
     else if (error && error.code === "ERR_NETWORK") {
       // Token expired or unauthorized
@@ -55,8 +72,7 @@ axiosInstance.interceptors.response.use(
       message.error("Network error. Please check your connection or try again later.");
     }    
     if (error.response && error.response.status === 405) {
-      // Token expired or unauthorized
-      console.warn('Unauthorized, redirecting to login...');
+      console.warn('Method not allowed');
     }
 
 
