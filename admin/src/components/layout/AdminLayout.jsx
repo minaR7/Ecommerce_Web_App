@@ -14,7 +14,7 @@ export const AdminLayout = ({ children, title }) => {
         <Content
           className="p-6 overflow-auto"
           style={{
-            background: 'linear-gradient(135deg, #0a0a0a 0%, #050505 100%)',
+            background: 'hsl(var(--background))',
             minHeight: 'calc(100vh - 64px)',
           }}
         >

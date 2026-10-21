@@ -11,9 +11,11 @@ import {
   GiftOutlined,
   GlobalOutlined,
   LayoutOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { Sider } = Layout;
 
@@ -94,12 +96,22 @@ const menuItems = [
     label: withTip('Site Content', 'Homepage, footer & pages'),
     title: 'Site Content',
   },
+  {
+    key: '/notifications',
+    icon: <BellOutlined />,
+    label: withTip('Notifications'),
+    title: 'Notifications',
+  },
 ];
 
 export const AdminSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const logoSrc = theme === 'dark'
+    ? '/assets/logo/El-Maghrib-logos-White.png'
+    : '/assets/logo/El-Maghrib-logos-black.png';
 
   return (
     <Sider
@@ -111,15 +123,16 @@ export const AdminSidebar = () => {
       collapsedWidth={80}
       className="min-h-screen border-r border-border"
       style={{
-        background: 'linear-gradient(180deg, #0d0d0d 0%, #080808 100%)',
+        background: 'var(--gradient-sidebar)',
       }}
     >
       
       <div className="flex items-center justify-evenly pt-5 pb-2 px-2 border-b border-border">
       {!collapsed && (
         <div className="flex flex-col items-center gap-3">
-          <div className="w-30 h-4 rounded-lg bg-foreground flex items-center justify-center">
-            <span className="text-background font-bold text-lg"><img src='/assets/logo/El-Maghrib-logos-White.png' width={300} height={150}></img></span>
+          {/* White logo on the dark sidebar, black logo on the light one. */}
+          <div className="w-30 h-4 rounded-lg flex items-center justify-center">
+            <span className="font-bold text-lg"><img src={logoSrc} alt="El-Maghrib" width={300} height={150} /></span>
           </div>
             <div className="animate-fade-in">
               {/* <h1 className="text-foreground font-semibold text-lg">Elmaghrib</h1> */}
@@ -136,7 +149,7 @@ export const AdminSidebar = () => {
       </div>
 
       <Menu
-        theme="dark"
+        theme={theme}
         mode="inline"
         selectedKeys={[location.pathname]}
         items={menuItems}
