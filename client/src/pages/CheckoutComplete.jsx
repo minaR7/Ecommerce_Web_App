@@ -65,13 +65,13 @@ const CheckoutComplete = () => {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             to="/store"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#15203a] text-white! font-semibold hover:bg-[#1f2b47] transition-colors"
+            className="order-btn order-btn--primary"
           >
             <ShoppingOutlined /> Continue Shopping
           </Link>
           <Link
             to="/"
-            className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-[#15203a] text-[#15203a]! font-semibold hover:bg-[#15203a] hover:text-white! transition-colors"
+            className="order-btn order-btn--outline"
           >
             Back to Home
           </Link>
