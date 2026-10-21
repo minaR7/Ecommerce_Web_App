@@ -71,6 +71,8 @@ export const addToCart = createAsyncThunk(
       try {
         const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER_URL}/api/cart/add`, { ...finalPayload, quantity: firstQty });
         window.dispatchEvent(new Event('cartUpdated'));
+        // Merges get this toast from updateCartItem; new items need their own.
+        toast.success('Cart updated successfully!');
         return res.data;
       } catch (err) {
         notification.error({ message: 'Failed to add to cart.' });
@@ -115,7 +117,7 @@ export const addToCart = createAsyncThunk(
         }
 
         sessionStorage.setItem('guestCart', JSON.stringify(cart));
-        // notification.success({ message: 'Added to cart' });
+        toast.success('Cart updated successfully!');
         // Dispatch custom event
         window.dispatchEvent(new Event('guestCartUpdated'));
         window.dispatchEvent(new Event('cartUpdated'));
