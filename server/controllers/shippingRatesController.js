@@ -81,15 +81,41 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { country, countryCode, fee, currency, estimatedDays, status } = req.body;
+    // The admin edit form only sends the fields it shows (no currency), so any
+    // field left out keeps its stored value instead of being overwritten with NULL.
+    const val = (v) => (v === undefined || v === '' ? null : v);
+    const country = val(req.body.country);
+    const countryCode = val(req.body.countryCode);
+    const fee = val(req.body.fee);
+    const currency = val(req.body.currency);
+    const estimatedDays = val(req.body.estimatedDays);
+    const status = val(req.body.status);
+
+    // shipping_rates.estimated_days is nvarchar(32); longer text fails the UPDATE.
+    if (estimatedDays && String(estimatedDays).length > 32) {
+      return res.status(400).json({ message: 'Delivery time must be 32 characters or fewer' });
+    }
     const exists = await sql.query`SELECT id FROM shipping_rates WHERE id = ${id}`;
     if (exists.recordset.length === 0) {
       return res.status(404).json({ message: 'Not found' });
     }
+    if (country) {
+      const dup = await sql.query`
+        SELECT id FROM shipping_rates WHERE LOWER(country) = LOWER(${country}) AND id <> ${id}
+      `;
+      if (dup.recordset.length > 0) {
+        return res.status(409).json({ message: 'Rate for this country already exists' });
+      }
+    }
     await sql.query`
       UPDATE shipping_rates
-      SET country = ${country}, country_code = ${countryCode}, fee = ${fee}, currency = ${currency},
-          estimated_days = ${estimatedDays}, status = ${status}, updated_at = GETDATE()
+      SET country = COALESCE(${country}, country),
+          country_code = COALESCE(${countryCode}, country_code),
+          fee = COALESCE(${fee}, fee),
+          currency = COALESCE(${currency}, currency),
+          estimated_days = COALESCE(${estimatedDays}, estimated_days),
+          status = COALESCE(${status}, status),
+          updated_at = GETDATE()
       WHERE id = ${id}
     `;
     const result = await sql.query`SELECT id, country, country_code AS countryCode, fee, currency, estimated_days AS estimatedDays, status FROM shipping_rates WHERE id = ${id}`;
