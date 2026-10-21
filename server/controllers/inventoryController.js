@@ -30,20 +30,26 @@ exports.updateProductStock = async (cartItems) => {
 
       console.log(updateQuantityQuery, "Stock updated");
       const remainRes = await request.query(`
-        SELECT pv.stock_quantity, pv.product_id, pv.variant_id, p.name
+        SELECT pv.stock_quantity, pv.product_id, pv.variant_id, p.name,
+               pc.name AS color, ps.name AS size
         FROM product_variants pv
         JOIN products p ON p.product_id = pv.product_id
+        LEFT JOIN product_colors pc ON pc.color_id = pv.color_id
+        LEFT JOIN product_sizes ps ON ps.size_id = pv.size_id
         WHERE pv.variant_id = @variantId
       `);
       if (remainRes.recordset.length > 0) {
         const r = remainRes.recordset[0];
         if (Number(r.stock_quantity) <= 5) {
           try {
+            // Shop-staff wording: name the colour/size, not the internal variant id.
+            const option = [r.color, r.size ? `size ${r.size}` : null].filter(Boolean).join(', ');
+            const left = Math.max(0, Number(r.stock_quantity) || 0);
             await notifyAdmins({
               type: 'stock_low',
-              title: 'Product stock low',
-              message: `${r.name} variant #${r.variant_id} low stock (${r.stock_quantity})`,
-              meta: { productId: r.product_id, variantId: r.variant_id, stock: Number(r.stock_quantity) }
+              title: left === 0 ? 'Sold out' : 'Stock running low',
+              message: `${r.name}${option ? ` (${option})` : ''}: ${left === 0 ? 'sold out' : `only ${left} left`}.`,
+              meta: { productId: r.product_id, variantId: r.variant_id, color: r.color, size: r.size, stock: left }
             });
           } catch {}
         }

@@ -186,12 +186,18 @@ exports.doCheckout = async (req, res) => {
         discount: payload.discount || 0
       };
 
-      await notifyAdmins({
-        type: 'order_created',
-        title: 'New order created',
-        message: `Order #${orderId} placed`,
-        meta: { orderId, userId, total: orderSummary.total }
-      });
+      // Best-effort: the order is already saved, so a notification failure must
+      // not fail the checkout (or skip the invoice email below).
+      try {
+        await notifyAdmins({
+          type: 'order_created',
+          title: 'New order',
+          message: `Order #${orderId} was placed (total €${Number(orderSummary.total || 0).toFixed(2)}).`,
+          meta: { orderId, userId, total: orderSummary.total }
+        });
+      } catch (e) {
+        console.error('order_created notification failed', e.message);
+      }
       await sendInvoiceEmail(payload.user_info, orderSummary, updatedCartItems);
 
     // Return response

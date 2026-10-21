@@ -132,7 +132,10 @@ exports.getAllProducts = async (req, res) => {
                 ca.colors,
                 sa.sizes,
                 vs.variant_stock_min,
-                vs.variant_stock_max
+                vs.variant_stock_max,
+                vs.variant_stock_total,
+                vs.variant_count,
+                vs.variant_out_count
             FROM products p
             LEFT JOIN reviews r ON p.product_id = r.product_id
             LEFT JOIN categories c ON p.category_id = c.category_id
@@ -158,7 +161,12 @@ exports.getAllProducts = async (req, res) => {
                 GROUP BY t2.product_id
             ) sa ON sa.product_id = p.product_id
             LEFT JOIN (
-                SELECT product_id, MIN(stock_quantity) AS variant_stock_min, MAX(stock_quantity) AS variant_stock_max
+                SELECT product_id,
+                       MIN(stock_quantity) AS variant_stock_min,
+                       MAX(stock_quantity) AS variant_stock_max,
+                       SUM(stock_quantity) AS variant_stock_total,
+                       COUNT(*) AS variant_count,
+                       SUM(CASE WHEN ISNULL(stock_quantity, 0) <= 0 THEN 1 ELSE 0 END) AS variant_out_count
                 FROM product_variants
                 GROUP BY product_id
             ) vs ON vs.product_id = p.product_id
@@ -169,7 +177,7 @@ exports.getAllProducts = async (req, res) => {
             query += ` AND p.subcategory_id = ${subcategory}`;
         }
 
-        query += ' GROUP BY p.product_id, p.category_id, p.subcategory_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors, sa.sizes, vs.variant_stock_min, vs.variant_stock_max';
+        query += ' GROUP BY p.product_id, p.category_id, p.subcategory_id, p.name, p.description, p.price, p.stock_quantity, p.cover_img, p.images, p.discount_percentage, c.name, sc.name, ca.colors, sa.sizes, vs.variant_stock_min, vs.variant_stock_max, vs.variant_stock_total, vs.variant_count, vs.variant_out_count';
 
         const result = await sql.query(query);
         const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -392,6 +400,14 @@ exports.getProductById = async (req, res) => {
         return [...new Set(withCover)];
       })();
 
+      const variantStockResult = await sql.query`
+        SELECT c.name AS color, s.name AS size, v.stock_quantity AS stock
+        FROM product_variants v
+        LEFT JOIN product_colors c ON v.color_id = c.color_id
+        LEFT JOIN product_sizes s ON v.size_id = s.size_id
+        WHERE v.product_id = ${id}
+      `;
+
       // 4. Return product with variant details
       res.json({
         ...product,
@@ -401,6 +417,7 @@ exports.getProductById = async (req, res) => {
         avg_rating: parseFloat(product.avg_rating || 0).toFixed(1),
         discounted_price: discountedPrice,
         variants: variantsResult.recordset,
+        variant_stock: variantStockResult.recordset,
         size_chart: product.size_chart ? `${baseUrl}/${String(product.size_chart).replace(/^\/+/, '')}` : null,
       });
       console.log(product.size_chart)
@@ -556,6 +573,9 @@ exports.createProduct = async (req, res) => {
              }
         }
 
+        const variantStock = parseVariantStock(req.body?.variant_stock);
+        if (variantStock) await applyVariantStock(transaction, productId, variantStock);
+
         await transaction.commit();
         res.status(201).json({ message: 'Product created', productId });
     } catch (err) {
@@ -563,6 +583,42 @@ exports.createProduct = async (req, res) => {
         console.error(err);
         res.status(500).json({ error: 'Server error: ' + err.message });
     }
+};
+
+// Per colour/size stock sent by the admin as JSON: [{ color, size, stock }].
+// Returns null when not sent (older clients), so callers keep the old behaviour.
+const parseVariantStock = (raw) => {
+    if (raw === undefined || raw === null || raw === '') return null;
+    let list = raw;
+    try { if (typeof raw === 'string') list = JSON.parse(raw); } catch { return null; }
+    if (!Array.isArray(list)) return null;
+    return list
+        .map((v) => ({
+            color: v?.color ? String(v.color).trim().toLowerCase() : '',
+            size: v?.size ? String(v.size).trim().toLowerCase() : '',
+            stock: Math.max(0, Math.min(1000000, parseInt(v?.stock, 10) || 0)),
+        }));
+};
+
+// Writes each variant's stock (matched by colour/size name) and keeps
+// products.stock_quantity equal to the total, so both always agree.
+const applyVariantStock = async (transaction, productId, variantStock) => {
+    for (const v of variantStock) {
+        await (new sql.Request(transaction)).query`
+            UPDATE v SET v.stock_quantity = ${v.stock}
+            FROM product_variants v
+            LEFT JOIN product_colors c ON v.color_id = c.color_id
+            LEFT JOIN product_sizes s ON v.size_id = s.size_id
+            WHERE v.product_id = ${productId}
+              AND LOWER(ISNULL(c.name, '')) = ${v.color}
+              AND LOWER(ISNULL(s.name, '')) = ${v.size}
+        `;
+    }
+    await (new sql.Request(transaction)).query`
+        UPDATE products
+        SET stock_quantity = ISNULL((SELECT SUM(stock_quantity) FROM product_variants WHERE product_id = ${productId}), stock_quantity)
+        WHERE product_id = ${productId}
+    `;
 };
 
 // PUT update product (also reconciles variants)
@@ -785,7 +841,12 @@ exports.updateProduct = async (req, res) => {
         // admin edits one product-level number. When the admin changes that number,
         // apply it to every variant; otherwise keep variant stock as-is so sales
         // deductions are not undone by an unrelated edit.
-        if (stock_quantity !== null && stock_quantity !== currentStock) {
+        // Newer admin sends stock per colour/size; older clients only send
+        // the single number.
+        const variantStock = parseVariantStock(req.body?.variant_stock);
+        if (variantStock) {
+            await applyVariantStock(transaction, id, variantStock);
+        } else if (stock_quantity !== null && stock_quantity !== currentStock) {
             await (new sql.Request(transaction)).query`
                 UPDATE product_variants SET stock_quantity = ${stock_quantity} WHERE product_id = ${id}
             `;
