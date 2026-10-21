@@ -4,8 +4,10 @@ const controller = require('../controllers/notificationController');
 const verifyToken = require('../middleware/auth');
 const requireAdmin = require('../middleware/requireAdmin');
 
+router.get('/', verifyToken, requireAdmin, controller.list);
 router.get('/unread', verifyToken, requireAdmin, controller.getUnread);
 router.post('/:id/read', verifyToken, requireAdmin, controller.markAsRead);
 router.post('/mark-all-read', verifyToken, requireAdmin, controller.markAllAsRead);
+router.delete('/:id', verifyToken, requireAdmin, controller.remove);
 
 module.exports = router;

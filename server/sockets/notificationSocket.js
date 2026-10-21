@@ -22,16 +22,13 @@ const registerNotificationSocket = (io) => {
   io.on('connection', async (socket) => {
     const auth = socket.handshake.auth || {};
     let isAdmin = false;
-    if (auth.token) {
-      isAdmin = await isAdminFromToken(auth.token);
-    } else if (auth.isAdmin === true || auth.role === 'admin') {
-      isAdmin = true;
-    }
+    // A verified admin token is required. (Previously any client sending
+    // { role: 'admin' } was let into the room and received order/customer data.)
+    if (auth.token) isAdmin = await isAdminFromToken(auth.token);
     if (isAdmin) socket.join('admins');
     socket.on('join-admin', async (data) => {
       let ok = false;
       if (data?.token) ok = await isAdminFromToken(data.token);
-      else if (data?.isAdmin === true || data?.role === 'admin') ok = true;
       if (ok) socket.join('admins');
     });
   });
