@@ -30,7 +30,7 @@ export const TopProducts = () => {
     <Card
       title={<span className="text-foreground">Best Sellers</span>}
       className="border-border"
-      style={{ background: '#111111' }}
+      style={{ background: 'hsl(var(--card))' }}
       extra={
         <a
           className="text-muted-foreground hover:text-foreground transition-colors"

@@ -8,7 +8,7 @@ export const StatCard = ({ title, value, change, icon, prefix = '' }) => {
     <Card
       className="stat-card border-border hover:border-muted-foreground transition-all duration-300"
       style={{
-        background: 'linear-gradient(135deg, #111111 0%, #0a0a0a 100%)',
+        background: 'var(--gradient-card)',
       }}
       bordered
     >

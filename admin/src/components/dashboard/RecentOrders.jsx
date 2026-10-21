@@ -81,7 +81,7 @@ export const RecentOrders = () => {
     <Card
       title={<span className="text-foreground">Recent Orders</span>}
       className="border-border"
-      style={{ background: '#111111' }}
+      style={{ background: 'hsl(var(--card))' }}
       extra={<a className="text-muted-foreground hover:text-foreground transition-colors">View All</a>}
     >
       <Table
