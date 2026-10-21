@@ -38,6 +38,7 @@ const Coupons = () => {
     }
     const payload = { 
       ...values, 
+      code: String(values.code).trim(),
       discountType: 'percentage',
       validFrom: values.validFrom.format('YYYY-MM-DD'), 
       validUntil: values.validUntil.format('YYYY-MM-DD'),
@@ -104,7 +105,25 @@ const Coupons = () => {
         <Modal title={editingCoupon ? 'Edit' : 'Add'} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={600}>
           <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ status: 'active' }}>
             <div className="grid grid-cols-3 gap-4">
-              <Form.Item name="code" label="Code" rules={[{ required: true }]}><Input /></Form.Item>
+              <Form.Item
+                name="code"
+                label="Code"
+                normalize={(v) => (typeof v === 'string' ? v.trimStart() : v)}
+                rules={[
+                  { required: true, whitespace: true, message: 'Code is required' },
+                  { max: 50, message: 'Max 50 characters' },
+                  // Codes are unique (case-insensitive) — catch clashes before the server does.
+                  () => ({
+                    validator(_, value) {
+                      const v = String(value || '').trim().toLowerCase();
+                      const clash = v && coupons.some(c => c.id !== editingCoupon?.id && String(c.code).trim().toLowerCase() === v);
+                      return clash ? Promise.reject(new Error('Another coupon already uses this code')) : Promise.resolve();
+                    },
+                  }),
+                ]}
+              >
+                <Input maxLength={50} />
+              </Form.Item>
               <Form.Item
                 name="validFrom"
                 label="Valid From"
@@ -155,9 +174,9 @@ const Coupons = () => {
               <Form.Item
                 name="usageLimit"
                 label="Usage Limit"
-                rules={[{ type: 'number', min: 1, message: 'Usage limit must be at least 1' }]}
+                rules={[{ type: 'number', min: 1, max: 2147483647, message: 'Usage limit must be a whole number of at least 1' }]}
               >
-                <InputNumber className="w-full" style={{ width: '100%' }} min={1} precision={0} />
+                <InputNumber className="w-full" style={{ width: '100%' }} min={1} max={2147483647} precision={0} />
               </Form.Item>
               <Form.Item name="status" label="Status">
                 <Select>

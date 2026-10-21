@@ -1,7 +1,7 @@
 // API Service for connecting to Express.js backend
 const API_BASE_URL = `${(import.meta.env.VITE_BACKEND_SERVER_URL || 'http://api.elmaghrib.com')}/api`;
 
-const clearAdminSession = () => {
+export const clearAdminSession = () => {
   try {
     localStorage.removeItem('token');
 

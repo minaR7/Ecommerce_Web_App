@@ -20,7 +20,7 @@ import PageEditor from "./pages/PageEditor";
 import SiteContent from "./pages/SiteContent";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import { usersApi } from "./services/api";
+import { usersApi, clearAdminSession } from "./services/api";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +47,10 @@ const Protected = ({ children }) => {
         // around; just render a single "Access denied" card with a manual Log in link.
         const msg = String(err?.message || '').toLowerCase();
         const wasSession = msg.includes('session') || msg.includes('unauthorized');
+        // Anything except a network error means the stored token is unusable
+        // (e.g. expired -> 403 from the live API). Clear it, otherwise /login
+        // sees the token and bounces straight back here in a loop.
+        if (!msg.includes('network')) clearAdminSession();
         if (!cancelled) setState(wasSession ? 'redirecting' : 'denied');
       }
     })();
@@ -98,6 +102,7 @@ const Protected = ({ children }) => {
           </p>
           <a
             href="/login"
+            onClick={clearAdminSession}
             style={{
               display: 'inline-block',
               background: '#fff',

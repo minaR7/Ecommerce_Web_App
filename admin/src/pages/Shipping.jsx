@@ -133,7 +133,9 @@ const Shipping = () => {
               loading={savingDefault}
               onClick={saveDefaultFee}
               disabled={Number(defaultFee) === Number(savedDefaultFee)}
-              style={{ color: '#000', fontWeight: 500 }}
+              // Forced black text is invisible on the dark disabled background;
+              // let the theme colour the label while there's nothing to save.
+              style={Number(defaultFee) === Number(savedDefaultFee) ? { fontWeight: 500 } : { color: '#000', fontWeight: 500 }}
             >
               Save
             </AppButton>
