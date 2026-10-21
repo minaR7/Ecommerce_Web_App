@@ -368,3 +368,49 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .hp-fade-up, .hp-fade-in, .hp-hero-zoom { animation: none; }
 }
+
+/* ── Order confirmed page buttons ──────────────────────────────────────
+   Own classes with every link state spelled out, so the global a / a:hover
+   rules above can never recolour the labels. */
+.order-btn,
+.order-btn:link,
+.order-btn:visited {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid #15203a;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.order-btn--primary,
+.order-btn--primary:link,
+.order-btn--primary:visited {
+  background-color: #15203a !important;
+  color: #ffffff !important;
+}
+.order-btn--primary:hover,
+.order-btn--primary:focus-visible,
+.order-btn--primary:active {
+  background-color: #2c3b5e !important;
+  border-color: #2c3b5e;
+  color: #ffffff !important;
+}
+.order-btn--outline,
+.order-btn--outline:link,
+.order-btn--outline:visited {
+  background-color: #ffffff !important;
+  color: #15203a !important;
+}
+.order-btn--outline:hover,
+.order-btn--outline:focus-visible,
+.order-btn--outline:active {
+  background-color: #15203a !important;
+  color: #ffffff !important;
+}
+.order-btn .anticon { color: inherit !important; }
