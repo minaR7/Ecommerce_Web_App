@@ -33,6 +33,27 @@ const validateDiscount = (discountType, discountValue) => {
   return null;
 };
 
+// coupons.code is nvarchar(64) with a UNIQUE index; usage_limit is an INT.
+const MAX_CODE_LENGTH = 50;
+const MAX_INT = 2147483647;
+
+const validateCode = (code) => {
+  const trimmed = String(code ?? '').trim();
+  if (!trimmed) return 'Coupon code is required.';
+  if (trimmed.length > MAX_CODE_LENGTH) return `Coupon code must be ${MAX_CODE_LENGTH} characters or fewer.`;
+  return null;
+};
+
+const validateUsageLimit = (usageLimit) => {
+  if (usageLimit == null || usageLimit === '') return null;
+  const n = Number(usageLimit);
+  if (!Number.isInteger(n) || n < 1 || n > MAX_INT) return 'Usage limit must be a whole number of at least 1.';
+  return null;
+};
+
+// SQL Server unique-index violations (2627 = constraint, 2601 = index).
+const isDuplicateKeyError = (err) => [2627, 2601].includes(err?.number);
+
 const SELECT_FIELDS = `
   coupon_id AS id,
   code,
@@ -82,8 +103,8 @@ exports.createCoupon = async (req, res) => {
     if (!code || !discountType || discountValue == null || !validFrom || !validUntil) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    const discountError = validateDiscount(discountType, discountValue);
-    if (discountError) return res.status(400).json({ message: discountError });
+    const fieldError = validateCode(code) || validateDiscount(discountType, discountValue) || validateUsageLimit(usageLimit);
+    if (fieldError) return res.status(400).json({ message: fieldError });
 
     const fromDate = new Date(validFrom);
     const untilDate = new Date(validUntil);
@@ -129,48 +150,62 @@ exports.createCoupon = async (req, res) => {
 
     res.status(201).json(mapCoupon(created.recordset[0]));
   } catch (err) {
+    if (isDuplicateKeyError(err)) return res.status(409).json({ message: 'A coupon with this code already exists.' });
     res.status(500).json({ message: SAFE_SQL_MESSAGE(err, 'Failed to create coupon — please try again') });
   }
 };
 
 exports.updateCoupon = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
     const { code, discountType, discountValue, validFrom, validUntil, status, usageLimit, usedCount } = req.body;
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: 'Invalid coupon id' });
+
+    // Same rules as create — previously update skipped them, so bad input
+    // reached SQL Server and came back as a 500.
+    if (!discountType || discountValue == null || !validFrom || !validUntil) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+    const fieldError = validateCode(code) || validateDiscount(discountType, discountValue) || validateUsageLimit(usageLimit);
+    if (fieldError) return res.status(400).json({ message: fieldError });
+
+    const fromDate = new Date(validFrom);
+    const untilDate = new Date(validUntil);
+    if (isNaN(fromDate.getTime()) || isNaN(untilDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
+    if (!(fromDate < untilDate)) {
+      return res.status(400).json({ message: '"Valid From" date must be before the "Valid Until" date.' });
+    }
+
+    const trimmedCode = String(code).trim();
 
     const existsReq = new sql.Request();
-    existsReq.input('id', sql.Int, Number(id));
+    existsReq.input('id', sql.Int, id);
     const exists = await existsReq.query(`SELECT coupon_id FROM coupons WHERE coupon_id = @id`);
     if (exists.recordset.length === 0) return res.status(404).json({ message: 'Coupon not found' });
 
-    const discountError = validateDiscount(discountType, discountValue);
-    if (discountError) return res.status(400).json({ message: discountError });
-
-    if (validFrom && validUntil) {
-      const fromDate = new Date(validFrom);
-      const untilDate = new Date(validUntil);
-      if (isNaN(fromDate.getTime()) || isNaN(untilDate.getTime())) {
-        return res.status(400).json({ message: 'Invalid date format' });
-      }
-      if (!(fromDate < untilDate)) {
-        return res.status(400).json({ message: '"Valid From" date must be before the "Valid Until" date.' });
-      }
+    // Renaming to a code another coupon already uses violated the UNIQUE index (500).
+    const dupReq = new sql.Request();
+    dupReq.input('code', sql.NVarChar(64), trimmedCode);
+    dupReq.input('id', sql.Int, id);
+    const dup = await dupReq.query(`SELECT coupon_id FROM coupons WHERE code = @code AND coupon_id <> @id`);
+    if (dup.recordset.length > 0) {
+      return res.status(409).json({ message: 'Another coupon already uses this code.' });
     }
 
     const updateReq = new sql.Request();
-    updateReq.input('id', sql.Int, Number(id));
-    updateReq.input('code', sql.VarChar(50), String(code).trim());
-    updateReq.input('discountType', sql.VarChar(20), String(discountType));
-    updateReq.input('discountValue', sql.Decimal(18, 2), Number(discountValue));
-    updateReq.input('validFrom', sql.Date, new Date(validFrom));
-    updateReq.input('validUntil', sql.Date, new Date(validUntil));
-    updateReq.input('status', sql.VarChar(20), status && String(status).length ? String(status) : 'active');
-    if (usageLimit == null || usageLimit === '') {
-      updateReq.input('usageLimit', sql.Int, null);
-    } else {
-      updateReq.input('usageLimit', sql.Int, Number(usageLimit));
-    }
-    updateReq.input('usedCount', sql.Int, usedCount == null ? 0 : Number(usedCount));
+    updateReq.input('id', sql.Int, id);
+    updateReq.input('code', sql.NVarChar(64), trimmedCode);
+    updateReq.input('discountType', sql.NVarChar(20), String(discountType));
+    updateReq.input('discountValue', sql.Decimal(10, 2), Number(discountValue));
+    updateReq.input('validFrom', sql.Date, fromDate);
+    updateReq.input('validUntil', sql.Date, untilDate);
+    updateReq.input('status', sql.NVarChar(20), status && String(status).length ? String(status) : 'active');
+    updateReq.input('usageLimit', sql.Int, usageLimit == null || usageLimit === '' ? null : Number(usageLimit));
+    // The admin form doesn't send usedCount; keep the stored count instead of
+    // silently resetting it to 0 on every edit.
+    updateReq.input('usedCount', sql.Int, usedCount == null || usedCount === '' ? null : Number(usedCount));
 
     await updateReq.query(`
       UPDATE coupons
@@ -181,19 +216,20 @@ exports.updateCoupon = async (req, res) => {
           valid_until = @validUntil,
           status = @status,
           usage_limit = @usageLimit,
-          used_count = @usedCount,
+          used_count = COALESCE(@usedCount, used_count),
           updated_at = GETDATE()
       WHERE coupon_id = @id
     `);
 
     const fetchReq = new sql.Request();
-    fetchReq.input('id', sql.Int, Number(id));
+    fetchReq.input('id', sql.Int, id);
     const updated = await fetchReq.query(`
       SELECT ${SELECT_FIELDS} FROM coupons WHERE coupon_id = @id
     `);
 
     res.status(200).json(mapCoupon(updated.recordset[0]));
   } catch (err) {
+    if (isDuplicateKeyError(err)) return res.status(409).json({ message: 'Another coupon already uses this code.' });
     res.status(500).json({ message: SAFE_SQL_MESSAGE(err, 'Failed to update coupon — please try again') });
   }
 };

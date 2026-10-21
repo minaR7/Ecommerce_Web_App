@@ -43,7 +43,9 @@ const verifyToken = async (req, res, next) => {
       req.user = decoded; // store user ID in req.user for use in controller
       next();
     } catch (err) {
-      return res.status(403).json({ message: "Invalid or expired token" });
+      // 401 (not 403) so the frontends treat it as a dead session and send the
+      // user to log in again. 403 is reserved for "logged in but not allowed".
+      return res.status(401).json({ message: "Invalid or expired token" });
     }
   } else {
     return res.status(401).json({ message: "No token provided" });
