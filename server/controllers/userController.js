@@ -246,165 +246,102 @@ exports.checkEmail = async (req, res) => {
 };
 
 exports.registerUser = async (req, res) => {
-  const { first_name, last_name, email, address, password, username } = req.body;
+  const { first_name, last_name, address, password } = req.body;
+  // Normalise the same way check-email does, so "John@Mail.com " and
+  // "john@mail.com" are treated as one account.
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const username = String(req.body.username || '').trim();
 
   if (!email || !username || !password) {
     return res.status(400).json({ error: 'Username, email and password are required' });
+  }
+  if (!isValidEmailSyntax(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address' });
   }
   if (String(password).length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
   }
 
-  const request = new sql.Request();
-  request.input('email', sql.VarChar, email);
-
   try {
     const deliverable = await hasMxRecords(email);
-    console.log(deliverable)
     if (!deliverable) {
-      return res.status(400).json({ error: 'Email is not deliverable' });
+      return res.status(400).json({ error: 'This email domain cannot receive mail. Please check the address.' });
     }
-    // Check if user already exists
-    const existingUser = await request.query(`
-      SELECT TOP 1
-        user_id,
-        email,
-        first_name,
-        last_name,
-        address,
-        is_registered
-      FROM users
-      WHERE email = @email
-    `);
 
-    //USER EXISTS
-    console.log(existingUser.recordset.length > 0)
-    if (existingUser.recordset.length > 0) {
-      const user = existingUser.recordset[0];
-      const user_id = user.user_id;
+    const existingRes = await new sql.Request()
+      .input('email', sql.VarChar, email)
+      .query(`
+        SELECT TOP 1 u.user_id, c.user_id AS cred_user_id
+        FROM users u
+        LEFT JOIN credentials c ON c.user_id = u.user_id
+        WHERE LOWER(u.email) = @email
+      `);
+    const existing = existingRes.recordset[0];
 
-      console.log('User already exists:', user_id);
+    if (existing && existing.cred_user_id) {
+      return res.status(409).json({ error: 'An account with this email already exists. Please log in instead.' });
+    }
 
-      // Check whether credentials already exist
-      const credentialsRequest = new sql.Request();
+    const usernameRes = await new sql.Request()
+      .input('username', sql.VarChar, username)
+      .query('SELECT TOP 1 user_id FROM credentials WHERE username = @username');
+    if (usernameRes.recordset.length > 0) {
+      return res.status(409).json({ error: 'This username is already taken. Please choose another one.' });
+    }
 
-      credentialsRequest.input(
-        'user_id',
-        sql.Int,
-        user_id
-      );
+    const hashedPassword = await bcrypt.hash(String(password), saltRounds);
 
-      const existingCredentials =
-        await credentialsRequest.query(`
-          SELECT TOP 1 user_id
-          FROM credentials
-          WHERE user_id = @user_id
-        `);
-
-      // --------------------------------------------------
-      // 2A. User AND credentials both exist
-      // --------------------------------------------------
-
-      if (existingCredentials.recordset.length > 0) {
-        return res.status(400).json({
-          error: 'User already exists'
-        });
+    // users + credentials are written together so a failure can never leave a
+    // users row without credentials (which would block every later signup try).
+    const transaction = new sql.Transaction();
+    await transaction.begin();
+    let user_id;
+    try {
+      if (existing) {
+        // Email is already known from a guest checkout: upgrade that user to a
+        // registered account instead of creating a duplicate.
+        user_id = existing.user_id;
+        await new sql.Request(transaction)
+          .input('user_id', sql.Int, user_id)
+          .input('first_name', sql.VarChar, first_name || null)
+          .input('last_name', sql.VarChar, last_name || null)
+          .query(`
+            UPDATE users
+            SET first_name = COALESCE(@first_name, first_name),
+                last_name = COALESCE(@last_name, last_name),
+                is_registered = 1,
+                updated_at = GETDATE()
+            WHERE user_id = @user_id
+          `);
+      } else {
+        const userResult = await new sql.Request(transaction)
+          .input('email', sql.VarChar, email)
+          .input('first_name', sql.VarChar, first_name)
+          .input('last_name', sql.VarChar, last_name)
+          .input('address', sql.VarChar, address)
+          .query(`
+            INSERT INTO users (first_name, last_name, email, address, is_registered, created_at, updated_at)
+            OUTPUT inserted.user_id
+            VALUES (@first_name, @last_name, @email, @address, 1, GETDATE(), GETDATE())
+          `);
+        user_id = userResult.recordset[0].user_id;
       }
 
-      // --------------------------------------------------
-      // 2B. User exists BUT credentials don't exist
-      // --------------------------------------------------
+      await new sql.Request(transaction)
+        .input('user_id', sql.Int, user_id)
+        .input('email', sql.VarChar, email)
+        .input('username', sql.VarChar, username)
+        .input('hashedPassword', sql.VarChar, hashedPassword)
+        .query(`
+          INSERT INTO credentials (user_id, email, username, password, is_admin)
+          VALUES (@user_id, @email, @username, @hashedPassword, 0)
+        `);
 
-      console.log(
-        'User exists but credentials do not. Creating credentials...'
-      );
-
-      const hashedPassword = await bcrypt.hash(
-        password,
-        saltRounds
-      );
-
-      const credentialRequest = new sql.Request();
-
-      credentialRequest.input(
-        'user_id',
-        sql.Int,
-        user_id
-      );
-
-      credentialRequest.input(
-        'email',
-        sql.VarChar,
-        email
-      );
-
-      credentialRequest.input(
-        'username',
-        sql.VarChar,
-        username
-      );
-
-      credentialRequest.input(
-        'hashedPassword',
-        sql.VarChar,
-        hashedPassword
-      );
-
-      credentialRequest.input(
-        'is_admin',
-        sql.Bit,
-        is_admin ?? false
-      );
-
-      await credentialRequest.query(`
-        INSERT INTO credentials
-          (user_id, email, username, password, is_admin)
-        VALUES
-          (@user_id, @email, @username, @hashedPassword, @is_admin)
-      `);
-
-      return res.status(201).json({
-        message: 'Credentials created successfully',
-        user_id
-      });
-      // return res.status(400).json({ error: 'User already exists' });
+      await transaction.commit();
+    } catch (err) {
+      await transaction.rollback().catch(() => {});
+      throw err;
     }
-
-  // user doesnt exist, Insert into users table
-    request.input('first_name', sql.VarChar, first_name)
-    request.input('last_name', sql.VarChar, last_name)
-    request.input('address', sql.VarChar, address)
-    request.input('is_registered', sql.Bit, true)
-    const userResult = await request.query(`
-      INSERT INTO users (first_name, last_name, email, address, is_registered, created_at, updated_at)
-      OUTPUT inserted.user_id
-      VALUES (@first_name, @last_name, @email, @address, @is_registered, GETDATE(), GETDATE())
-    `);
-
-    // Insert into users table
-    // const userResult = await db.query(
-    //   `INSERT INTO users (first_name, last_name, email, address, is_registered, created_at, updated_at)
-    //    VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-    //    RETURNING user_id`,
-    //   [first_name, last_name, email, address, true]
-    // );
-
-    const user_id = userResult.recordset[0].user_id;
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    request.input('user_id', sql.Int, user_id)
-    request.input('hashedPassword', sql.VarChar, hashedPassword)
-    request.input('username', sql.VarChar, username)
-    // request.input('is_admin', sql.Bit, is_admin)
-    credentialRequest.input('is_admin', sql.Bit, false);
-
-    // Insert into credentials table
-    await request.query(
-      `INSERT INTO credentials (user_id, email, username, password, is_admin)
-       VALUES (@user_id, @email, @username, @hashedPassword, @is_admin)`,
-    );
 
     try {
       await notifyAdmins({
@@ -420,7 +357,11 @@ exports.registerUser = async (req, res) => {
     return res.status(201).json({ message: 'User registered successfully', user_id });
   } catch (error) {
     console.error('Error registering user:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    // 2627 / 2601 = unique constraint violation (e.g. a concurrent signup).
+    if (error && (error.number === 2627 || error.number === 2601)) {
+      return res.status(409).json({ error: 'An account with this email or username already exists.' });
+    }
+    res.status(500).json({ error: 'Something went wrong creating your account. Please try again.' });
   }
 };
 
