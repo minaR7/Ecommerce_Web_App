@@ -87,6 +87,37 @@ Bugs found while testing, not raised as KAN tickets.
 | Admin | No light/dark theme switch | Colours were dark-only and partly typed directly into components. | Sun/moon button in the header ([ThemeProvider.jsx](../admin/src/theme/ThemeProvider.jsx)); choice is remembered per browser, first visit follows the device setting. Light palette in CSS and [antdTheme.js](../admin/src/config/antdTheme.js); fixed colours replaced with theme colours. The sidebar follows the theme too, with the black logo in light mode and the white logo in dark mode ([AdminSidebar.jsx](../admin/src/components/layout/AdminSidebar.jsx)). Primary buttons take their text colour from the theme ([AppButton.jsx](../admin/src/components/AppButton.jsx)), and white "Delete?" confirm buttons are now red. |
 | Admin | White strip behind the sidebar logo | The logo box had a `bg-foreground` class that did nothing until the theme colour classes were fixed (see below), then painted it white. | [AdminSidebar.jsx](../admin/src/components/layout/AdminSidebar.jsx): background class removed. |
 | Server | Expired login returned 403 | `verifyToken` answered an expired/invalid token with 403, so neither frontend recognised it as "log in again". | [auth.js](../server/middleware/auth.js): now 401. 403 stays for "logged in but not an admin". |
+| Server | 500 error when updating a shipping country | `update` wrote every column straight from the request body, but the admin edit form only sends country, fee, delivery time and status. It has no currency field, so every edit ran `SET currency = NULL`, which SQL Server rejects if the column doesn't allow empty values. `create` already fell back to `'EUR'`; `update` didn't. | [shippingRatesController.js](../server/controllers/shippingRatesController.js): fields that aren't sent keep their saved value. Delivery time over 32 characters returns a clear 400, and renaming a rate to a country that already has one returns 409 ("already exists"). Not yet confirmed against the live database. |
+| Server | Signup failed for every new user ("Internal Server Error") | (1) **New email:** the code used `credentialRequest`, which only existed inside an earlier `if` block. It crashed after saving the user but before saving the password, leaving a user row with no login. (2) **Email already in the database** (guest checkout, or a signup broken by (1)): this path crashed on an undefined `is_admin`, so once a signup failed, every retry with that email failed too. Even without the crash, `is_registered` stayed 0, so login rejected the account with "User is not registered". (3) Duplicate usernames were never checked. (4) "John@Mail.com" and "john@mail.com" could become two accounts. | [userController.js](../server/controllers/userController.js): user row and password are saved together in one transaction, so a failure can't leave half an account. An email that came from guest checkout is upgraded to a registered account, which also repairs accounts broken by the old bug when those users sign up again. Emails are trimmed and lowercased. Username is checked before saving. Unique-index errors map to 409. Not yet tested against the live database. |
+| Client | Signup error messages unclear, form could be submitted twice | Only `error` from the response was read, falling back to a bare "Signup failed". A network failure gave no useful message, and the button had no loading state. | [Signup.jsx](../client/src/pages/Signup.jsx): email format validated on the form, clear messages for every case (see below), "already registered" also shown under the email field, and the button shows a spinner while the request runs. |
+
+### Signup error messages
+
+| Situation | Message |
+|---|---|
+| Missing field / password under 6 chars | Field-specific message on the form |
+| Bad email format | "Please enter a valid email address" (shown on the form before submitting, and checked by the server too) |
+| Email domain can't receive mail | "This email domain cannot receive mail. Please check the address." |
+| Email already registered | "An account with this email already exists. Please log in instead." (also shown under the email field) |
+| Username taken | "This username is already taken. Please choose another one." |
+| Server can't be reached | "Could not reach the server. Please check your connection and try again." |
+| Unexpected server error | "Something went wrong creating your account. Please try again." |
+
+### Signup bug in plain terms
+
+Signup saves an account in two steps: first the person's details (name, email), then their password. Both are needed to log in.
+
+1. **New email: the code crashed halfway through.** After saving the name and email, the code tried to use a variable that didn't exist at that point. It's like following a recipe that says "add the sauce" when you never made it. So the details were saved but the password never was. The person saw an error, and the account they half-created had no password, so they couldn't log in.
+2. **Email already in the database: retrying crashed too.** A shopper's email can already be saved without a password in two cases: they once bought something as a guest, or their signup broke because of problem 1. For this case the code had a separate path, which crashed on another undefined variable (`is_admin`). Since problem 1 left so many half-saved accounts, a person whose signup failed once got an error on every retry with that email. They were stuck for good. Even if that crash were fixed, the account was never marked as "registered", so login would still refuse it with "User is not registered".
+3. **Two people could pick the same username.** Nothing checked whether a username was already taken. People can log in with their username, so with two accounts named "ali" the system can't tell whose account to open.
+4. **Capital letters made the same email count as two.** "John@Mail.com" and "john@mail.com" are the same mailbox, but the code compared them letter for letter, capitals included, and treated them as different. One person could end up with two separate accounts and be confused about which one holds their orders.
+
+**What the fix does**
+
+- Details and password are now saved together. Either both are saved or neither is, so a broken half-account can't happen.
+- If the email already exists without a password, the fix completes that account and marks it as registered instead of crashing.
+- A username that's already taken is refused with a clear message.
+- Emails are saved in lowercase, so capital letters no longer create a second account.
 
 ---
 
@@ -102,3 +133,5 @@ Bugs found while testing, not raised as KAN tickets.
 
 - **KAN-3:** reproduction steps from the tester (country chosen, any message shown).
 - **KAN-13:** screenshot, page URL and Safari/iOS version from the tester.
+- **Shipping update / signup fixes:** test both on the live database after the server restart. If a shipping edit still returns 500, the server terminal shows the real SQL Server error.
+- **Signup email check:** "This email domain cannot receive mail" relies on a live DNS (MX) lookup. If DNS lookups fail on the host, every signup gets that message. If it appears for a real address like gmail.com, the check should skip when the lookup fails.
