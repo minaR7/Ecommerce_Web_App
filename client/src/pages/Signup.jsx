@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
   const [emailStatus, setEmailStatus] = useState({
     checking: false,
     message: '',
@@ -52,14 +53,16 @@ const Signup = () => {
   };
 
   const onFinish = async (values) => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_SERVER_URL}/api/users/register`,
         {
           first_name: values.first_name,
           last_name: values.last_name,
-          username: values.username,
-          email: values.email,
+          username: values.username.trim(),
+          email: values.email.trim().toLowerCase(),
           password: values.password,
         }
       );
@@ -69,8 +72,20 @@ const Signup = () => {
       navigate('/my-account');
     } catch (err) {
       console.error('Signup failed:', err);
-      const msg = err.response?.data?.error || 'Signup failed';
+      let msg;
+      if (err.response) {
+        msg = err.response.data?.error || err.response.data?.message
+          || `Signup failed (error ${err.response.status}). Please try again.`;
+        // Keep the inline email hint in sync with what the server said.
+        if (err.response.status === 409 && /email/i.test(msg)) {
+          setEmailStatus({ checking: false, message: msg, status: 'error' });
+        }
+      } else {
+        msg = 'Could not reach the server. Please check your connection and try again.';
+      }
       toast.error(msg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -103,7 +118,10 @@ const Signup = () => {
 
           <Form.Item
             name="email"
-            rules={[{ required: true, message: 'Please input your email!' }]}
+            rules={[
+              { required: true, message: 'Please input your email!' },
+              { type: 'email', message: 'Please enter a valid email address.' },
+            ]}
             validateStatus={
               emailStatus.status === 'ok'
                 ? 'success'
@@ -156,6 +174,7 @@ const Signup = () => {
             <Button
               type="primary"
               htmlType="submit"
+              loading={submitting}
               className="w-full"
               style={{
                 backgroundColor: 'black',
