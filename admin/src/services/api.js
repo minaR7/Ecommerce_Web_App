@@ -453,6 +453,12 @@ export const siteSettingsApi = {
 };
 
 export const notificationsApi = {
+  // { status: 'all'|'unread'|'read', type, page, pageSize } -> { items, total, unread, page, pageSize }
+  list: (params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString();
+    return fetchApi(`/notifications${qs ? `?${qs}` : ''}`);
+  },
+  remove: (id) => fetchApi(`/notifications/${id}`, { method: 'DELETE' }),
   getUnread: () => fetchApi('/notifications/unread'),
   markAsRead: (id) => fetchApi(`/notifications/${id}/read`, {
     method: 'POST',
