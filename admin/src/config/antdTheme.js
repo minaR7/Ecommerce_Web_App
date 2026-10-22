@@ -48,6 +48,8 @@ export const antdDarkTheme = {
     },
     Button: {
       primaryShadow: 'none',
+      // Primary buttons are white in dark mode, so their label must be dark.
+      primaryColor: '#000000',
       defaultBg: '#1a1a1a',
       defaultBorderColor: '#2e2e2e',
       defaultColor: '#fafafa',
@@ -67,5 +69,42 @@ export const antdDarkTheme = {
       defaultBg: '#1a1a1a',
       defaultColor: '#fafafa',
     },
+  },
+};
+
+// Light theme: same structure, light surfaces (sidebar included).
+export const antdLightTheme = {
+  token: {
+    ...antdDarkTheme.token,
+    colorPrimary: '#111111',
+    colorBgContainer: '#ffffff',
+    colorBgElevated: '#ffffff',
+    colorBgLayout: '#f5f5f5',
+    colorBorder: '#d9d9d9',
+    colorBorderSecondary: '#ececec',
+    colorText: '#171717',
+    colorTextSecondary: '#595959',
+    colorTextTertiary: '#8c8c8c',
+    colorTextQuaternary: '#bfbfbf',
+    boxShadow: '0 4px 12px rgb(0 0 0 / 0.08)',
+  },
+  components: {
+    Layout: { siderBg: '#ffffff', headerBg: '#ffffff', bodyBg: '#f5f5f5' },
+    Menu: {
+      itemBg: 'transparent',
+      subMenuItemBg: 'transparent',
+      itemColor: '#595959',
+      itemHoverColor: '#171717',
+      itemHoverBg: '#f0f0f0',
+      itemSelectedColor: '#171717',
+      itemSelectedBg: '#ebebeb',
+    },
+    Table: { headerBg: '#fafafa', headerColor: '#595959', rowHoverBg: '#f5f5f5', borderColor: '#ececec' },
+    Card: { colorBgContainer: '#ffffff' },
+    Modal: { contentBg: '#ffffff', headerBg: '#ffffff' },
+    Button: { primaryShadow: 'none', primaryColor: '#ffffff', defaultBg: '#ffffff', defaultBorderColor: '#d9d9d9', defaultColor: '#171717' },
+    Input: { colorBgContainer: '#ffffff', colorBorder: '#d9d9d9', activeBorderColor: '#111111', hoverBorderColor: '#8c8c8c' },
+    Select: { colorBgContainer: '#ffffff', colorBorder: '#d9d9d9', optionSelectedBg: '#f0f0f0' },
+    Tag: { defaultBg: '#f5f5f5', defaultColor: '#171717' },
   },
 };
