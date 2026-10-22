@@ -71,7 +71,7 @@ const Coupons = () => {
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
         <Button type="text" icon={<EditOutlined />} onClick={() => { setEditingCoupon(r); form.setFieldsValue({ ...r, validFrom: dayjs(r.validFrom), validUntil: dayjs(r.validUntil) }); setIsModalOpen(true); }} />
-        <Popconfirm title="Delete?" okText="Delete" cancelText="Cancel"  okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
+        <Popconfirm title="Delete?" okText="Delete" cancelText="Cancel"  okButtonProps={{ danger: true }}
          onConfirm={async () => {
            try {
              await couponsApi.delete(r.id);

@@ -685,7 +685,7 @@ const SiteContent = () => {
 
   return (
     <AdminLayout title="Site Content">
-      <Card className="border-border" style={{ background: '#111111' }} loading={settingsLoading}>
+      <Card className="border-border" style={{ background: 'hsl(var(--card))' }} loading={settingsLoading}>
         <Tabs activeKey={activeTab} onChange={onTabChange} items={tabItems} />
       </Card>
     </AdminLayout>

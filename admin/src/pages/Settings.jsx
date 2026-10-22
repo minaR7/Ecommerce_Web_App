@@ -14,7 +14,7 @@ const Settings = () => {
         <Card
           title={<span className="text-foreground">Store Settings</span>}
           className="border-border"
-          style={{ background: '#111111' }}
+          style={{ background: 'hsl(var(--card))' }}
         >
           <Form form={form} layout="vertical">
             <Form.Item label="Store Name" name="storeName" initialValue="My E-Commerce Store">
@@ -32,7 +32,7 @@ const Settings = () => {
         <Card
           title={<span className="text-foreground">Notifications</span>}
           className="border-border"
-          style={{ background: '#111111' }}
+          style={{ background: 'hsl(var(--card))' }}
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">

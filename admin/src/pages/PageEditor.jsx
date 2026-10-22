@@ -186,7 +186,7 @@ const PageEditor = () => {
                     value={content}
                     onChange={(e) => handleContentChange(e.target.value)}
                     rows={15}
-                    className="bg-[#1a1a1a] text-foreground border-gray-800 font-mono"
+                    className="bg-popover text-foreground border-gray-800 font-mono"
                   />
                 ) : (
                   <ReactQuill 

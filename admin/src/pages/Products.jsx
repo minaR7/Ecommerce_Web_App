@@ -25,6 +25,7 @@ import { AdminLayout } from '../components/layout/AdminLayout';
 import { mockProducts } from '../data/mockData';
 import { categoriesApi, subcategoriesApi, productsApi, colorsApi, sizesApi } from '../services/api';
 import { AppButton } from '../components/AppButton';
+import { VariantStockGrid, stockKey, stockCombinations } from '../components/VariantStockGrid';
 
 // Must match imageFilter / limits in server/middleware/upload.js.
 const ACCEPTED_IMAGE_TYPES = 'image/png,image/jpeg,image/webp,image/gif';
@@ -54,6 +55,28 @@ const Products = () => {
   const [sizeChartUpload, setSizeChartUpload] = useState([]);
 
   const [form] = Form.useForm();
+  const watchedColors = Form.useWatch('colors', form) || [];
+  const watchedSizes = Form.useWatch('sizes', form) || [];
+
+  // Stock per colour/size in the form ({ "pink|m": 4, ... }).
+  const [variantStock, setVariantStock] = useState({});
+  const [variantStockLoading, setVariantStockLoading] = useState(false);
+  // Read-only breakdowns for expanded rows in the list, keyed by product id.
+  const [rowStock, setRowStock] = useState({});
+
+  const toStockMap = (list) =>
+    Object.fromEntries((list || []).map((v) => [stockKey(v.color, v.size), Number(v.stock) || 0]));
+
+  const loadRowStock = async (id) => {
+    if (rowStock[id]) return;
+    setRowStock((m) => ({ ...m, [id]: { loading: true } }));
+    try {
+      const p = await productsApi.getById(id);
+      setRowStock((m) => ({ ...m, [id]: { map: toStockMap(p.variant_stock) } }));
+    } catch {
+      setRowStock((m) => ({ ...m, [id]: { error: true } }));
+    }
+  };
 
   // Fetch data function
   const fetchData = async () => {
@@ -135,17 +158,27 @@ const Products = () => {
       p.category?.toLowerCase().includes(searchText.toLowerCase())
   );
 
+  const totalStockOf = (record) =>
+    Number(record.variant_count) ? Number(record.variant_stock_total) || 0 : Number(record.stock_quantity) || 0;
+
   const handleAdd = () => {
     setEditingProduct(null);
     setSelectedCategoryId(null);
     setFilteredSubcategories([]);
     setFileList([]);
+    setVariantStock({});
     form.resetFields();
     setIsModalOpen(true);
   };
 
   const handleEdit = (product) => {
     setEditingProduct(product);
+    setVariantStock({});
+    setVariantStockLoading(true);
+    productsApi.getById(product.product_id || product.id)
+      .then((p) => setVariantStock(toStockMap(p.variant_stock)))
+      .catch(() => message.warning('Could not load stock per colour/size — values shown may be 0.'))
+      .finally(() => setVariantStockLoading(false));
     
     if (product.category_id) {
       setSelectedCategoryId(product.category_id);
@@ -218,6 +251,15 @@ const Products = () => {
       message.error(`New images total ${(totalBytes / 1024 / 1024).toFixed(1)} MB — please keep the total under 25 MB (upload fewer or smaller images).`);
       return;
     }
+    if (variantStockLoading) {
+      message.info('Still loading the current stock — please try again in a moment.');
+      return;
+    }
+    const combos = stockCombinations(values.colors || [], values.sizes || []);
+    const stockList = combos.map(({ color, size }) => ({
+      color, size, stock: Number(variantStock[stockKey(color, size)] ?? 0),
+    }));
+    const totalStock = stockList.reduce((sum, v) => sum + v.stock, 0);
     try {
       if (editingProduct) {
           const formData = new FormData();
@@ -226,7 +268,8 @@ const Products = () => {
           formData.append('name', values.name);
           formData.append('description', values.description ?? '');
           formData.append('price', values.price);
-          formData.append('stock_quantity', values.stock_quantity);
+          formData.append('stock_quantity', totalStock);
+          formData.append('variant_stock', JSON.stringify(stockList));
           formData.append('discount_percentage', values.discount_percentage || 0);
           if (values.sizes) formData.append('sizes', JSON.stringify(values.sizes));
           if (values.colors) formData.append('colors', JSON.stringify(values.colors));
@@ -268,7 +311,8 @@ const Products = () => {
           formData.append('name', values.name);
           formData.append('description', values.description ?? '');
           formData.append('price', values.price);
-          formData.append('stock_quantity', values.stock_quantity);
+          formData.append('stock_quantity', totalStock);
+          formData.append('variant_stock', JSON.stringify(stockList));
           formData.append('discount_percentage', values.discount_percentage || 0);
 
           if (values.sizes) formData.append('sizes', JSON.stringify(values.sizes));
@@ -293,6 +337,7 @@ const Products = () => {
       }
       
       // Refresh data from server
+      setRowStock({});
       await fetchData();
       
       setIsModalOpen(false);
@@ -446,24 +491,20 @@ const Products = () => {
     },
     {
       title: 'Stock',
-      dataIndex: 'stock_quantity',
-      key: 'stock_quantity',
-      sorter: (a, b) => (a.stock_quantity || 0) - (b.stock_quantity || 0),
-      // The shop shows per-variant stock (sales reduce it per size/colour), so
-      // surface it when it differs from the product-level number.
-      render: (stock, record) => {
-        const min = record.variant_stock_min;
-        const max = record.variant_stock_max;
-        const differs = min != null && (min !== stock || max !== stock);
+      key: 'stock',
+      // What the shop actually has: the sum over every colour/size.
+      sorter: (a, b) => totalStockOf(a) - totalStockOf(b),
+      render: (_, record) => {
+        const total = totalStockOf(record);
+        const out = Number(record.variant_out_count) || 0;
+        const count = Number(record.variant_count) || 0;
         return (
           <div>
-            <span className={stock === 0 ? 'text-red-400' : 'text-foreground'}>{stock}</span>
-            {differs && (
-              <Tooltip title="Stock per size/colour as shown in the shop. Change the stock value and save to reset all variants.">
-                <div className={`text-xs ${min === 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
-                  variants: {min === max ? min : `${min}–${max}`}
-                </div>
-              </Tooltip>
+            <span className={total <= 0 ? 'text-red-400 font-medium' : 'text-foreground'}>
+              {total <= 0 ? 'Sold out' : `${total} in stock`}
+            </span>
+            {total > 0 && out > 0 && (
+              <div className="text-xs text-red-400">{out} of {count} options sold out</div>
             )}
           </div>
         );
@@ -505,7 +546,7 @@ const Products = () => {
             onConfirm={() => handleDelete(record.product_id || record.id)}
             okText="Delete"
             cancelText="Cancel"
-            okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
+            okButtonProps={{ danger: true }}
           >
             <AppButton
               type="text"
@@ -519,7 +560,7 @@ const Products = () => {
   ];
   return (
     <AdminLayout title="Products">
-      <Card className="border-border" style={{ background: '#111111' }}>
+      <Card className="border-border" style={{ background: 'hsl(var(--card))' }}>
         <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
           <Input
             placeholder="Search products..."
@@ -545,6 +586,27 @@ const Products = () => {
           columns={columns}
           dataSource={filteredProducts}
           rowKey={(record) => record.product_id || record.id}
+          expandable={{
+            // Click the arrow on a row to see stock for each colour and size.
+            rowExpandable: (record) => Number(record.variant_count) > 0,
+            onExpand: (expanded, record) => { if (expanded) loadRowStock(record.product_id || record.id); },
+            expandedRowRender: (record) => {
+              const entry = rowStock[record.product_id || record.id];
+              if (entry?.error) return <span className="text-red-400 text-sm">Could not load stock details.</span>;
+              const split = (v) => (v ? String(v).split(',').map((x) => x.trim()).filter(Boolean) : []);
+              return (
+                <div style={{ maxWidth: 640 }}>
+                  <VariantStockGrid
+                    readOnly
+                    loading={!entry || entry.loading}
+                    colors={Array.isArray(record.colors) ? record.colors : split(record.colors)}
+                    sizes={Array.isArray(record.sizes) ? record.sizes : split(record.sizes)}
+                    value={entry?.map || {}}
+                  />
+                </div>
+              );
+            },
+          }}
           className="admin-table"
           pagination={{ pageSize: 10 }}
           scroll={{ x: 'max-content' }}
@@ -659,7 +721,20 @@ const Products = () => {
             </Select>
           </Form.Item>
 
-          <div className="grid grid-cols-3 gap-4">
+          <Form.Item
+            label="Stock by colour & size"
+            extra="How many of each colour and size you have. The shop shows exactly these numbers, and each sale reduces the matching one."
+          >
+            <VariantStockGrid
+              colors={watchedColors}
+              sizes={watchedSizes}
+              value={variantStock}
+              onChange={setVariantStock}
+              loading={variantStockLoading}
+            />
+          </Form.Item>
+
+          <div className="grid grid-cols-2 gap-4">
             <Form.Item
               name="price"
               label="Price ($)"
@@ -673,13 +748,6 @@ const Products = () => {
               />
             </Form.Item>
 
-            <Form.Item
-              name="stock_quantity"
-              label="Stock"
-              rules={[{ required: true, message: 'Please enter stock' }]}
-            >
-              <InputNumber min={0} className="w-full" placeholder="0" />
-            </Form.Item>
 
             <Form.Item
               name="discount_percentage"

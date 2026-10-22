@@ -224,7 +224,7 @@ const Users = () => {
             description="This action cannot be undone."
             onConfirm={() => handleDelete(record.user_id)}
             okText="Delete"
-            okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
+            okButtonProps={{ danger: true }}
             cancelText="Cancel"
           >
             <Button
@@ -240,7 +240,7 @@ const Users = () => {
 
   return (
     <AdminLayout title="Users">
-      <Card className="border-border" style={{ background: '#111111' }}>
+      <Card className="border-border" style={{ background: 'hsl(var(--card))' }}>
         <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
           <Input
             placeholder="Search users..."

@@ -86,12 +86,12 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #050505 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'hsl(var(--background))' }}>
       <Card
         className="w-full max-w-sm"
         style={{
-          background: '#111111',
-          borderColor: '#1f1f1f',
+          background: 'hsl(var(--card))',
+          borderColor: 'hsl(var(--border))',
         }}
       >
         <h2 className="text-foreground text-2xl font-bold mb-6 text-center">Admin Login</h2>

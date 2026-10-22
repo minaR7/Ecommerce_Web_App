@@ -153,7 +153,7 @@ const Subcategories = () => {
               message.error(err.message || 'Failed to delete subcategory');
             }
           }}
-          okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
+          okButtonProps={{ danger: true }}
         >
           <AppButton type="text" icon={<DeleteOutlined />} className="text-red-400" />
         </Popconfirm>

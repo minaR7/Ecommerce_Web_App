@@ -67,7 +67,7 @@ const Customers = () => {
 
   return (
     <AdminLayout title="Customers">
-      <Card className="border-border" style={{ background: '#111111' }}>
+      <Card className="border-border" style={{ background: 'hsl(var(--card))' }}>
         <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
           <Input
             placeholder="Search customers..."

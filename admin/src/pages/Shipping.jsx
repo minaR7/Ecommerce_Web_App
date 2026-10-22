@@ -95,7 +95,7 @@ const Shipping = () => {
     { title: 'Actions', key: 'actions', render: (_, r) => (
       <Space>
         <Button type="text" icon={<EditOutlined />} onClick={() => { setEditingFee(r); form.setFieldsValue(r); setIsModalOpen(true); }}   className="text-muted-foreground hover:text-foreground"/>
-        <Popconfirm title="Delete?" okText="Delete" cancelText="Cancel"  okButtonProps={{ style: { backgroundColor: '#fff', color: '#000' } }}
+        <Popconfirm title="Delete?" okText="Delete" cancelText="Cancel"  okButtonProps={{ danger: true }}
          onConfirm={() => handleDelete(r.id)}><Button type="text" icon={<DeleteOutlined />}  className="text-muted-foreground hover:text-destructive"/></Popconfirm>
       </Space>
     )}

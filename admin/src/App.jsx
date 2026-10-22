@@ -1,10 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { ConfigProvider } from "antd";
 import { useState, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { antdDarkTheme } from "./config/antdTheme";
+import { ThemeProvider } from "./theme/ThemeProvider";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Orders from "./pages/Orders";
@@ -20,6 +19,7 @@ import PageEditor from "./pages/PageEditor";
 import SiteContent from "./pages/SiteContent";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import Notifications from "./pages/Notifications";
 import { usersApi, clearAdminSession } from "./services/api";
 
 const queryClient = new QueryClient();
@@ -64,8 +64,8 @@ const Protected = ({ children }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#fff',
-        background: '#000',
+        color: 'hsl(var(--foreground))',
+        background: 'hsl(var(--background))',
         padding: 24,
       }}>
         {state === 'redirecting' ? 'Redirecting to login…' : 'Checking access…'}
@@ -81,23 +81,23 @@ const Protected = ({ children }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#000',
-        color: '#fff',
+        background: 'hsl(var(--background))',
+        color: 'hsl(var(--foreground))',
         padding: 24,
       }}>
         <div style={{
-          background: '#111',
-          border: '1px solid #1f1f1f',
+          background: 'hsl(var(--card))',
+          border: '1px solid hsl(var(--border))',
           borderRadius: 8,
           padding: 32,
           maxWidth: 420,
           width: '100%',
           textAlign: 'center',
         }}>
-          <h2 style={{ color: '#fff', margin: 0, marginBottom: 12, fontSize: 22 }}>
+          <h2 style={{ color: 'hsl(var(--foreground))', margin: 0, marginBottom: 12, fontSize: 22 }}>
             Access Denied
           </h2>
-          <p style={{ color: '#a1a1aa', margin: 0, marginBottom: 24 }}>
+          <p style={{ color: 'hsl(var(--muted-foreground))', margin: 0, marginBottom: 24 }}>
             You do not have permission to access the admin panel, or your session has expired.
           </p>
           <a
@@ -105,8 +105,8 @@ const Protected = ({ children }) => {
             onClick={clearAdminSession}
             style={{
               display: 'inline-block',
-              background: '#fff',
-              color: '#000',
+              background: 'hsl(var(--primary))',
+              color: 'hsl(var(--primary-foreground))',
               padding: '10px 20px',
               borderRadius: 6,
               textDecoration: 'none',
@@ -124,7 +124,7 @@ const Protected = ({ children }) => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ConfigProvider theme={antdDarkTheme}>
+    <ThemeProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
@@ -231,11 +231,19 @@ const App = () => (
               </Protected>
             }
           />
+          <Route
+            path="/notifications"
+            element={
+              <Protected>
+                <Notifications />
+              </Protected>
+            }
+          />
           {/* <Route path="/settings" element={<Settings />} /> */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         <ToastContainer position="top-right" autoClose={3000} />
-    </ConfigProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

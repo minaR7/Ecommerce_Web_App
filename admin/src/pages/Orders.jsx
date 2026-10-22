@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Table,
   Button,
@@ -71,6 +72,21 @@ const Orders = () => {
   };
 
   useEffect(() => { fetchOrders(); }, []);
+
+  // /orders?order=123 (from a notification) opens that order once loaded.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const wanted = searchParams.get('order');
+    if (!wanted || !orders.length) return;
+    const match = orders.find((o) => String(o.order_id) === wanted);
+    if (match) {
+      setSelectedOrder(match);
+      setIsModalOpen(true);
+    } else {
+      message.info(`Order #${wanted} was not found.`);
+    }
+    setSearchParams({}, { replace: true });
+  }, [orders, searchParams, setSearchParams]);
 
   const filteredOrders = orders.filter((o) => {
     const matchesSearch =
@@ -182,7 +198,7 @@ const Orders = () => {
 
   return (
     <AdminLayout title="Orders">
-      <Card className="border-border" style={{ background: '#111111' }}>
+      <Card className="border-border" style={{ background: 'hsl(var(--card))' }}>
         <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
           <div className="flex gap-4">
             <Input
