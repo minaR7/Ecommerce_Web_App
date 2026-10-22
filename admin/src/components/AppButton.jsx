@@ -1,7 +1,15 @@
 import React from 'react';
 import { Button } from 'antd';
 
-export const AppButton = React.forwardRef(({ children, className, style, ...props }, ref) => {
+export const AppButton = React.forwardRef(({ children, className, style: rawStyle, ...props }, ref) => {
+  // Primary buttons take their colours from the theme (white-on-dark or
+  // dark-on-light). Callers still pass color '#000' from the dark-only days;
+  // drop it so the label stays visible in the light theme.
+  let style = rawStyle;
+  if (props.type === 'primary' && style) {
+    const { color: _color, background: _bg, backgroundColor: _bgc, ...rest } = style;
+    style = rest;
+  }
   const bg = style?.backgroundColor || style?.background;
   const isWhite = bg === 'white' || bg === '#fff';
   const mergedStyle = {
