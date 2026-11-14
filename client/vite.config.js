@@ -17,6 +17,10 @@ export default defineConfig({
     lightningcss: { targets },
   },
   build: {
+    // Built JS/CSS go to dist/static/, NOT dist/assets/. public/assets/ (images)
+    // and the server's own /assets folder share that name, so keeping app code
+    // separate means deleting/overwriting image folders can't break the app.
+    assetsDir: 'static',
     cssMinify: 'lightningcss',
     // antd and Stripe are single large third-party libraries that can't be
     // split further and only load on the pages that use them (antd = UI core,

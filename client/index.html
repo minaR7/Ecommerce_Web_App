@@ -2,13 +2,87 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/assets/logo/El-Maghrib-logos-black.png" />
+    <link rel="icon" type="image/png" href="/assets/logo/El-Maghrib-logos-black.png" />
     <!-- <link href="/src/index.css" rel="stylesheet"> -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Elmaghrib</title>
+    <!--
+      Bundle-failure detector. Must stay ABOVE the module script Vite injects.
+      If any same-origin JS/CSS file fails to load (e.g. the built files are missing
+      on the server), swap the fallback shell's "Loading…" text for a maintenance
+      message. Capture phase is required: resource load errors don't bubble.
+      A timer covers the case where the JS loads but crashes before React mounts.
+    -->
+    <script>
+      (function () {
+        function showDown() {
+          var m = document.getElementById('fb-msg');
+          if (m) m.textContent = "We're updating our website. Please check back shortly — you can still reach us at support@jabador.com.";
+        }
+        window.addEventListener('error', function (e) {
+          var t = e.target;
+          if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK')) return;
+          var url = t.src || t.href || '';
+          if (url.indexOf(location.origin) === 0) showDown();
+        }, true);
+        // React removes #fb-shell when it mounts; if it's still here after 8s, something failed.
+        window.addEventListener('load', function () {
+          setTimeout(function () { if (document.getElementById('fb-shell')) showDown(); }, 8000);
+        });
+      })();
+    </script>
   </head>
   <body>
-    <div id="root" style="width: 100%; height: 100vh;"></div>
+    <div id="root" style="width: 100%; height: 100vh;">
+      <!--
+        Static fallback shell. Shown instantly while the app loads, and stays visible
+        if the JS bundles fail. React's createRoot().render() replaces everything in
+        #root on first render, so this never shows alongside the real app.
+        Self-contained on purpose: inline CSS, text logo, no requests to /assets.
+      -->
+      <div id="fb-shell">
+        <style>
+          #fb-shell{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#222;min-height:100vh;display:flex;flex-direction:column;background:#fff}
+          #fb-shell a{color:inherit;text-decoration:none}
+          #fb-shell .fb-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid #eee}
+          #fb-shell .fb-logo{font:700 24px/1 Georgia,"Times New Roman",serif;letter-spacing:4px}
+          #fb-shell .fb-nav{display:flex;flex-wrap:wrap;gap:20px;font-size:15px}
+          #fb-shell .fb-nav a:hover{text-decoration:underline}
+          #fb-shell .fb-hero{flex:1;display:grid;place-items:center;text-align:center;padding:64px 16px;background:#f7f2ea}
+          #fb-shell .fb-hero h1{font:400 clamp(28px,5vw,44px)/1.2 Georgia,"Times New Roman",serif;margin:0 0 12px}
+          #fb-shell .fb-hero p{margin:0 auto;max-width:560px;color:#555;font-size:16px;line-height:1.5}
+          #fb-shell .fb-foot{padding:28px 24px;color:#fff;font-size:14px;text-align:center;background:linear-gradient(180deg,#343f4d 0%,#202836 45%,#0e0f11 100%)}
+          #fb-shell .fb-foot nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;margin-bottom:12px}
+          #fb-shell .fb-foot a{color:#ddd}
+        </style>
+        <header class="fb-head">
+          <a class="fb-logo" href="/">EL MAGHRIB</a>
+          <nav class="fb-nav">
+            <a href="/">Home</a>
+            <a href="/store">Store</a>
+            <a href="/our-history">Our History</a>
+            <a href="/cart">Cart</a>
+            <a href="/my-account">My Account</a>
+          </nav>
+        </header>
+        <main class="fb-hero">
+          <div>
+            <h1>Traditional Moroccan Clothing</h1>
+            <p id="fb-msg">Loading…</p>
+          </div>
+        </main>
+        <footer class="fb-foot">
+          <nav>
+            <a href="/legal-notice">Legal Notice</a>
+            <a href="/privacy-policy">Privacy Policy</a>
+            <a href="/conditions-of-sale">Conditions of Sale</a>
+            <a href="/delivery-time">Delivery</a>
+            <a href="/exchange-return">Exchange &amp; Return</a>
+          </nav>
+          <div>support@jabador.com</div>
+        </footer>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
