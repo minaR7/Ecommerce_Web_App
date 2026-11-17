@@ -2,6 +2,7 @@ const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
+const { SUPPORT_EMAIL, MAIL_FROM } = require('../config/contact');
 
 // ── Brand ────────────────────────────────────────────────────────────────────
 const NAVY = '#15203a';
@@ -75,7 +76,7 @@ const emailShell = (bodyHtml) => `
             <div style="border-top:1px solid #eee;padding-top:16px;font-size:12px;line-height:1.6;color:${MUTED};text-align:center;">
               <p style="margin:0 0 4px;font-weight:bold;color:${NAVY};">El-Maghrib — Reviving the Sunnah</p>
               <p style="margin:0;">Authentic Moroccan fashion, handcrafted for every occasion.</p>
-              <p style="margin:8px 0 0;">Need help? Reply to this email and our team will assist you.</p>
+              <p style="margin:8px 0 0;">Need help? Email us at <a href="mailto:${SUPPORT_EMAIL}" style="color:${NAVY};">${SUPPORT_EMAIL}</a> or reply to this email.</p>
             </div>
           </td></tr>
         </table>
@@ -250,7 +251,8 @@ exports.sendInvoiceEmail = async (userInfo, orderInfo, orderItems) => {
 
     const transporter = createTransporter();
     await transporter.sendMail({
-      from: `"El-Maghrib" <${process.env.SMTP_USER}>`,
+      from: `"El-Maghrib" <${MAIL_FROM}>`,
+      replyTo: SUPPORT_EMAIL,
       to: userInfo.email,
       subject: `Your El-Maghrib Invoice — Order #${orderInfo.orderId}`,
       text: `Hi ${userInfo.firstName || ''},\n\nThank you for your order #${orderInfo.orderId}! Your invoice is attached.\n\nTotal: ${eur(orderInfo.total)}\n\n- The El-Maghrib Team`,
@@ -295,7 +297,8 @@ exports.sendOrderStatusEmail = async (userInfo, orderId, status, orderItems = []
 
     const transporter = createTransporter();
     await transporter.sendMail({
-      from: `"El-Maghrib" <${process.env.SMTP_USER}>`,
+      from: `"El-Maghrib" <${MAIL_FROM}>`,
+      replyTo: SUPPORT_EMAIL,
       to: userInfo.email,
       subject: `Update on your Order #${orderId} — ${prettyStatus}`,
       text: `Hi ${userInfo.firstName || ''},\n\nYour order #${orderId} status has been updated to: ${prettyStatus}.\n\nThank you for shopping with us.\n\n- The El-Maghrib Team`,

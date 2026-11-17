@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const { SUPPORT_EMAIL } = require('../config/contact');
 
 const SETTINGS_FILE = path.join(__dirname, '../data/site_settings.json');
 
@@ -25,7 +26,7 @@ const defaultSettings = {
   footer_description: 'Our shop offers classy and modern Moroccan outfits made with passion in our workshops in Morocco.',
   footer_need_help_text: 'Monday to Sunday from 9 a.m. to 6 p.m.',
   footer_whatsapp: '',
-  footer_email: 'support@jabador.com',
+  footer_email: SUPPORT_EMAIL,
   footer_phone: '+1234567890',
   footer_instagram: '',
   footer_facebook: '',

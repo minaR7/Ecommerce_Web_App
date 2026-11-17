@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const dns = require('dns').promises;
 const nodemailer = require('nodemailer');
+const { SUPPORT_EMAIL, MAIL_FROM } = require('../config/contact');
 
 const isValidEmailSyntax = (email) => {
   if (typeof email !== 'string') return false;
@@ -98,11 +99,12 @@ const makeTransporter = () =>
 const sendSignupEmail = async ({ email, first_name }) => {
   const transporter = makeTransporter();
   await transporter.sendMail({
-    from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
+    from: `"Elmaghrib" <${MAIL_FROM}>`,
+    replyTo: SUPPORT_EMAIL,
     to: email,
     subject: `Welcome to Elmaghrib`,
-    text: `Hi ${first_name || ''},\n\nYour account has been created successfully.\n\n- The Elmaghrib Team`,
-    html: `<p>Hi ${first_name || ''},</p><p>Your account has been created successfully.</p><p>- The Elmaghrib Team</p>`,
+    text: `Hi ${first_name || ''},\n\nYour account has been created successfully.\n\nNeed help? Email us at ${SUPPORT_EMAIL}.\n\n- The Elmaghrib Team`,
+    html: `<p>Hi ${first_name || ''},</p><p>Your account has been created successfully.</p><p>Need help? Email us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p><p>- The Elmaghrib Team</p>`,
   });
 };
 
@@ -117,10 +119,11 @@ const sendPasswordResetEmail = async ({ email, resetUrl }) => {
   // *actual* send, and more importantly lets sendPasswordResetEmail succeed
   // when the caller has opted into SMTP_TLS_STRICT=false.
   const info = await transporter.sendMail({
-    from: `"Elmaghrib" <${process.env.SMTP_USER}>`,
+    from: `"Elmaghrib" <${MAIL_FROM}>`,
+    replyTo: SUPPORT_EMAIL,
     to: email,
     subject: 'Reset your Elmaghrib password',
-    text: `We received a request to reset your password.\n\nReset it here (link valid for 30 minutes):\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.\n\n- The Elmaghrib Team`,
+    text: `We received a request to reset your password.\n\nReset it here (link valid for 30 minutes):\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.\n\nNeed help? Email us at ${SUPPORT_EMAIL}.\n\n- The Elmaghrib Team`,
     html: `
       <p>We received a request to reset your password.</p>
       <p>
@@ -132,6 +135,7 @@ const sendPasswordResetEmail = async ({ email, resetUrl }) => {
       <p>
         If you didn't request this, you can safely ignore this email.
       </p>
+      <p>Need help? Email us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
       <p>- The Elmaghrib Team</p>
     `,
   });
