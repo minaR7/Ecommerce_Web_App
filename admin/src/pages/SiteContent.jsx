@@ -484,7 +484,7 @@ const SiteContent = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Form.Item name="footer_email" label="Email">
-                <Input placeholder="support@example.com" />
+                <Input placeholder="info@elmaghrib.com" />
               </Form.Item>
               <Form.Item name="footer_phone" label="Phone">
                 <Input placeholder="+1234567890" />
