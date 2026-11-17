@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { SUPPORT_EMAIL } from '../config/contact';
 
 // Built-in defaults so the homepage renders fully and INSTANTLY on the very
 // first visit — even before (or without) any response from the backend.
@@ -18,7 +19,7 @@ export const SETTINGS_DEFAULTS = {
   footer_description: 'Our shop offers classy and modern Moroccan outfits made with passion in our workshops in Morocco.',
   footer_need_help_text: 'Monday to Sunday from 9 a.m. to 6 p.m.',
   footer_whatsapp: '',
-  footer_email: 'support@jabador.com',
+  footer_email: SUPPORT_EMAIL,
   footer_phone: '',
   footer_instagram: '',
   footer_facebook: '',
