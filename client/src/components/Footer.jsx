@@ -2,6 +2,7 @@ import { Layout } from 'antd';
 import { FaWhatsapp, FaEnvelope, FaPhone, FaInstagram, FaFacebook, FaLinkedin } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { useSiteSettings } from '../hooks/useSiteSettings';
+import { SUPPORT_EMAIL } from '../config/contact';
 
 const { Footer } = Layout;
 
@@ -10,7 +11,7 @@ const FooterMenu = () => {
 
     const description    = settings.footer_description    || 'Our shop offers classy and modern Moroccan outfits made with passion in our workshops in Morocco.';
     const needHelpText   = settings.footer_need_help_text || 'Monday to Sunday from 9 a.m. to 6 p.m.';
-    const email          = settings.footer_email          || 'support@jabador.com';
+    const email          = settings.footer_email          || SUPPORT_EMAIL;
     const phone          = settings.footer_phone          || '';
     const whatsapp       = settings.footer_whatsapp       || '';
     const instagram      = settings.footer_instagram      || '#';
@@ -68,6 +69,11 @@ const FooterMenu = () => {
                     <div className="text-center md:text-left">
                         <p className="font-semibold text-lg">Need Help?</p>
                         <p>{needHelpText}</p>
+                        {email && (
+                            <p>
+                                <a href={`mailto:${email}`} className="hover:text-yellow-400 underline">{email}</a>
+                            </p>
+                        )}
                         <div className="flex justify-center md:justify-start gap-4 mt-2">
                             {whatsapp && (
                                 <a href={`https://wa.me/${whatsapp.replace(/\D/g, '')}`} aria-label="WhatsApp" className="hover:text-green-400" target="_blank" rel="noreferrer">
