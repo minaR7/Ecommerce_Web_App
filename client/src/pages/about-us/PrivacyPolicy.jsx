@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, Typography, Spin } from "antd";
 import { usePageContent } from "../../hooks/usePageContent";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../../config/contact";
 
 const { Title, Paragraph } = Typography;
 
@@ -57,7 +58,7 @@ const PrivacyPolicy = () => {
             list={[
               "Elmaghrib.com",
               "Address: 6 Newton Park, Mayfield, Cork, Ireland",
-              "Email (Data Protection Officer): contact@elmaghrib.com",
+              <>Email (Data Protection Officer): <a href={SUPPORT_MAILTO} className="text-[#202836] underline">{SUPPORT_EMAIL}</a></>,
             ]}
           />
 
@@ -119,7 +120,7 @@ const PrivacyPolicy = () => {
               "Object to processing or marketing.",
               "Withdraw consent at any time.",
               "Data portability (where applicable).",
-              "Requests processed via: contact@elmaghrib.com",
+              <>Requests processed via: <a href={SUPPORT_MAILTO} className="text-[#202836] underline">{SUPPORT_EMAIL}</a></>,
             ]}
           />
 
@@ -157,7 +158,7 @@ const PrivacyPolicy = () => {
             title="Contact"
             list={[
               "Data Protection Officer – Elmaghrib.com",
-              "Email: contact@elmaghrib.com",
+              <>Email: <a href={SUPPORT_MAILTO} className="text-[#202836] underline">{SUPPORT_EMAIL}</a></>,
               "Address: 6 Newton Park, Mayfield, Cork, Ireland"
             ]}
           />

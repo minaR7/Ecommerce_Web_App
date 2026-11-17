@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, Typography, Spin } from "antd";
 import { usePageContent } from "../../hooks/usePageContent";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../../config/contact";
 
 const { Title, Paragraph } = Typography;
 
@@ -87,7 +88,7 @@ const LegalNotice = () => {
             list={[
               "Elmaghrib.com",
               "Address: 6 Newton Park, Mayfield, Cork, Ireland",
-              "Email: info@elmaghrib.com",
+              <>Email: <a href={SUPPORT_MAILTO} className="text-[#202836] underline">{SUPPORT_EMAIL}</a></>,
               "Company Registration: Registered in Ireland.",
               "Company Registration Number: [Al-Quds Distributors Limited]",
               "VAT Number: [Blank for now]",
