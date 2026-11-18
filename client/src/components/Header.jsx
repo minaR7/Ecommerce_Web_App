@@ -92,6 +92,7 @@ import { UserOutlined, ShoppingCartOutlined, DownOutlined  } from '@ant-design/i
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import CartDrawer from './CartDrawer';
+import { ThemeToggle } from '../theme/ThemeProvider';
 import { useSiteSettings } from '../hooks/useSiteSettings';
 
 const { Header } = Layout;
@@ -150,6 +151,7 @@ const HeaderMenu = () => {
 
     return (
         <Header
+            className="site-header"
             style={{
                 position: 'sticky',
                 top: 0,
@@ -208,6 +210,8 @@ const HeaderMenu = () => {
                     <UserOutlined className="text-xl cursor-pointer text-black" />
                 </Link>
                 )}
+                {/* Light/dark toggle: renders nothing until FEATURES.darkMode is true */}
+                <ThemeToggle />
                 <div className="border-l h-6 border-gray-400 "></div>
 
                    <Badge count={cartCount} showZero>

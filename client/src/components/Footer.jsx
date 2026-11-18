@@ -3,6 +3,8 @@ import { FaWhatsapp, FaEnvelope, FaPhone, FaInstagram, FaFacebook, FaLinkedin } 
 import { Link } from 'react-router-dom';
 import { useSiteSettings } from '../hooks/useSiteSettings';
 import { SUPPORT_EMAIL } from '../config/contact';
+import { FEATURES } from '../config/features';
+import { openCookieSettings } from '../consent/cookieConsent';
 
 const { Footer } = Layout;
 
@@ -48,6 +50,18 @@ const FooterMenu = () => {
                             <li><Link to="/legal-notice"       className="hover:underline">Legal Notice</Link></li>
                             <li><Link to="/privacy-policy"     className="hover:underline">Privacy Policy</Link></li>
                             <li><Link to="/conditions-of-sale" className="hover:underline">Conditions of Sale</Link></li>
+                            {FEATURES.cookieConsent && (
+                                <li>
+                                    <button
+                                        type="button"
+                                        onClick={openCookieSettings}
+                                        className="hover:underline bg-transparent border-0 p-0 cursor-pointer text-white"
+                                        style={{ fontWeight: 600, fontSize: 'medium', fontFamily: 'inherit' }}
+                                    >
+                                        Cookie settings
+                                    </button>
+                                </li>
+                            )}
                         </ul>
                     </div>
 
