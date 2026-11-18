@@ -1,0 +1,98 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Storefront dark theme.
+
+   Every rule is scoped to html[data-theme="dark"], which ThemeProvider only
+   sets when FEATURES.darkMode is true, so this file has no effect otherwise.
+
+   Most pages use light Tailwind utilities (bg-white, text-gray-700 ...) and a
+   few inline styles, so instead of editing each page, the common ones are
+   remapped here. !important is needed to beat inline styles.
+   ───────────────────────────────────────────────────────────────────────── */
+
+html[data-theme="dark"] {
+  --sf-bg: #12151b;          /* page background */
+  --sf-surface: #1b1f27;     /* cards, header, panels */
+  --sf-surface-2: #232833;   /* raised surfaces, hover */
+  --sf-border: #2f3542;
+  --sf-text: #e8e8ea;
+  --sf-text-muted: #a5a9b3;
+
+  color-scheme: dark;
+  background-color: var(--sf-bg);
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .ant-layout,
+html[data-theme="dark"] .site-layout {
+  background-color: var(--sf-bg) !important;
+  color: var(--sf-text);
+}
+
+/* Layout shell (inline backgrounds in App.jsx / Header.jsx) */
+html[data-theme="dark"] .site-content,
+html[data-theme="dark"] .home-page {
+  background-color: var(--sf-bg) !important;
+}
+html[data-theme="dark"] .site-header {
+  background-color: var(--sf-surface) !important;
+  border-bottom: 1px solid var(--sf-border);
+}
+
+/* Header logo is black-on-white: invert it, and let the (now black)
+   background blend into the dark header. */
+html[data-theme="dark"] .site-header img[alt="Logo"] {
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
+/* Header icons + theme toggle */
+html[data-theme="dark"] .site-header .text-black,
+html[data-theme="dark"] .theme-toggle {
+  color: var(--sf-text) !important;
+}
+
+/* Common light Tailwind utilities used across pages */
+html[data-theme="dark"] .bg-white { background-color: var(--sf-surface) !important; }
+html[data-theme="dark"] .bg-gray-50,
+html[data-theme="dark"] .bg-gray-100 { background-color: var(--sf-surface-2) !important; }
+html[data-theme="dark"] .text-black,
+html[data-theme="dark"] .text-gray-900,
+html[data-theme="dark"] .text-gray-800 { color: var(--sf-text) !important; }
+html[data-theme="dark"] .text-gray-700,
+html[data-theme="dark"] .text-gray-600,
+html[data-theme="dark"] .text-gray-500 { color: var(--sf-text-muted) !important; }
+html[data-theme="dark"] .border-gray-100,
+html[data-theme="dark"] .border-gray-200,
+html[data-theme="dark"] .border-gray-400 { border-color: var(--sf-border) !important; }
+
+/* Links that index.css forces to black on light pages */
+html[data-theme="dark"] .link-text a { color: var(--sf-text) !important; }
+
+/* Headings / body text set to dark colours in index.css */
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4 { color: var(--sf-text); }
+
+/* Product cards and other antd cards */
+html[data-theme="dark"] .ant-card {
+  background-color: var(--sf-surface) !important;
+  border-color: var(--sf-border) !important;
+  color: var(--sf-text);
+}
+
+/* Rich-text CMS pages (privacy policy, history ...) */
+html[data-theme="dark"] .prose { color: var(--sf-text); }
+html[data-theme="dark"] .prose a { color: #f5c76b; }
+
+/* Cookie banner */
+html[data-theme="dark"] .cookie-banner-card {
+  background-color: var(--sf-surface-2) !important;
+  color: var(--sf-text) !important;
+  --tw-ring-color: var(--sf-border);
+}
+html[data-theme="dark"] .cookie-link { color: #f5c76b !important; }
+
+/* Scrollbar */
+html[data-theme="dark"] ::-webkit-scrollbar-track { background: var(--sf-bg); }
+html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--sf-border); }
