@@ -2,7 +2,9 @@
 // import { createRoot } from 'react-dom/client';
 // import { BrowserRouter } from 'react-router-dom'; // add this import
 // import './index.css';
+import './theme/dark.css';
 // import App from './App.jsx';
+import { ThemeProvider } from './theme/ThemeProvider';
 
 // createRoot(document.getElementById('root')).render(
 //   <StrictMode>
@@ -28,7 +30,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Provider store={store}> {/* Wrap app in Redux Provider */}
       <BrowserRouter>
-        <App />
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
       </BrowserRouter>
     </Provider>
   </StrictMode>

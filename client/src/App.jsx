@@ -30,6 +30,7 @@ const DeliveryPolicy = lazy(() => import('./pages/quick-links/DeliveryTime'));
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScrollToTop from './components/ScrollToTop';
+import CookieBanner from './components/CookieBanner';
 
 const { Header, Content, Footer } = Layout;
 
@@ -43,12 +44,12 @@ const App = () => {
   // sessionStorage.setItem('guestCart', JSON.stringify(updatedCart));
 
   return (
-     <Layout style={{ backgroundColor: "#ffffff", overflowX: "hidden" }} >
+     <Layout className="site-layout" style={{ backgroundColor: "#ffffff", overflowX: "hidden" }} >
         <ScrollToTop />
         <HeaderMenu> </HeaderMenu>
         {/* On the homepage the content area takes the page's grey and drops the
             white bottom padding, so the grey runs right down to the footer with no gap. */}
-        <Content style={{ padding: isHome ? 0 : '0rem 0rem 1rem 0rem', minHeight: "75vh", backgroundColor: isHome ? "#f7f7f5" : "#fff", overflowX: "hidden" }}>
+        <Content className="site-content" style={{ padding: isHome ? 0 : '0rem 0rem 1rem 0rem', minHeight: "75vh", backgroundColor: isHome ? "#f7f7f5" : "#fff", overflowX: "hidden" }}>
           {/* {marginTop: 64, #f5f5f5 } */}
             <Suspense fallback={<div style={{ minHeight: '75vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>}>
             <Routes>
@@ -84,6 +85,8 @@ const App = () => {
           </Routes>
             </Suspense>
             <ToastContainer position="top-right" autoClose={3000} />
+            {/* Inactive until FEATURES.cookieConsent is true (src/config/features.js) */}
+            <CookieBanner />
          </Content>
       <FooterMenu></FooterMenu>
     </Layout>

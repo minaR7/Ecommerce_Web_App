@@ -42,7 +42,7 @@ const Home = () => {
   const introText      = s('intro_text');
 
   return (
-    <div className="bg-[#f7f7f5]">
+    <div className="home-page bg-[#f7f7f5]">
       {/* ── Hero / Cover ─────────────────────────────────────────────── */}
       <section className="relative w-full h-[420px] md:h-[576px] overflow-hidden">
         <img
