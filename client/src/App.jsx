@@ -2,7 +2,7 @@ import React, { useState, lazy, Suspense } from 'react';
 import { Layout, Spin } from 'antd';
 import HeaderMenu from './components/Header';
 import FooterMenu from './components/Footer';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Home from './Home';
 
 // Route pages are code-split so each loads on demand, keeping the initial
@@ -38,6 +38,7 @@ const App = () => {
 
   const showDrawer = () => setVisible(true);
   const closeDrawer = () => setVisible(false);
+  const isHome = useLocation().pathname === '/';
   // const updatedCart = [{"productId":1,"variant":4,"quantity":3,"coverImg":"http://localhost:3005/assets/jabador-white-and-gold-503x800.jpg","name":"Men Casual Shirt","basePrice":29.99,"size":"L","color":"yellow"}]
   // sessionStorage.setItem('guestCart', JSON.stringify(updatedCart));
 
@@ -45,7 +46,9 @@ const App = () => {
      <Layout style={{ backgroundColor: "#ffffff", overflowX: "hidden" }} >
         <ScrollToTop />
         <HeaderMenu> </HeaderMenu>
-        <Content style={{ padding: '0rem 0rem 1rem 0rem', minHeight: "75vh", backgroundColor: "#fff", overflowX: "hidden" }}>
+        {/* On the homepage the content area takes the page's grey and drops the
+            white bottom padding, so the grey runs right down to the footer with no gap. */}
+        <Content style={{ padding: isHome ? 0 : '0rem 0rem 1rem 0rem', minHeight: "75vh", backgroundColor: isHome ? "#f7f7f5" : "#fff", overflowX: "hidden" }}>
           {/* {marginTop: 64, #f5f5f5 } */}
             <Suspense fallback={<div style={{ minHeight: '75vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>}>
             <Routes>
